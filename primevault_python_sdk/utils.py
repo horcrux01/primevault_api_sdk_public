@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 
-from constants import AWS_REGION
+from primevault_python_sdk.constants import AWS_REGION
 
 
 def generate_private_key():

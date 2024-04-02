@@ -1,4 +1,3 @@
-import base64
 from enum import Enum
 
 import boto3
@@ -8,7 +7,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 
-from constants import AWS_REGION, KMS_SIGNING_ALGORITHM
+from primevault_python_sdk.constants import AWS_REGION, KMS_SIGNING_ALGORITHM
 
 
 class SignatureServiceEnum(Enum):

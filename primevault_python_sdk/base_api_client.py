@@ -1,10 +1,9 @@
 import json
-from decimal import Decimal
 from typing import Optional
 
 import requests
 
-from auth_token_service import AuthTokenService
+from primevault_python_sdk.auth_token_service import AuthTokenService
 
 
 class BaseAPIClient(object):

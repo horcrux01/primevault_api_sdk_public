@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from src.base_api_client import BaseAPIClient
+from primevault_python_sdk.base_api_client import BaseAPIClient
 
 
 class APIClient(BaseAPIClient):
