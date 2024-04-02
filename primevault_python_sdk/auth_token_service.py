@@ -4,7 +4,7 @@ import time
 from hashlib import sha256
 from typing import Optional
 
-from signature_service import PrivateKeySignatureService, KMSSignatureService, SignatureServiceEnum
+from primevault_python_sdk.signature_service import PrivateKeySignatureService, KMSSignatureService, SignatureServiceEnum
 
 EXPIRES_IN = 3600
 
