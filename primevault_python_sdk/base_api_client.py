@@ -4,6 +4,7 @@ from typing import Optional
 import requests
 
 from primevault_python_sdk.auth_token_service import AuthTokenService
+from primevault_python_sdk.signature_service import get_signature_service
 
 
 class BaseAPIClient(object):
@@ -16,6 +17,7 @@ class BaseAPIClient(object):
             "Api-Key": self.api_key,
         }
         self.auth_token_service = AuthTokenService(self.api_key, private_key, **kwargs)
+        self.signature_service = get_signature_service(private_key, **kwargs)
 
     def get(self, path: str, params: Optional[dict] = None):
         return self._make_request("GET", url_path=path, params=params)
@@ -33,6 +35,8 @@ class BaseAPIClient(object):
         full_url = f"{self.api_url}{url_path}"
         api_token = self.auth_token_service.generate_auth_token(url_path, data)
         self.headers["Authorization"] = f"Bearer {api_token}"
+        if data:
+            data['dataSignatureHex'] = self.signature_service.sign(json.dumps(data).encode('utf-8')).hex()
 
         response = None
         try:

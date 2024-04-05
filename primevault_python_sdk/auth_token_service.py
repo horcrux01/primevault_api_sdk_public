@@ -4,7 +4,7 @@ import time
 from hashlib import sha256
 from typing import Optional
 
-from primevault_python_sdk.signature_service import PrivateKeySignatureService, KMSSignatureService, SignatureServiceEnum
+from primevault_python_sdk.signature_service import SignatureServiceEnum, get_signature_service
 
 EXPIRES_IN = 3600
 
@@ -14,10 +14,7 @@ SIGNATURE_SERVICE = SignatureServiceEnum.PRIVATE_KEY.value
 class AuthTokenService(object):
     def __init__(self, api_key: str, private_key: Optional[bytes] = None, **kwargs):
         self.api_key = api_key
-        if SIGNATURE_SERVICE == SignatureServiceEnum.PRIVATE_KEY.value:
-            self.signature_service = PrivateKeySignatureService(private_key)
-        elif SIGNATURE_SERVICE == SignatureServiceEnum.AWS_KMS.value:
-            self.signature_service = KMSSignatureService(**kwargs)
+        self.signature_service = get_signature_service(private_key, **kwargs)
 
     def generate_auth_token(self, url_path: str, body: Optional[dict] = None):
         timestamp = int(time.time())

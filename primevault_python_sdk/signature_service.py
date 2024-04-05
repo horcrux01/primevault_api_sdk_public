@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 import boto3
 from botocore.exceptions import ClientError
@@ -54,3 +55,14 @@ class KMSSignatureService(BaseSignatureService):
         except ClientError as e:
             print(f"An error occurred while signing: {e}")
             return None
+
+
+def get_signature_service(private_key: Optional[bytes] = None, **kwargs):
+    from primevault_python_sdk.auth_token_service import SIGNATURE_SERVICE
+
+    if SIGNATURE_SERVICE == SignatureServiceEnum.PRIVATE_KEY.value:
+        return PrivateKeySignatureService(private_key)
+    elif SIGNATURE_SERVICE == SignatureServiceEnum.AWS_KMS.value:
+        return KMSSignatureService(**kwargs)
+    else:
+        raise ValueError(f"Invalid signature service: {SIGNATURE_SERVICE}")
