@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 from primevault_python_sdk.constants import AWS_REGION
 
 
-def generate_private_key():
+def generate_public_private_key_pair():
     private_key: EllipticCurvePrivateKey = ec.generate_private_key(
         ec.SECP256R1(), default_backend()
     )
@@ -22,7 +22,7 @@ def generate_private_key():
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     )
-    return pem_private_key, public_key_bytes
+    return public_key_bytes, pem_private_key
 
 
 def generate_aws_kms_key_pair():

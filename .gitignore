@@ -1,0 +1,4 @@
+.idea/
+venv/
+primevault_api_sdk.egg-info/
+primevault_python_sdk/__pycache__/
