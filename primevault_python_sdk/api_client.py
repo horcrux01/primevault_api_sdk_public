@@ -7,8 +7,8 @@ class APIClient(BaseAPIClient):
     def get_assets_data(self):
         return self.get("/api/external/assets/")
 
-    def get_transactions(self):
-        return self.get("/api/external/transactions/")
+    def get_transactions(self, offset: Optional[int] = 0, limit: Optional[int] = 20):
+        return self.get(f"/api/external/transactions/?offset={offset}&limit={limit}")
 
     def get_transaction_by_id(self, transaction_id: str):
         return self.get(f"/api/external/transactions/{transaction_id}/")
@@ -90,8 +90,8 @@ class APIClient(BaseAPIClient):
         }
         return self.post("/api/external/transactions/", data=data)
 
-    def get_vaults(self):
-        return self.get("/api/external/vaults/")
+    def get_vaults(self, offset: Optional[int] = 0, limit: Optional[int] = 20):
+        return self.get(f"/api/external/vaults/?limit={limit}&offset={offset}")
 
     def get_vault_by_id(self, vault_id: str):
         return self.get(f"/api/external/vaults/{vault_id}/")
@@ -122,8 +122,8 @@ class APIClient(BaseAPIClient):
             f"/api/external/operations/{operation_id}/update_user_action/", data=data
         )
 
-    def get_contacts(self):
-        return self.get("/api/external/contacts/")
+    def get_contacts(self, offset: Optional[int] = 0, limit: Optional[int] = 20):
+        return self.get(f"/api/external/contacts/?limit={limit}&offset={offset}")
 
     def get_contact_by_id(self, contact_id: str):
         return self.get(f"/api/external/contacts/{contact_id}/")
