@@ -5,7 +5,7 @@ setup(
     version='0.1.0',
     packages=find_packages(),
     install_requires=[
-        'boto3==1.33.13',
+        'boto3==1.34.84',
         'cryptography==42.0.4',
     ],
     author='PrimeVault',
