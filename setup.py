@@ -7,6 +7,7 @@ setup(
     install_requires=[
         'boto3==1.34.84',
         'cryptography==42.0.4',
+        'requests==2.31.0',
     ],
     author='PrimeVault',
     description='Python SDK for PrimeVault APIs',

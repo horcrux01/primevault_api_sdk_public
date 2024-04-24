@@ -4,11 +4,8 @@ import time
 from hashlib import sha256
 from typing import Optional
 
-from primevault_python_sdk.signature_service import SignatureServiceEnum, get_signature_service
-
-EXPIRES_IN = 3600
-
-SIGNATURE_SERVICE = SignatureServiceEnum.PRIVATE_KEY.value
+from primevault_python_sdk.config import Config
+from primevault_python_sdk.signature_service import get_signature_service
 
 
 class AuthTokenService(object):
@@ -22,7 +19,7 @@ class AuthTokenService(object):
         body = sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()
         payload = {
             "iat": timestamp,
-            "exp": timestamp + EXPIRES_IN,
+            "exp": timestamp + Config.get_expires_in(),
             "urlPath": url_path,
             "userId": self.api_key,
             "body": body,
