@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 
-from primevault_python_sdk.constants import AWS_REGION
+from primevault_python_sdk.config import Config
 
 
 def generate_public_private_key_pair():
@@ -29,7 +29,7 @@ def generate_aws_kms_key_pair():
     """
     Setup AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in your environment
     """
-    kms_client = boto3.client('kms', AWS_REGION)
+    kms_client = boto3.client('kms', Config.get_aws_region())
     key_alias = 'primevault-access-key'
     try:
         # Create a KMS key for signing

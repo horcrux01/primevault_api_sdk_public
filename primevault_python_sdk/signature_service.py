@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 
-from primevault_python_sdk.constants import AWS_REGION, KMS_SIGNING_ALGORITHM
+from primevault_python_sdk.config import Config
 
 
 class SignatureServiceEnum(Enum):
@@ -40,7 +40,7 @@ class PrivateKeySignatureService(BaseSignatureService):
 
 class KMSSignatureService(BaseSignatureService):
     def __init__(self, key_id: str):
-        self.kms_client = boto3.client("kms", region_name=AWS_REGION)
+        self.kms_client = boto3.client("kms", region_name=Config.get_aws_region())
         self.key_id = key_id
 
     def sign(self, message: bytes):
@@ -48,21 +48,20 @@ class KMSSignatureService(BaseSignatureService):
             response = self.kms_client.sign(
                 KeyId=self.key_id,
                 Message=message,
-                MessageType='RAW',
-                SigningAlgorithm=KMS_SIGNING_ALGORITHM
+                MessageType="RAW",
+                SigningAlgorithm=Config.get_kms_signing_algorithm(),
             )
-            return response['Signature']
+            return response["Signature"]
         except ClientError as e:
             print(f"An error occurred while signing: {e}")
             return None
 
 
 def get_signature_service(private_key: Optional[bytes] = None, **kwargs):
-    from primevault_python_sdk.auth_token_service import SIGNATURE_SERVICE
-
-    if SIGNATURE_SERVICE == SignatureServiceEnum.PRIVATE_KEY.value:
+    signature_service = Config.get_signature_service()
+    if signature_service == SignatureServiceEnum.PRIVATE_KEY.value:
         return PrivateKeySignatureService(private_key)
-    elif SIGNATURE_SERVICE == SignatureServiceEnum.AWS_KMS.value:
+    elif signature_service == SignatureServiceEnum.AWS_KMS.value:
         return KMSSignatureService(**kwargs)
     else:
-        raise ValueError(f"Invalid signature service: {SIGNATURE_SERVICE}")
+        raise ValueError(f"Invalid signature service: {signature_service}")
