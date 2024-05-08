@@ -1,5 +1,4 @@
 import base64
-import json
 import time
 from hashlib import sha256
 from typing import Optional
