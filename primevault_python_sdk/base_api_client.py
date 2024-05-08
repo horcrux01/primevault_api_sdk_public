@@ -36,7 +36,9 @@ class BaseAPIClient(object):
         api_token = self.auth_token_service.generate_auth_token(url_path, data)
         self.headers["Authorization"] = f"Bearer {api_token}"
         if data:
-            data['dataSignatureHex'] = self.signature_service.sign(json.dumps(data).encode('utf-8')).hex()
+            data["dataSignatureHex"] = self.signature_service.sign(
+                json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hex()
 
         response = None
         try:

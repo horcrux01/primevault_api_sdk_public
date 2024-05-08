@@ -16,7 +16,7 @@ class AuthTokenService(object):
     def generate_auth_token(self, url_path: str, body: Optional[dict] = None):
         timestamp = int(time.time())
         body = body or {}
-        body = sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()
+        body = sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
         payload = {
             "iat": timestamp,
             "exp": timestamp + Config.get_expires_in(),
