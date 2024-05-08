@@ -1,3 +1,5 @@
+import json
+
 import boto3
 from botocore.exceptions import ClientError
 from cryptography.hazmat.backends import default_backend
@@ -59,3 +61,6 @@ def generate_aws_kms_key_pair():
         print(f"An error occurred: {e}")
         return None
 
+
+def json_dumps(data: dict) -> str:
+    return json.dumps(data, sort_keys=True, separators=(",", ":"))

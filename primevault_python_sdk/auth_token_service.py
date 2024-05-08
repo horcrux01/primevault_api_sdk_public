@@ -1,11 +1,11 @@
 import base64
-import json
 import time
 from hashlib import sha256
 from typing import Optional
 
 from primevault_python_sdk.config import Config
 from primevault_python_sdk.signature_service import get_signature_service
+from primevault_python_sdk.utils import json_dumps
 
 
 class AuthTokenService(object):
@@ -16,7 +16,7 @@ class AuthTokenService(object):
     def generate_auth_token(self, url_path: str, body: Optional[dict] = None):
         timestamp = int(time.time())
         body = body or {}
-        body = sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()
+        body = sha256(json_dumps(body).encode("utf-8")).hexdigest()
         payload = {
             "iat": timestamp,
             "exp": timestamp + Config.get_expires_in(),
@@ -34,12 +34,8 @@ class AuthTokenService(object):
         return f"{encoded_request}.{encoded_signature}"
 
     def encode_request(self, headers: dict, payload: dict) -> str:
-        json_header = json.dumps(
-            headers, separators=(",", ":"), sort_keys=True
-        ).encode()
-        json_payload = json.dumps(
-            payload, separators=(",", ":"), sort_keys=True
-        ).encode()
+        json_header = json_dumps(headers).encode()
+        json_payload = json_dumps(payload).encode()
         encoded_header = base64.urlsafe_b64encode(json_header).decode("utf-8")
         encoded_payload = base64.urlsafe_b64encode(json_payload).decode("utf-8")
         return f"{encoded_header}.{encoded_payload}"
