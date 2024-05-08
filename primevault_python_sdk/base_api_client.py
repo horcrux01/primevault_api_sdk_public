@@ -5,6 +5,7 @@ import requests
 
 from primevault_python_sdk.auth_token_service import AuthTokenService
 from primevault_python_sdk.signature_service import get_signature_service
+from primevault_python_sdk.utils import json_dumps
 
 
 class BaseAPIClient(object):
@@ -36,9 +37,7 @@ class BaseAPIClient(object):
         api_token = self.auth_token_service.generate_auth_token(url_path, data)
         self.headers["Authorization"] = f"Bearer {api_token}"
         if data:
-            data["dataSignatureHex"] = self.signature_service.sign(
-                json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
-            ).hex()
+            data["dataSignatureHex"] = self.signature_service.sign(json_dumps(data).encode("utf-8")).hex()
 
         response = None
         try:
