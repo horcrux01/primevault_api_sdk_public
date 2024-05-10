@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 import boto3
 from cryptography.hazmat.primitives import serialization
@@ -26,12 +27,12 @@ def generate_public_private_key_pair() -> (str, str):
     return {"public_key_hex": public_key_hex, "private_key_hex": private_key_hex}
 
 
-def generate_aws_kms_key_pair() -> (str, str):
+def generate_aws_kms_key_pair(key_alias: Optional[str] = None) -> (str, str):
     """
     Setup AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in your environment
     """
     kms_client = boto3.client("kms", Config.get_aws_region())
-    key_alias = "primevault-access-key"
+    key_alias = key_alias or "primevault-access-key"
     response = kms_client.create_key(
         Description="Key for Signing PrimeVault requests",
         KeyUsage="SIGN_VERIFY",
