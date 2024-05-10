@@ -27,11 +27,12 @@ class BaseSignatureService(object):
 
 
 class PrivateKeySignatureService(BaseSignatureService):
-    def __init__(self, private_key_bytes: bytes):
-        self.private_key: EllipticCurvePrivateKey = serialization.load_pem_private_key(
-            private_key_bytes,
-            password=None,
-            backend=default_backend(),
+    def __init__(self, private_key_hex: str):
+        private_key_bytes = bytes.fromhex(private_key_hex)
+        self.private_key: ec.EllipticCurvePrivateKey = (
+            serialization.load_der_private_key(
+                private_key_bytes, password=None, backend=default_backend()
+            )
         )
 
     def sign(self, message: bytes):
@@ -44,24 +45,28 @@ class KMSSignatureService(BaseSignatureService):
         self.key_id = key_id
 
     def sign(self, message: bytes):
-        try:
-            response = self.kms_client.sign(
-                KeyId=self.key_id,
-                Message=message,
-                MessageType="RAW",
-                SigningAlgorithm=Config.get_kms_signing_algorithm(),
-            )
-            return response["Signature"]
-        except ClientError as e:
-            print(f"An error occurred while signing: {e}")
-            return None
+        response = self.kms_client.sign(
+            KeyId=self.key_id,
+            Message=message,
+            MessageType="RAW",
+            SigningAlgorithm=Config.get_kms_signing_algorithm(),
+        )
+        return response["Signature"]
 
 
-def get_signature_service(private_key: Optional[bytes] = None, **kwargs):
+def get_signature_service(
+    private_key: Optional[str] = None, key_id: Optional[str] = None
+):
     signature_service = Config.get_signature_service()
     if signature_service == SignatureServiceEnum.PRIVATE_KEY.value:
+        if not private_key:
+            raise ValueError(
+                "Private key is required for PRIVATE_KEY signature service"
+            )
         return PrivateKeySignatureService(private_key)
     elif signature_service == SignatureServiceEnum.AWS_KMS.value:
-        return KMSSignatureService(**kwargs)
+        if not key_id:
+            raise ValueError("Key ID is required for AWS_KMS signature service")
+        return KMSSignatureService(key_id=key_id)
     else:
         raise ValueError(f"Invalid signature service: {signature_service}")

@@ -9,9 +9,14 @@ from primevault_python_sdk.utils import json_dumps
 
 
 class AuthTokenService(object):
-    def __init__(self, api_key: str, private_key: Optional[bytes] = None, **kwargs):
+    def __init__(
+        self,
+        api_key: str,
+        private_key: Optional[str] = None,
+        key_id: Optional[str] = None,
+    ):
         self.api_key = api_key
-        self.signature_service = get_signature_service(private_key, **kwargs)
+        self.signature_service = get_signature_service(private_key, key_id)
 
     def generate_auth_token(self, url_path: str, body: Optional[dict] = None):
         timestamp = int(time.time())
