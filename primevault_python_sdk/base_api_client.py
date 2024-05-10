@@ -9,7 +9,13 @@ from primevault_python_sdk.utils import json_dumps
 
 
 class BaseAPIClient(object):
-    def __init__(self, api_key: str, api_url: str, private_key: Optional[bytes] = None, **kwargs):
+    def __init__(
+        self,
+        api_key: str,
+        api_url: str,
+        private_key: Optional[bytes] = None,
+        key_id: Optional[str] = None,
+    ):
         self.api_key = api_key
         self.api_url = api_url
         self.headers = {
@@ -17,8 +23,8 @@ class BaseAPIClient(object):
             "Accept": "application/json",
             "Api-Key": self.api_key,
         }
-        self.auth_token_service = AuthTokenService(self.api_key, private_key, **kwargs)
-        self.signature_service = get_signature_service(private_key, **kwargs)
+        self.auth_token_service = AuthTokenService(self.api_key, private_key, key_id)
+        self.signature_service = get_signature_service(private_key, key_id)
 
     def get(self, path: str, params: Optional[dict] = None):
         return self._make_request("GET", url_path=path, params=params)
