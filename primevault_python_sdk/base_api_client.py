@@ -13,7 +13,7 @@ class BaseAPIClient(object):
         self,
         api_key: str,
         api_url: str,
-        private_key: Optional[bytes] = None,
+        private_key_hex: Optional[str] = None,
         key_id: Optional[str] = None,
     ):
         self.api_key = api_key
@@ -23,8 +23,10 @@ class BaseAPIClient(object):
             "Accept": "application/json",
             "Api-Key": self.api_key,
         }
-        self.auth_token_service = AuthTokenService(self.api_key, private_key, key_id)
-        self.signature_service = get_signature_service(private_key, key_id)
+        self.auth_token_service = AuthTokenService(
+            self.api_key, private_key_hex, key_id
+        )
+        self.signature_service = get_signature_service(private_key_hex, key_id)
 
     def get(self, path: str, params: Optional[dict] = None):
         return self._make_request("GET", url_path=path, params=params)
@@ -43,7 +45,9 @@ class BaseAPIClient(object):
         api_token = self.auth_token_service.generate_auth_token(url_path, data)
         self.headers["Authorization"] = f"Bearer {api_token}"
         if data:
-            data["dataSignatureHex"] = self.signature_service.sign(json_dumps(data).encode("utf-8")).hex()
+            data["dataSignatureHex"] = self.signature_service.sign(
+                json_dumps(data).encode("utf-8")
+            ).hex()
 
         response = None
         try:

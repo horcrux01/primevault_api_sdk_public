@@ -28,7 +28,7 @@ api_key = (
 api_url = "https://app.primevault.com"
 
 """
-Set the signature service to PRIVATE_KEY. 
+Set the signature service to PRIVATE_KEY.
 
 Another option is AWS_KMS where AWS KMS manages the private key.
 In this case, private_key is not required for initializing the client.
