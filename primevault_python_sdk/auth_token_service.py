@@ -12,11 +12,11 @@ class AuthTokenService(object):
     def __init__(
         self,
         api_key: str,
-        private_key: Optional[str] = None,
+        private_key_hex: Optional[str] = None,
         key_id: Optional[str] = None,
     ):
         self.api_key = api_key
-        self.signature_service = get_signature_service(private_key, key_id)
+        self.signature_service = get_signature_service(private_key_hex, key_id)
 
     def generate_auth_token(self, url_path: str, body: Optional[dict] = None):
         timestamp = int(time.time())
@@ -29,12 +29,9 @@ class AuthTokenService(object):
             "userId": self.api_key,
             "body": body,
         }
-        headers = {
-            "alg": "ES256",
-            "typ": "JWT"
-        }
+        headers = {"alg": "ES256", "typ": "JWT"}
         encoded_request = self.encode_request(headers, payload)
-        signature = self.sign_request(encoded_request.encode('utf-8'))
+        signature = self.sign_request(encoded_request.encode("utf-8"))
         encoded_signature = base64.urlsafe_b64encode(signature).decode("utf-8")
         return f"{encoded_request}.{encoded_signature}"
 

@@ -2,11 +2,9 @@ from enum import Enum
 from typing import Optional
 
 import boto3
-from botocore.exceptions import ClientError
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 
 from primevault_python_sdk.config import Config
 
@@ -55,15 +53,15 @@ class KMSSignatureService(BaseSignatureService):
 
 
 def get_signature_service(
-    private_key: Optional[str] = None, key_id: Optional[str] = None
+    private_key_hex: Optional[str] = None, key_id: Optional[str] = None
 ):
     signature_service = Config.get_signature_service()
     if signature_service == SignatureServiceEnum.PRIVATE_KEY.value:
-        if not private_key:
+        if not private_key_hex:
             raise ValueError(
                 "Private key is required for PRIVATE_KEY signature service"
             )
-        return PrivateKeySignatureService(private_key)
+        return PrivateKeySignatureService(private_key_hex)
     elif signature_service == SignatureServiceEnum.AWS_KMS.value:
         if not key_id:
             raise ValueError("Key ID is required for AWS_KMS signature service")
