@@ -14,11 +14,11 @@ class APIClient(BaseAPIClient):
         return self.get(f"/api/external/transactions/{transaction_id}/")
 
     def estimate_fee(
-        self, source_id: str, destination_id: str, amount: str, asset: str, chain: str
+        self, source: dict, destination: str, amount: str, asset: str, chain: str
     ):
         data = {
-            "sourceId": source_id,
-            "destinationId": destination_id,
+            "source": source,
+            "destination": destination,
             "amount": amount,
             "asset": asset,
             "blockChain": chain,
@@ -28,8 +28,8 @@ class APIClient(BaseAPIClient):
 
     def create_transfer_transaction(
         self,
-        source_id: str,
-        destination_id: str,
+        source: dict,
+        destination: dict,
         amount: str,
         asset: str,
         chain: str,
@@ -39,8 +39,8 @@ class APIClient(BaseAPIClient):
         execute_at: Optional[str] = None,
     ):
         data = {
-            "sourceId": source_id,
-            "destinationId": destination_id,
+            "source": source,
+            "destination": destination,
             "amount": str(amount),
             "asset": asset,
             "blockChain": chain,
