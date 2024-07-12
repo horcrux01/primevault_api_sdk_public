@@ -37,6 +37,7 @@ class APIClient(BaseAPIClient):
         external_id: Optional[str] = None,
         is_automation: Optional[bool] = False,
         execute_at: Optional[str] = None,
+        memo: Optional[str] = None,
     ):
         data = {
             "source": source,
@@ -49,6 +50,7 @@ class APIClient(BaseAPIClient):
             "externalId": external_id,
             "isAutomation": is_automation,
             "executeAt": execute_at,
+            "memo": memo,
         }
         return self.post("/api/external/transactions/", data=data)
 
@@ -79,6 +81,7 @@ class APIClient(BaseAPIClient):
         trade_request_data: dict,
         trade_response_data: dict,
         external_id: Optional[str] = None,
+        memo: Optional[str] = None,
     ):
         data = {
             "vaultId": vault_id,
@@ -87,6 +90,7 @@ class APIClient(BaseAPIClient):
             "category": "SWAP",
             "blockChain": trade_request_data["blockChain"],
             "externalId": external_id,
+            "memo": memo,
         }
         return self.post("/api/external/transactions/", data=data)
 
