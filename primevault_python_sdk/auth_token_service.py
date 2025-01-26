@@ -2,6 +2,7 @@ import base64
 import time
 from hashlib import sha256
 from typing import Optional
+from uuid import uuid4
 
 from primevault_python_sdk.config import Config
 from primevault_python_sdk.signature_service import get_signature_service
@@ -28,6 +29,7 @@ class AuthTokenService(object):
             "urlPath": url_path,
             "userId": self.api_key,
             "body": body,
+            "jti": str(uuid4()),
         }
         headers = {"alg": "ES256", "typ": "JWT"}
         encoded_request = self.encode_request(headers, payload)
