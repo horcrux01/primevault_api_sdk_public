@@ -86,15 +86,15 @@ class TransferPartyData:
 class Wallet:
     id: str
     blockchain: str
-    address: str
+    address: Optional[str] = None
 
 
 @dataclass
 class User:
     id: str
     firstName: str
-    lastName: str
     email: str
+    lastName: Optional[str] = None
 
 
 @dataclass
@@ -103,13 +103,13 @@ class Vault:
     orgId: str
     vaultName: str
     vaultType: str  # VaultType
-    wallets: List[Wallet]
     signers: List[User]
-    viewers: List[User]
     createdAt: str
     updatedAt: str
     isDeleted: bool
     walletsGenerated: Optional[bool] = None
+    wallets: Optional[List[Wallet]] = None
+    viewers: Optional[List[User]] = None
 
 
 @dataclass
@@ -120,15 +120,15 @@ class Contact:
     blockChain: str
     address: str
     status: str  # ContactStatus
-    isSmartContractAddress: bool
-    createdById: str
-    isSanctioned: bool
     createdAt: str
     updatedAt: str
     isDeleted: bool
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
     operationId: Optional[str] = None
+    isSmartContractAddress: Optional[bool] = None
+    isSanctioned: Optional[bool] = None
+    createdById: Optional[str] = None
 
 
 @dataclass
@@ -251,7 +251,7 @@ class TradeQuoteRequest:
     fromChain: str
     toAsset: str
     toChain: str
-    slippage: str
+    slippage: Optional[str] = None
 
 
 @dataclass
