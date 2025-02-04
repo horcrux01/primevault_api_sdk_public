@@ -11,13 +11,13 @@ from primevault_python_sdk.types import (
     ContactListResponse,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
+    CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     EstimatedFeeResponse,
     EstimateFeeRequest,
     GetTradeQuoteResponse,
-    TradeQuoteRequest,
     Transaction,
     TransactionListResponse,
     Vault,
@@ -57,8 +57,8 @@ class APIClient(BaseAPIClient):
 
     def estimate_fee(self, request: EstimateFeeRequest) -> EstimatedFeeResponse:
         data = {
-            "source": request.source,
-            "destination": request.destination,
+            "source": request.source.__dict__,
+            "destination": request.destination.__dict__,
             "amount": request.amount,
             "asset": request.asset,
             "blockChain": request.chain,
@@ -72,6 +72,9 @@ class APIClient(BaseAPIClient):
     def create_transfer_transaction(
         self, request: CreateTransferTransactionRequest
     ) -> Transaction:
+        gas_params = {}
+        if request.gasParams:
+            gas_params = request.gasParams.__dict__
         data = {
             "source": request.source.__dict__,
             "destination": request.destination.__dict__,
@@ -79,7 +82,7 @@ class APIClient(BaseAPIClient):
             "asset": request.asset,
             "blockChain": request.chain,
             "category": "TRANSFER",
-            "gasParams": request.gasParams or {},
+            "gasParams": gas_params,
             "externalId": request.externalId,
             "isAutomation": request.isAutomation,
             "executeAt": request.executeAt,
@@ -92,21 +95,28 @@ class APIClient(BaseAPIClient):
     def create_contract_call_transaction(
         self, request: CreateContractCallTransactionRequest
     ) -> Transaction:
+        gas_params = {}
+        if request.gasParams:
+            gas_params = request.gasParams.__dict__
+
         data = {
             "vaultId": request.vaultId,
             "blockChain": request.chain,
             "amount": request.amount,
-            "messageHex": request.messageHex,
-            "toAddress": request.toAddress,
             "category": "CONTRACT_CALL",
             "data": request.data.__dict__,
             "externalId": request.externalId,
+            "gasParams": gas_params,
+            "messageHex": request.messageHex,
+            "toAddress": request.toAddress,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)
         )
 
-    def get_trade_quote(self, request: TradeQuoteRequest) -> GetTradeQuoteResponse:
+    def get_trade_quote(
+        self, request: CreateTradeQuoteRequest
+    ) -> GetTradeQuoteResponse:
         data = {
             "vaultId": request.vaultId,
             "fromAsset": request.fromAsset,
@@ -129,7 +139,7 @@ class APIClient(BaseAPIClient):
             "tradeRequestData": request.tradeRequestData.__dict__,
             "tradeResponseData": request.tradeResponseData.__dict__,
             "category": "SWAP",
-            "blockChain": request.tradeRequestData.fromChain,
+            "blockChain": request.tradeRequestData.blockChain,
             "externalId": request.externalId,
             "memo": request.memo,
         }

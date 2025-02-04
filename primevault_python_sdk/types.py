@@ -179,6 +179,7 @@ class Transaction:
     sourceAddress: Optional[str] = None
     txnSignature: Optional[str] = None
     output: Optional[TransactionOutput] = None
+    dAppId: Optional[str] = None
 
 
 # Requests
@@ -220,11 +221,11 @@ class CreateContractCallTransactionRequest:
     vaultId: str
     chain: str
     amount: Optional[str] = None
-    messageHex: Optional[str] = None
-    toAddress: Optional[str] = None
     data: Optional[ContractCallData] = None
     externalId: Optional[str] = None
     gasParams: Optional[TransactionCreationGasParams] = None
+    messageHex: Optional[str] = None
+    toAddress: Optional[str] = None
 
 
 @dataclass
@@ -244,7 +245,7 @@ class CreateVaultRequest:
 
 
 @dataclass
-class TradeQuoteRequest:
+class CreateTradeQuoteRequest:
     vaultId: str
     fromAsset: str
     fromAmount: str
@@ -295,15 +296,6 @@ class TradeQuoteResponseData:
 
 
 @dataclass
-class CreateTradeTransactionRequest:
-    vaultId: str
-    tradeRequestData: TradeQuoteRequest
-    tradeResponseData: TradeQuoteResponseData
-    externalId: Optional[str] = None
-    memo: Optional[str] = None
-
-
-@dataclass
 class TradeQuoteRequestData:
     fromAsset: str
     fromAmount: str
@@ -313,6 +305,15 @@ class TradeQuoteRequestData:
     slippage: str
     fromAmountUSD: Optional[str] = None
     destinationAddress: Optional[str] = None
+
+
+@dataclass
+class CreateTradeTransactionRequest:
+    vaultId: str
+    tradeRequestData: TradeQuoteRequestData
+    tradeResponseData: TradeQuoteResponseData
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
 
 
 @dataclass

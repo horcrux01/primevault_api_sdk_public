@@ -5,14 +5,15 @@ import pytest
 from dacite import from_dict
 
 from primevault_python_sdk.api_client import APIClient
+from primevault_python_sdk.base_api_client import BadRequestError
 from primevault_python_sdk.types import (
     ContactStatus,
     CreateContractCallTransactionRequest,
+    CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     EVMContractCallData,
-    TradeQuoteRequest,
     TransactionCreationGasParams,
     TransactionFeeTier,
     TransactionStatus,
@@ -154,7 +155,7 @@ class TestApiClient(unittest.TestCase):
             },
         }
         # The original test expects a 400 error if the vault exists
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(BadRequestError) as exc_info:
             self.api_client.create_vault(
                 from_dict(data_class=CreateVaultRequest, data=data)
             )
@@ -187,7 +188,7 @@ class TestApiClient(unittest.TestCase):
             },
         )
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(BadRequestError) as exc_info:
             self.api_client.create_transfer_transaction(
                 from_dict(
                     CreateTransferTransactionRequest,
@@ -227,7 +228,7 @@ class TestApiClient(unittest.TestCase):
     def test_create_contract_call_transaction(self):
         vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
         vault_id = vaults.results[0].id
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(BadRequestError) as exc_info:
             self.api_client.create_contract_call_transaction(
                 CreateContractCallTransactionRequest(
                     **{
@@ -250,7 +251,7 @@ class TestApiClient(unittest.TestCase):
         source_vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
         vault_id = source_vaults.results[0].id
         trade_quote_response = self.api_client.get_trade_quote(
-            TradeQuoteRequest(
+            CreateTradeQuoteRequest(
                 **{
                     "vaultId": vault_id,
                     "fromAsset": "ETH",
@@ -284,7 +285,7 @@ class TestApiClient(unittest.TestCase):
         source_vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
         vault_id = source_vaults.results[0].id
         trade_quote_response = self.api_client.get_trade_quote(
-            TradeQuoteRequest(
+            CreateTradeQuoteRequest(
                 **{
                     "vaultId": vault_id,
                     "fromAsset": "ETH",
@@ -297,7 +298,7 @@ class TestApiClient(unittest.TestCase):
             )
         )
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(BadRequestError) as exc_info:
             self.api_client.create_trade_transaction(
                 CreateTradeTransactionRequest(
                     **{
