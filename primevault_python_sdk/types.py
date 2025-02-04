@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
@@ -286,13 +287,20 @@ class EstimatedFeeResponse:
 @dataclass
 class TradeQuoteResponseData:
     finalToAmount: str
-    finalToAmountUSD: str
+    quoteResponseDict: dict
+    handler: str
     sourceName: str
-    feeInUSD: str
-    autoSlippage: str
+    handlerCategory: Optional[str] = None
     unitToAssetAmount: Optional[str] = None
-    quotesValidTill: Optional[str] = None
-    estCompletionTimeInSec: Optional[str] = None
+    approvedFinalToAmount: Optional[str] = None
+    quotesValidTill: Optional[datetime.datetime] = None
+    feeInUSD: Optional[str] = None
+    finalToAmountUSD: Optional[str] = None
+    stepsData: Optional[list] = None
+    sourceLogoURL: Optional[str] = None
+    estCompletionTimeInSec: Optional[int] = None
+    autoSlippage: Optional[str] = None
+    minimumToAmount: Optional[str] = None
 
 
 @dataclass
@@ -306,6 +314,10 @@ class TradeQuoteRequestData:
     fromAmountUSD: Optional[str] = None
     destinationAddress: Optional[str] = None
     chainId: Optional[str] = None
+    fromAssetLogoURL: Optional[str] = None
+    toAssetLogoURL: Optional[str] = None
+    expectedToAmountUSD: Optional[str] = None
+    expiryInMinutes: Optional[int] = None
 
 
 @dataclass
