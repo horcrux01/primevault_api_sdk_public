@@ -160,7 +160,6 @@ class Transaction:
     amount: str
     blockChain: str
     status: str  # TransactionStatus
-    toAddress: str
     transactionType: str  # TransactionType
     category: str  # TransactionCategory
     subCategory: str  # TransactionSubCategory
@@ -168,6 +167,7 @@ class Transaction:
     updatedAt: str
     isDeleted: bool
     # Optional fields
+    toAddress: Optional[str] = None
     asset: Optional[str] = None
     toAddressName: Optional[str] = None
     createdById: Optional[str] = None
@@ -181,6 +181,7 @@ class Transaction:
     txnSignature: Optional[str] = None
     output: Optional[TransactionOutput] = None
     dAppId: Optional[str] = None
+    operationId: Optional[str] = None
 
 
 # Requests
@@ -276,6 +277,15 @@ class FeeData:
     baseFee: Optional[str] = None
     priorityFee: Optional[str] = None
 
+    def __eq__(self, other):
+        return (
+            self.expectedFeeInAsset == other.expectedFeeInAsset
+            and self.asset == other.asset
+            and self.expectedFeeInUSD == other.expectedFeeInUSD
+            and self.baseFee == other.baseFee
+            and self.priorityFee == other.priorityFee
+        )
+
 
 @dataclass
 class EstimatedFeeResponse:
@@ -287,7 +297,7 @@ class EstimatedFeeResponse:
 @dataclass
 class TradeQuoteResponseData:
     finalToAmount: str
-    quoteResponseDict: dict
+    quoteResponseDict: str
     handler: str
     sourceName: str
     handlerCategory: Optional[str] = None

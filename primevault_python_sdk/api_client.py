@@ -43,6 +43,7 @@ class APIClient(BaseAPIClient):
         query_params = ""
         if params:
             query_params = "&".join([f"{k}={v}" for k, v in params.items()])
+
         return from_dict(
             TransactionListResponse,
             self.get(
@@ -75,6 +76,7 @@ class APIClient(BaseAPIClient):
         gas_params = {}
         if request.gasParams:
             gas_params = request.gasParams.__dict__
+
         data = {
             "source": request.source.__dict__,
             "destination": request.destination.__dict__,
@@ -88,9 +90,8 @@ class APIClient(BaseAPIClient):
             "executeAt": request.executeAt,
             "memo": request.memo,
         }
-        return from_dict(
-            Transaction, self.post("/api/external/transactions/", data=data)
-        )
+        response = self.post("/api/external/transactions/", data=data)
+        return from_dict(Transaction, response)
 
     def create_contract_call_transaction(
         self, request: CreateContractCallTransactionRequest
@@ -157,6 +158,7 @@ class APIClient(BaseAPIClient):
         query_params = ""
         if params:
             query_params = "&".join([f"{k}={v}" for k, v in params.items()])
+
         response = self.get(
             f"/api/external/vaults/?limit={limit}&page={page}&reverse={reverse}&{query_params}"
         )
@@ -202,6 +204,7 @@ class APIClient(BaseAPIClient):
         query_params = ""
         if params:
             query_params = "&".join([f"{k}={v}" for k, v in params.items()])
+
         response = self.get(
             f"/api/external/contacts/?limit={limit}&page={page}&{query_params}"
         )

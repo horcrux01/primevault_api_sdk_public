@@ -160,7 +160,10 @@ class TestApiClient(unittest.TestCase):
                 from_dict(data_class=CreateVaultRequest, data=data)
             )
 
-        self.assertIn("400 Client Error:", str(exc_info.value))
+        self.assertIn(
+            "A record with the same information already exists",
+            str(exc_info.value.response_text),
+        )
 
     def test_create_transfer_transaction(self):
         # find the asset and chain
@@ -204,7 +207,7 @@ class TestApiClient(unittest.TestCase):
                 )
             )
 
-        self.assertIn("400 Client Error:", str(exc_info.value))
+        self.assertIn("400 Client Error:", exc_info.value.response_text)
 
     def test_get_transaction_by_id(self):
         transaction_id = "f1cb568d-215e-426f-998a-4ba5be8288d4"
@@ -245,7 +248,10 @@ class TestApiClient(unittest.TestCase):
                     }
                 )
             )
-        self.assertIn("400 Client Error:", str(exc_info.value))
+        self.assertIn(
+            "A record with the same information already exists",
+            str(exc_info.value.response_text),
+        )
 
     def test_get_trade_quote(self):
         source_vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
@@ -311,4 +317,4 @@ class TestApiClient(unittest.TestCase):
                     }
                 )
             )
-            self.assertIn("400 Client Error:", str(exc_info.value))
+            self.assertIn("400 Client Error:", str(exc_info.value.response_text))

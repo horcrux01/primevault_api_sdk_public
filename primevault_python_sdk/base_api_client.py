@@ -34,6 +34,12 @@ class BaseAPIClient(object):
     def post(self, path: str, data: Optional[dict[str, Any]] = None):
         return self._make_request("POST", url_path=path, data=data)
 
+    def get_response(self, response: Any) -> Any:
+        try:
+            return response.json()
+        except json.decoder.JSONDecodeError:
+            return response.text
+
     def _make_request(
         self,
         method: str,
@@ -70,51 +76,55 @@ class BaseAPIClient(object):
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if response is not None:
+                response_object = self.get_response(response)
+                if isinstance(response_object, dict):
+                    message = response_object.get("message") or response.text
+                    code = response_object.get("code")
+                else:
+                    message = response.text
+                    code = None
+
                 if response.status_code == 400:
                     raise BadRequestError(
-                        f"400 Bad Request: {e} {response.text}",
-                        response_text=response.text,
+                        f"400 Bad Request: {message}", response_text=message, code=code
                     )
                 elif response.status_code == 401:
                     raise UnauthorizedError(
-                        f"401 Unauthorized: {e} {response.text}",
-                        response_text=response.text,
+                        f"401 Unauthorized: {message}", response_text=message, code=code
                     )
                 elif response.status_code == 403:
                     raise ForbiddenError(
-                        f"403 Forbidden: {e} {response.text}",
-                        response_text=response.text,
+                        f"403 Forbidden: {message}", response_text=message, code=code
                     )
                 elif response.status_code == 404:
                     raise NotFoundError(
-                        f"404 Not Found: {e} {response.text}",
-                        response_text=response.text,
+                        f"404 Not Found: {message}", response_text=message, code=code
                     )
                 elif response.status_code == 429:
                     raise TooManyRequestsError(
-                        f"429 Too Many Requests: {e} {response.text}",
-                        response_text=response.text,
+                        f"429 Too Many Requests: {message}",
+                        response_text=message,
+                        code=code,
                     )
                 elif response.status_code == 500:
                     raise InternalServerError(
-                        f"500 Internal Server Error: {e} {response.text}",
-                        response_text=response.text,
+                        f"500 Internal Server Error: {message}",
+                        response_text=message,
+                        code=code,
                     )
-            else:
-                raise Exception(f"HTTP Error: {e} {response and response.text}")
+                else:
+                    raise Exception(f"HTTP Error: {e} {message}")
         except requests.exceptions.RequestException as e:
             raise Exception(f"Request Exception: {e} {response and response.text}")
 
-        try:
-            return response.json()
-        except json.decoder.JSONDecodeError:
-            return response.text
+        return self.get_response(response)
 
 
 class BaseAPIException(Exception):
-    def __init__(self, message, response_text=None):
+    def __init__(self, message, response_text=None, code=None):
         super().__init__(message)
         self.response_text = response_text
+        self.code = code
 
 
 class BadRequestError(BaseAPIException):
