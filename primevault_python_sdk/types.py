@@ -305,6 +305,7 @@ class TradeQuoteRequestData:
     slippage: str
     fromAmountUSD: Optional[str] = None
     destinationAddress: Optional[str] = None
+    chainId: Optional[str] = None
 
 
 @dataclass
