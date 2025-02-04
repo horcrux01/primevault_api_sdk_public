@@ -92,8 +92,8 @@ class Wallet:
 @dataclass
 class User:
     id: str
-    firstName: str
-    email: str
+    firstName: Optional[str] = None
+    email: Optional[str] = None
     lastName: Optional[str] = None
 
 
