@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from primevault_python_sdk.config import Config
 
 
-def generate_public_private_key_pair() -> (str, str):
+def generate_public_private_key_pair() -> dict[str, str]:
     private_key = ec.generate_private_key(ec.SECP256R1())
     public_key = private_key.public_key()
 
@@ -27,7 +27,7 @@ def generate_public_private_key_pair() -> (str, str):
     return {"public_key_hex": public_key_hex, "private_key_hex": private_key_hex}
 
 
-def generate_aws_kms_key_pair(key_alias: Optional[str] = None) -> (str, str):
+def generate_aws_kms_key_pair(key_alias: Optional[str] = None) -> dict[str, str]:
     """
     Setup AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in your environment
     """

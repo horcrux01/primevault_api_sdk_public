@@ -1,5 +1,8 @@
+from typing import Any
+
+
 class Config:
-    _config = {}
+    _config: dict[str, Any] = {}
 
     @staticmethod
     def set(key, value):

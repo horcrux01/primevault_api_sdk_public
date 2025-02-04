@@ -2,6 +2,7 @@ import base64
 import time
 from hashlib import sha256
 from typing import Optional
+from uuid import uuid4
 
 from primevault_python_sdk.config import Config
 from primevault_python_sdk.signature_service import get_signature_service
@@ -21,13 +22,14 @@ class AuthTokenService(object):
     def generate_auth_token(self, url_path: str, body: Optional[dict] = None):
         timestamp = int(time.time())
         body = body or {}
-        body = sha256(json_dumps(body).encode("utf-8")).hexdigest()
+        body_hash = sha256(json_dumps(body).encode("utf-8")).hexdigest()
         payload = {
             "iat": timestamp,
             "exp": timestamp + Config.get_expires_in(),
             "urlPath": url_path,
             "userId": self.api_key,
-            "body": body,
+            "body": body_hash,
+            "jti": str(uuid4()),
         }
         headers = {"alg": "ES256", "typ": "JWT"}
         encoded_request = self.encode_request(headers, payload)
