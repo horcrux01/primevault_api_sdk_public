@@ -59,6 +59,11 @@ class TransactionFeeTier(str, Enum):
 
 
 @dataclass
+class TransactionCreationGasParams:
+    feeTier: Optional[str] = None  # TransactionFeeTier
+
+
+@dataclass
 class Asset:
     name: str
     symbol: str
@@ -186,7 +191,7 @@ class CreateTransferTransactionRequest:
     amount: str
     asset: str
     chain: str
-    gasParams: Optional[Dict[str, Any]] = None
+    gasParams: Optional[TransactionCreationGasParams] = None
     externalId: Optional[str] = None
     isAutomation: Optional[bool] = None
     executeAt: Optional[str] = None
@@ -208,11 +213,6 @@ class ICPCanisterCallData:
 
 # ContractCallData can be EVMContractCallData or ICPCanisterCallData
 ContractCallData = Union[EVMContractCallData, ICPCanisterCallData]
-
-
-@dataclass
-class TransactionCreationGasParams:
-    feeTier: Optional[str] = None  # TransactionFeeTier
 
 
 @dataclass
