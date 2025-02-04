@@ -25,10 +25,7 @@ from primevault_python_sdk.types import (
 def api_client():
     api_key = os.environ.get("API_KEY", "5213c10c-d2db-4036-a310-548f7190d2cf")
     api_url = os.environ.get("API_URL", "https://test.excheqr.xyz")
-    private_key = os.environ.get(
-        "ACCESS_PRIVATE_KEY",
-        "308187020100301306072a8648ce3d020106082a8648ce3d030107046d306b0201010420db2af9d23dadd69cb08edc0de4dcc0092359315db72c66a1fc712f9a95d92e0fa144034200041c0279fe1c482a1b1cc97a85b6bca836993ba720440dbdcc53f5da664b915247df24d34df4474fae2e55a6f910fe5a5e365c2304f12f87eb543a10ab77383962",
-    )
+    private_key = os.environ.get("ACCESS_PRIVATE_KEY", "")
     return APIClient(api_key, api_url, private_key)
 
 
