@@ -116,6 +116,7 @@ class Vault:
     walletsGenerated: Optional[bool] = None
     wallets: Optional[List[Wallet]] = None
     viewers: Optional[List[User]] = None
+    templateId: Optional[str] = None
 
 
 @dataclass
@@ -242,8 +243,13 @@ class EstimateFeeRequest:
 @dataclass
 class CreateVaultRequest:
     vaultName: str
-    defaultTransferSpendLimit: Dict[str, Any]
-    defaultTradeSpendLimit: Dict[str, Any]
+    templateId: Optional[str] = None
+    defaultTransferSpendLimit: Optional[Dict[str, Any]] = None
+    customTransferSpendLimits: Optional[List[Dict[str, Any]]] = None
+    defaultTradeSpendLimit: Optional[Dict[str, Any]] = None
+    customTradeSpendLimits: Optional[List[Dict[str, Any]]] = None
+    vaultSigners: Optional[List[str]] = None
+    vaultViewers: Optional[List[str]] = None
 
 
 @dataclass
