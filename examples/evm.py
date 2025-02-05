@@ -50,8 +50,8 @@ def create_contract_call_transaction(api_client: APIClient):
     print(transaction)
 
     while True:
-        txn_response = api_client.get_transaction_by_id(transaction.id)
-        if txn_response.status in [
+        transaction = api_client.get_transaction_by_id(transaction.id)
+        if transaction.status in [
             TransactionStatus.COMPLETED.value,
             TransactionStatus.FAILED.value,
         ]:
