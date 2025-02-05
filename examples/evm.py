@@ -16,38 +16,42 @@ from primevault_python_sdk.types import (
 
 
 def create_contract_call_transaction(api_client: APIClient):
-    vaults = api_client.get_vaults({"vaultName": "core-vault-1"})
-    vault_id = vaults.results[0].id
+    contract_address = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
+    call_data = "0x095ea7b3000000000000000000000000f2614a233c7c3e7f08b1f887ba133a13f1eb2c5500000000000000000000000000000000000000000000000000038d7ea4c68000"
+
     try:
-        transaction = api_client.create_contract_call_transaction(
+        response = api_client.create_contract_call_transaction(
             CreateContractCallTransactionRequest(
-                vaultId=vault_id,
-                chain="ETHEREUM",
-                externalId="externalId-1",
+                vaultId="7ad54443-21d2-4075-abef-83758c9dceb7",
+                chain="BNB",
+                externalId="external_id-001",
                 data=EVMContractCallData(
-                    callData="0x",
-                    toAddress="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    callData=call_data,
+                    toAddress=contract_address,
                 ),
                 gasParams=TransactionCreationGasParams(
-                    feeTier=TransactionFeeTier.MEDIUM.value
+                    feeTier=TransactionFeeTier.HIGH.value
                 ),
             )
         )
-    except BadRequestError as e:  # 400
+    except BadRequestError as e:
+        print(e.response_text, e.code)  # handle 400 error
         raise e
-    except UnauthorizedError as e:  # 401
+    except UnauthorizedError as e:
+        print(e.response_text, e.code)  # handle 401 error
         raise e
-    except InternalServerError as e:  # 500
+    except InternalServerError as e:
+        print(e.response_text, e.code)  # handle 500 error
         raise e
+    # similarly there are ForbiddenError, NotFoundError, ServiceUnavailableError, TooManyRequestsError exceptions
+
+    print(response)
 
     while True:
-        transaction = api_client.get_transaction_by_id(transaction.id)
-        if (
-            transaction.status == TransactionStatus.COMPLETED.value
-            or transaction.status == TransactionStatus.FAILED.value
-        ):
+        txn_response = api_client.get_transaction_by_id(response.id)
+        if txn_response.status in [
+            TransactionStatus.COMPLETED.value,
+            TransactionStatus.FAILED.value,
+        ]:
             break
-
-        time.sleep(5)
-
-    print(transaction.__dict__)
+        time.sleep(3)
