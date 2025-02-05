@@ -8,6 +8,8 @@ setup(
         "boto3==1.34.84",
         "cryptography==43.0.1",
         "requests==2.32.0",
+        "pytest==8.3.4",
+        "dacite==1.9.1",
     ],
     author="PrimeVault",
     description="Python SDK for PrimeVault APIs",

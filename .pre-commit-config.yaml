@@ -1,5 +1,17 @@
 # run locally: pip3 install pre-commit
 repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.1
+    hooks:
+      - id: mypy
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.0
+    hooks:
+      - id: bandit
+        name: bandit
+        language_version: python3
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
@@ -9,7 +21,7 @@ repos:
       - id: check-yaml
       - id: debug-statements
       - id: check-added-large-files
-        args: [ '--maxkb=1600' ]
+        args: [ '--maxkb=7000' ]
       - id: check-ast
 
   - repo: https://github.com/PyCQA/flake8
@@ -19,6 +31,7 @@ repos:
         args: [
           --max-line-length=88,
           '--extend-ignore=E501,F631,E712,E203',
+          '--exclude=app/dist/*'
         ]
         additional_dependencies: [ flake8-django ]
 

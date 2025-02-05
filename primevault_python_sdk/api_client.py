@@ -1,119 +1,181 @@
 from typing import List, Optional
 
+from dacite import from_dict
+
 from primevault_python_sdk.base_api_client import BaseAPIClient
+from primevault_python_sdk.types import (
+    Asset,
+    BalanceResponse,
+    ChainData,
+    Contact,
+    ContactListResponse,
+    CreateContactRequest,
+    CreateContractCallTransactionRequest,
+    CreateTradeQuoteRequest,
+    CreateTradeTransactionRequest,
+    CreateTransferTransactionRequest,
+    CreateVaultRequest,
+    EstimatedFeeResponse,
+    EstimateFeeRequest,
+    GetTradeQuoteResponse,
+    Transaction,
+    TransactionListResponse,
+    Vault,
+    VaultListResponse,
+)
 
 
 class APIClient(BaseAPIClient):
-    def get_assets_data(self):
-        return self.get("/api/external/assets/")
+    def get_assets_data(self) -> List[Asset]:
+        assets_response = self.get("/api/external/assets/")
+        return [from_dict(Asset, asset) for asset in assets_response]
 
-    def get_transactions(self, page: Optional[int] = 1, limit: Optional[int] = 20):
-        return self.get(f"/api/external/transactions/?page={page}&limit={limit}")
+    def get_supported_chains(self) -> List[ChainData]:
+        chains_response = self.get("/api/external/assets/supported_chains/")
+        return [from_dict(ChainData, chain) for chain in chains_response]
 
-    def get_transaction_by_id(self, transaction_id: str):
-        return self.get(f"/api/external/transactions/{transaction_id}/")
+    def get_transactions(
+        self,
+        params: Optional[dict] = None,
+        page: Optional[int] = 1,
+        limit: Optional[int] = 20,
+    ) -> TransactionListResponse:
+        query_params = ""
+        if params:
+            query_params = "&".join([f"{k}={v}" for k, v in params.items()])
 
-    def estimate_fee(
-        self, source: dict, destination: str, amount: str, asset: str, chain: str
-    ):
+        return from_dict(
+            TransactionListResponse,
+            self.get(
+                f"/api/external/transactions/?page={page}&limit={limit}&{query_params}"
+            ),
+        )
+
+    def get_transaction_by_id(self, transaction_id: str) -> Transaction:
+        return from_dict(
+            Transaction, self.get(f"/api/external/transactions/{transaction_id}/")
+        )
+
+    def estimate_fee(self, request: EstimateFeeRequest) -> EstimatedFeeResponse:
         data = {
-            "source": source,
-            "destination": destination,
-            "amount": amount,
-            "asset": asset,
-            "blockChain": chain,
+            "source": request.source.__dict__,
+            "destination": request.destination.__dict__,
+            "amount": request.amount,
+            "asset": request.asset,
+            "blockChain": request.chain,
             "category": "TRANSFER",
         }
-        return self.post("/api/external/transactions/estimate_fee/", data=data)
+        return from_dict(
+            EstimatedFeeResponse,
+            self.post("/api/external/transactions/estimate_fee/", data=data),
+        )
 
     def create_transfer_transaction(
-        self,
-        source: dict,
-        destination: dict,
-        amount: str,
-        asset: str,
-        chain: str,
-        gas_params: Optional[dict] = None,
-        external_id: Optional[str] = None,
-        is_automation: Optional[bool] = False,
-        execute_at: Optional[str] = None,
-        memo: Optional[str] = None,
-    ):
+        self, request: CreateTransferTransactionRequest
+    ) -> Transaction:
+        gas_params = {}
+        if request.gasParams:
+            gas_params = request.gasParams.__dict__
+
         data = {
-            "source": source,
-            "destination": destination,
-            "amount": str(amount),
-            "asset": asset,
-            "blockChain": chain,
+            "source": request.source.__dict__,
+            "destination": request.destination.__dict__,
+            "amount": request.amount,
+            "asset": request.asset,
+            "blockChain": request.chain,
             "category": "TRANSFER",
-            "gasParams": gas_params or {},
-            "externalId": external_id,
-            "isAutomation": is_automation,
-            "executeAt": execute_at,
-            "memo": memo,
+            "gasParams": gas_params,
+            "externalId": request.externalId,
+            "isAutomation": request.isAutomation,
+            "executeAt": request.executeAt,
+            "memo": request.memo,
         }
-        return self.post("/api/external/transactions/", data=data)
+        response = self.post("/api/external/transactions/", data=data)
+        return from_dict(Transaction, response)
+
+    def create_contract_call_transaction(
+        self, request: CreateContractCallTransactionRequest
+    ) -> Transaction:
+        gas_params = {}
+        if request.gasParams:
+            gas_params = request.gasParams.__dict__
+
+        data = {
+            "vaultId": request.vaultId,
+            "blockChain": request.chain,
+            "amount": request.amount,
+            "category": "CONTRACT_CALL",
+            "data": request.data.__dict__,
+            "externalId": request.externalId,
+            "gasParams": gas_params,
+            "messageHex": request.messageHex,
+            "toAddress": request.toAddress,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
 
     def get_trade_quote(
-        self,
-        vault_id: str,
-        from_asset: str,
-        to_asset: str,
-        from_amount: str,
-        from_chain: str,
-        to_chain: str,
-        slippage: str,
-    ):
+        self, request: CreateTradeQuoteRequest
+    ) -> GetTradeQuoteResponse:
         data = {
-            "vaultId": vault_id,
-            "fromAsset": from_asset,
-            "toAsset": to_asset,
-            "fromAmount": from_amount,
-            "blockChain": from_chain,
-            "toBlockchain": to_chain,
-            "slippage": slippage,
+            "vaultId": request.vaultId,
+            "fromAsset": request.fromAsset,
+            "toAsset": request.toAsset,
+            "fromAmount": request.fromAmount,
+            "blockChain": request.fromChain,
+            "toBlockchain": request.toChain,
+            "slippage": request.slippage,
         }
-        return self.get("/api/external/transactions/trade_quote/", params=data)
+        return from_dict(
+            GetTradeQuoteResponse,
+            self.get("/api/external/transactions/trade_quote/", params=data),
+        )
 
     def create_trade_transaction(
-        self,
-        vault_id: str,
-        trade_request_data: dict,
-        trade_response_data: dict,
-        external_id: Optional[str] = None,
-        memo: Optional[str] = None,
-    ):
+        self, request: CreateTradeTransactionRequest
+    ) -> Transaction:
         data = {
-            "vaultId": vault_id,
-            "tradeRequestData": trade_request_data,
-            "tradeResponseData": trade_response_data,
+            "vaultId": request.vaultId,
+            "tradeRequestData": request.tradeRequestData.__dict__,
+            "tradeResponseData": request.tradeResponseData.__dict__,
             "category": "SWAP",
-            "blockChain": trade_request_data["blockChain"],
-            "externalId": external_id,
-            "memo": memo,
+            "blockChain": request.tradeRequestData.blockChain,
+            "externalId": request.externalId,
+            "memo": request.memo,
         }
-        return self.post("/api/external/transactions/", data=data)
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
 
     def get_vaults(
         self,
+        params: Optional[dict] = None,
         page: Optional[int] = 1,
         limit: Optional[int] = 20,
         reverse: Optional[bool] = False,
-    ):
-        return self.get(
-            f"/api/external/vaults/?limit={limit}&page={page}&reverse={reverse}"
+    ) -> VaultListResponse:
+        query_params = ""
+        if params:
+            query_params = "&".join([f"{k}={v}" for k, v in params.items()])
+
+        response = self.get(
+            f"/api/external/vaults/?limit={limit}&page={page}&reverse={reverse}&{query_params}"
+        )
+        return from_dict(data_class=VaultListResponse, data=response)
+
+    def get_vault_by_id(self, vault_id: str) -> Vault:
+        return from_dict(Vault, self.get(f"/api/external/vaults/{vault_id}/"))
+
+    def create_vault(self, request: CreateVaultRequest) -> Vault:
+        return from_dict(
+            Vault, self.post("/api/external/vaults/", data=request.__dict__)
         )
 
-    def get_vault_by_id(self, vault_id: str):
-        return self.get(f"/api/external/vaults/{vault_id}/")
-
-    def create_vault(self, data: dict):
-        return self.post("/api/external/vaults/", data=data)
-
-    def get_balances(self, vault_id: str):
+    def get_balances(self, vault_id: str) -> BalanceResponse:
         return self.get(f"/api/external/vaults/{vault_id}/balances/")
 
-    def update_balances(self, vault_id: str):
+    def update_balances(self, vault_id: str) -> BalanceResponse:
         return self.post(f"/api/external/vaults/{vault_id}/update_balances/")
 
     def get_operation_message_to_sign(self, operation_id: str):
@@ -133,25 +195,31 @@ class APIClient(BaseAPIClient):
             f"/api/external/operations/{operation_id}/update_user_action/", data=data
         )
 
-    def get_contacts(self, page: Optional[int] = 1, limit: Optional[int] = 20):
-        return self.get(f"/api/external/contacts/?limit={limit}&page={page}")
-
-    def get_contact_by_id(self, contact_id: str):
-        return self.get(f"/api/external/contacts/{contact_id}/")
-
-    def create_contact(
+    def get_contacts(
         self,
-        name: str,
-        address: str,
-        chain: str,
-        tags: Optional[List[str]] = None,
-        external_id: Optional[str] = None,
-    ):
+        params: Optional[dict] = None,
+        page: Optional[int] = 1,
+        limit: Optional[int] = 20,
+    ) -> ContactListResponse:
+        query_params = ""
+        if params:
+            query_params = "&".join([f"{k}={v}" for k, v in params.items()])
+
+        response = self.get(
+            f"/api/external/contacts/?limit={limit}&page={page}&{query_params}"
+        )
+        return from_dict(data_class=ContactListResponse, data=response)
+
+    def get_contact_by_id(self, contact_id: str) -> Contact:
+        return from_dict(Contact, self.get(f"/api/external/contacts/{contact_id}/"))
+
+    def create_contact(self, request: CreateContactRequest) -> Contact:
         data = {
-            "name": name,
-            "address": address,
-            "blockChain": chain,
-            "tags": tags,
-            "externalId": external_id,
+            "name": request.name,
+            "address": request.address,
+            "blockChain": request.chain,
+            "tags": request.tags,
+            "externalId": request.externalId,
         }
-        return self.post("/api/external/contacts/", data=data)
+        response = self.post("/api/external/contacts/", data=data)
+        return from_dict(Contact, response)
