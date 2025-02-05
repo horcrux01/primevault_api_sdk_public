@@ -20,7 +20,7 @@ def create_contract_call_transaction(api_client: APIClient):
     call_data = "0x095ea7b3000000000000000000000000f2614a233c7c3e7f08b1f887ba133a13f1eb2c5500000000000000000000000000000000000000000000000000038d7ea4c68000"
 
     try:
-        response = api_client.create_contract_call_transaction(
+        transaction = api_client.create_contract_call_transaction(
             CreateContractCallTransactionRequest(
                 vaultId="7ad54443-21d2-4075-abef-83758c9dceb7",
                 chain="BNB",
@@ -45,10 +45,10 @@ def create_contract_call_transaction(api_client: APIClient):
         raise e
     # similarly there are ForbiddenError, NotFoundError, ServiceUnavailableError, TooManyRequestsError exceptions
 
-    print(response)
+    print(transaction)
 
     while True:
-        txn_response = api_client.get_transaction_by_id(response.id)
+        txn_response = api_client.get_transaction_by_id(transaction.id)
         if txn_response.status in [
             TransactionStatus.COMPLETED.value,
             TransactionStatus.FAILED.value,
