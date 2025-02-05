@@ -19,10 +19,12 @@ def create_contract_call_transaction(api_client: APIClient):
     contract_address = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
     call_data = "0x095ea7b3000000000000000000000000f2614a233c7c3e7f08b1f887ba133a13f1eb2c5500000000000000000000000000000000000000000000000000038d7ea4c68000"
 
+    vaults = api_client.get_vaults({"vaultName": "core-vault-1"})
+    vault_id = vaults.results[0].id
     try:
         transaction = api_client.create_contract_call_transaction(
             CreateContractCallTransactionRequest(
-                vaultId="7ad54443-21d2-4075-abef-83758c9dceb7",
+                vaultId=vault_id,
                 chain="BNB",
                 externalId="external_id-001",
                 data=EVMContractCallData(
