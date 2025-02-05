@@ -177,7 +177,7 @@ class TestApiClient(unittest.TestCase):
 
         # Get source vault
         source_vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
-        destination_contacts = self.api_client.get_contacts({"name": "Lynn Bell"})
+        destination_contacts = self.api_client.get_contacts({"name": "Brandi Taylor"})
 
         source = from_dict(
             TransferPartyData,
@@ -207,7 +207,10 @@ class TestApiClient(unittest.TestCase):
                 )
             )
 
-        self.assertIn("400 Client Error:", exc_info.value.response_text)
+        self.assertIn(
+            "A record with the same information already exists",
+            exc_info.value.response_text,
+        )
 
     def test_get_transaction_by_id(self):
         transaction_id = "f1cb568d-215e-426f-998a-4ba5be8288d4"
