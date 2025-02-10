@@ -108,8 +108,6 @@ class APIClient(BaseAPIClient):
             "data": request.data.__dict__,
             "externalId": request.externalId,
             "gasParams": gas_params,
-            "messageHex": request.messageHex,
-            "toAddress": request.toAddress,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)
