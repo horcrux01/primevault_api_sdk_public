@@ -140,13 +140,13 @@ class Contact:
 
 @dataclass
 class EVMOutput:
-    returnData: Optional[str] = None
+    returnData: str
 
 
 @dataclass
 class ICPOutput:
-    certificate: Optional[str] = None
-    contentMap: Optional[str] = None
+    certificate: str
+    contentMap: str
 
 
 # A transaction output can be one of these two
