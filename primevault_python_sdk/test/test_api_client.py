@@ -56,7 +56,7 @@ class TestApiClient(unittest.TestCase):
             "OPTIMISM",
             "MOONBEAM",
             "RADIX",
-            "RADIX",
+            "ICP",
         ]
         actual = [chain.value for chain in supported_chains]
         self.assertEqual(actual, expected)

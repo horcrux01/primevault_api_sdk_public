@@ -215,8 +215,12 @@ class ICPCanisterCallData:
     arg: str
 
 
-# ContractCallData can be EVMContractCallData or ICPCanisterCallData
-ContractCallData = Union[EVMContractCallData, ICPCanisterCallData]
+@dataclass
+class RawSigningData:
+    messageHex: str
+
+
+ContractCallData = Union[EVMContractCallData, ICPCanisterCallData, RawSigningData]
 
 
 @dataclass
@@ -227,8 +231,6 @@ class CreateContractCallTransactionRequest:
     data: Optional[ContractCallData] = None
     externalId: Optional[str] = None
     gasParams: Optional[TransactionCreationGasParams] = None
-    messageHex: Optional[str] = None
-    toAddress: Optional[str] = None
 
 
 @dataclass
