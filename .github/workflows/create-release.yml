@@ -1,0 +1,44 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'New release tag name'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the repository
+      - uses: actions/checkout@v4
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: pip install .
+
+      # Run tests
+      - name: Run tests with pytest
+        env:
+          ACCESS_PRIVATE_KEY: ${{ secrets.ACCESS_PRIVATE_KEY_TEST }}
+        run: pytest
+
+      - name: Create Git Tag and GitHub Release
+        if: ${{ success() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure git (using a generic bot identity)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag "${{ github.event.inputs.tag_name }}"
+          git push origin "${{ github.event.inputs.tag_name }}"
