@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from typing import Any, Optional
 
 import requests  # type: ignore
@@ -50,7 +51,8 @@ class BaseAPIClient(object):
     ) -> Optional[Any]:
         full_url = f"{self.api_url}{url_path}"
         api_token = self.auth_token_service.generate_auth_token(url_path or "", data)
-        self.headers["Authorization"] = f"Bearer {api_token}"
+        headers = deepcopy(self.headers)
+        headers["Authorization"] = f"Bearer {api_token}"
         if data:
             data["dataSignatureHex"] = self.signature_service.sign(
                 json_dumps(data).encode("utf-8")
@@ -60,12 +62,12 @@ class BaseAPIClient(object):
         try:
             if method == "GET":
                 response = requests.get(
-                    full_url, headers=self.headers, params=params, timeout=timeout
+                    full_url, headers=headers, params=params, timeout=timeout
                 )
             elif method == "POST":
                 response = requests.post(
                     full_url,
-                    headers=self.headers,
+                    headers=headers,
                     params=params,
                     json=data,
                     timeout=timeout,
