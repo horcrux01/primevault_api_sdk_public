@@ -65,6 +65,11 @@ class TransactionCreationGasParams:
 
 
 @dataclass
+class TransactionCreationOptions:
+    skipPreprocessSimulation: Optional[bool] = None
+
+
+@dataclass
 class Asset:
     name: str
     symbol: str
@@ -231,6 +236,7 @@ class CreateContractCallTransactionRequest:
     data: Optional[ContractCallData] = None
     externalId: Optional[str] = None
     gasParams: Optional[TransactionCreationGasParams] = None
+    creationOptions: Optional[TransactionCreationOptions] = None
 
 
 @dataclass
