@@ -97,8 +97,11 @@ class APIClient(BaseAPIClient):
         self, request: CreateContractCallTransactionRequest
     ) -> Transaction:
         gas_params = {}
+        create_options = {}
         if request.gasParams:
             gas_params = request.gasParams.__dict__
+        if request.createOptions:
+            create_options = request.createOptions.__dict__
 
         data = {
             "vaultId": request.vaultId,
@@ -108,6 +111,7 @@ class APIClient(BaseAPIClient):
             "data": request.data.__dict__,
             "externalId": request.externalId,
             "gasParams": gas_params,
+            "createOptions": create_options,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)
