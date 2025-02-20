@@ -236,7 +236,7 @@ class CreateContractCallTransactionRequest:
     data: Optional[ContractCallData] = None
     externalId: Optional[str] = None
     gasParams: Optional[TransactionCreationGasParams] = None
-    createOptions: Optional[TransactionCreationOptions] = None
+    creationOptions: Optional[TransactionCreationOptions] = None
 
 
 @dataclass
