@@ -188,6 +188,7 @@ class Transaction:
     output: Optional[TransactionOutput] = None
     dAppId: Optional[str] = None
     operationId: Optional[str] = None
+    amountInUSD: Optional[str] = None
 
 
 # Requests
