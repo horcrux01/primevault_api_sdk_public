@@ -14,5 +14,5 @@ setup(
     author="PrimeVault",
     description="Python SDK for PrimeVault APIs",
     url="https://github.com/horcrux01/primevault_api_sdk",
-    python_requires=">=3.10.4",
+    python_requires=">=3.9",
 )
