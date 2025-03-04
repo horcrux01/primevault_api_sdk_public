@@ -1,9 +1,11 @@
+import datetime
 import time
 
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.base_api_client import (
     BadRequestError,
     InternalServerError,
+    NotFoundError,
     UnauthorizedError,
 )
 from primevault_python_sdk.types import (
@@ -95,3 +97,30 @@ def create_transfer_transaction(api_client: APIClient):
         time.sleep(3)
 
     print(txn_response)
+
+
+def get_transactions(api_client: APIClient):
+    """
+    for date range filters, use createdAtGte and createdAtLte
+    """
+    limit = 50
+    page = 1
+    transactions = []
+    while True:
+        try:
+            dt = datetime.datetime.now() - datetime.timedelta(days=10)  # last 10 days
+            response = api_client.get_transactions(
+                params={
+                    "vaultId": "7ad54443-21d2-4075-abef-83758c9dceb7",
+                    "createdAtGte": str(dt),
+                    "status": TransactionStatus.COMPLETED.value,
+                },
+                page=page,
+                limit=limit,
+            )
+            transactions.append(response.results)
+        except NotFoundError:  # end of results
+            break
+        page += 1
+
+    print(transactions)
