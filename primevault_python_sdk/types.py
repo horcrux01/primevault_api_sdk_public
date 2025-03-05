@@ -185,6 +185,7 @@ class Transaction:
     memo: Optional[str] = None
     sourceAddress: Optional[str] = None
     txnSignature: Optional[str] = None
+    txnSingatureData: Optional[dict] = None
     output: Optional[TransactionOutput] = None
     dAppId: Optional[str] = None
     operationId: Optional[str] = None
