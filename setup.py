@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="primevault_api_sdk",
-    version="0.1.7",
+    version="1.0.10",
     packages=find_packages(),
     install_requires=[
         "boto3==1.34.84",
