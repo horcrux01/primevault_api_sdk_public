@@ -221,7 +221,7 @@ def sign_and_relay_evm_contract_calls(
         time.sleep(1)  # Small delay to avoid excessive polling
 
     # Process signature from PrimeVault
-    signature_data: dict[str, Any] = pv_raw_transaction.txnSingatureData or {}
+    signature_data: dict[str, Any] = pv_raw_transaction.txnSignatureData or {}
     print(f"PrimeVault signature data: {signature_data}")
 
     # Adjust signature components
