@@ -26,12 +26,25 @@ class BaseSignatureService(object):
 
 class PrivateKeySignatureService(BaseSignatureService):
     def __init__(self, private_key_hex: str):
-        private_key_bytes = bytes.fromhex(private_key_hex)
-        self.private_key: ec.EllipticCurvePrivateKey = (
-            serialization.load_der_private_key(
+        trimmed_key = private_key_hex.strip()
+        self.private_key: ec.EllipticCurvePrivateKey
+
+        if trimmed_key.startswith("-----BEGIN"):
+            # If the key is in PEM format.
+            pem_bytes = trimmed_key.encode("utf-8")
+            self.private_key = serialization.load_pem_private_key(
+                pem_bytes, password=None, backend=default_backend()
+            )
+        else:
+            # Assume the key is hex-encoded DER.
+            try:
+                private_key_bytes = bytes.fromhex(trimmed_key)
+            except ValueError:
+                raise ValueError("Input is not valid hex-encoded DER or PEM format.")
+
+            self.private_key = serialization.load_der_private_key(
                 private_key_bytes, password=None, backend=default_backend()
             )
-        )
 
     def sign(self, message: bytes):
         return self.private_key.sign(message, ec.ECDSA(hashes.SHA256()))
