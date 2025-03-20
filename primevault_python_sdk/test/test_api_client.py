@@ -71,7 +71,7 @@ class TestApiClient(unittest.TestCase):
         self.assertEqual(vault.vaultName, "core-vault-1")
         self.assertEqual(vault.vaultType, VaultType.DEFAULT.value)
         self.assertEqual(len(vault.wallets), 8)
-        self.assertEqual(len(vault.signers), 8)
+        self.assertEqual(len(vault.signers), 9)
         self.assertEqual(len(vault.viewers), 0)
 
         # Check blockchains
@@ -115,13 +115,13 @@ class TestApiClient(unittest.TestCase):
         self.assertEqual(len(balances2["ETH"]), 3)
         self.assertEqual(
             balances2["ETH"],
-            {"ETHEREUM": 0.00950008, "OPTIMISM": 0, "ARBITRUM": 0},
+            {"ETHEREUM": "0.00950008", "OPTIMISM": "0", "ARBITRUM": "0"},
         )
 
         self.assertIn("MATIC", balances2)
         self.assertIsInstance(balances2["MATIC"], dict)
         self.assertEqual(len(balances2["MATIC"]), 1)
-        self.assertEqual(balances2["MATIC"], {"POLYGON": 0.00767327})
+        self.assertEqual(balances2["MATIC"], {"POLYGON": "0.00767327"})
 
     def test_get_contacts(self):
         contacts = self.api_client.get_contacts({"name": "Lynn Bell"})
