@@ -18,6 +18,7 @@ from primevault_python_sdk.types import (
     EstimatedFeeResponse,
     EstimateFeeRequest,
     GetTradeQuoteResponse,
+    ReplaceTransactionRequest,
     Transaction,
     TransactionListResponse,
     Vault,
@@ -92,6 +93,15 @@ class APIClient(BaseAPIClient):
         }
         response = self.post("/api/external/transactions/", data=data)
         return from_dict(Transaction, response)
+
+    def replace_transaction(self, request: ReplaceTransactionRequest) -> Transaction:
+        return from_dict(
+            Transaction,
+            self.post(
+                "/api/external/transactions/replace_transaction/",
+                data=request.__dict__,
+            ),
+        )
 
     def create_contract_call_transaction(
         self, request: CreateContractCallTransactionRequest

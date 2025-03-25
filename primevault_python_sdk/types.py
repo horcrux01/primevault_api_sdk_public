@@ -210,6 +210,11 @@ class CreateTransferTransactionRequest:
 
 
 @dataclass
+class ReplaceTransactionRequest:
+    transactionId: str
+
+
+@dataclass
 class EVMContractCallData:
     callData: str
     toAddress: Optional[str] = None
