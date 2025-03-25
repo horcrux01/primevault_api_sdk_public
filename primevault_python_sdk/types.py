@@ -190,6 +190,7 @@ class Transaction:
     dAppId: Optional[str] = None
     operationId: Optional[str] = None
     amountInUSD: Optional[str] = None
+    nonce: Optional[int] = None
 
 
 # Requests
