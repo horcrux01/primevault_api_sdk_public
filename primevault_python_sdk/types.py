@@ -190,6 +190,7 @@ class Transaction:
     dAppId: Optional[str] = None
     operationId: Optional[str] = None
     amountInUSD: Optional[str] = None
+    nonce: Optional[int] = None
 
 
 # Requests
@@ -207,6 +208,11 @@ class CreateTransferTransactionRequest:
     isAutomation: Optional[bool] = None
     executeAt: Optional[str] = None
     memo: Optional[str] = None
+
+
+@dataclass
+class ReplaceTransactionRequest:
+    transactionId: str
 
 
 @dataclass
