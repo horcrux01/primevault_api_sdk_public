@@ -140,19 +140,7 @@ class TestApiClient(unittest.TestCase):
     def test_create_vault(self):
         data = {
             "vaultName": "Ethereum Vault",
-            "defaultTransferSpendLimit": {
-                "action": {
-                    "actionType": "NEEDS_MORE_APPROVALS",
-                    "additionalApprovalCount": 1,
-                },
-                "spendLimit": "100",
-                "resetFrequency": "86400",
-            },
-            "defaultTradeSpendLimit": {
-                "action": {"actionType": "BLOCK_OPERATION"},
-                "spendLimit": "100",
-                "resetFrequency": "86400",
-            },
+            "templateId": "09b02e2c-f33f-49f5-8488-bda8fd9ae0b3",
         }
         # The original test expects a 400 error if the vault exists
         with pytest.raises(BadRequestError) as exc_info:
@@ -208,7 +196,7 @@ class TestApiClient(unittest.TestCase):
             )
 
         self.assertIn(
-            "A record with the same information already exists",
+            "Vault has insufficient balance to complete the transaction",
             exc_info.value.response_text,
         )
 
