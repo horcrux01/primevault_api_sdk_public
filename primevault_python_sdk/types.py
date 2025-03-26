@@ -260,12 +260,7 @@ class EstimateFeeRequest:
 class CreateVaultRequest:
     vaultName: str
     templateId: Optional[str] = None
-    defaultTransferSpendLimit: Optional[Dict[str, Any]] = None
-    customTransferSpendLimits: Optional[List[Dict[str, Any]]] = None
-    defaultTradeSpendLimit: Optional[Dict[str, Any]] = None
-    customTradeSpendLimits: Optional[List[Dict[str, Any]]] = None
-    vaultSigners: Optional[List[str]] = None
-    vaultViewers: Optional[List[str]] = None
+    chains: Optional[List[str]] = None
 
 
 @dataclass
