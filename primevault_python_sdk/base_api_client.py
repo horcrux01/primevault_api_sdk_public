@@ -53,9 +53,10 @@ class BaseAPIClient(object):
         api_token = self.auth_token_service.generate_auth_token(url_path or "", data)
         headers = deepcopy(self.headers)
         headers["Authorization"] = f"Bearer {api_token}"
-        if data:
-            data["dataSignatureHex"] = self.signature_service.sign(
-                json_dumps(data).encode("utf-8")
+        final_data = deepcopy(data)
+        if final_data:
+            final_data["dataSignatureHex"] = self.signature_service.sign(
+                json_dumps(final_data).encode("utf-8")
             ).hex()
 
         response = None
@@ -69,7 +70,7 @@ class BaseAPIClient(object):
                     full_url,
                     headers=headers,
                     params=params,
-                    json=data,
+                    json=final_data,
                     timeout=timeout,
                 )
             else:
