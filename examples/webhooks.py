@@ -26,7 +26,7 @@ def validate_webhook_signature(headers: dict, body: str, verification_key: str) 
         received_timestamp = int(received_timestamp_str)
         try:
             data = json.loads(body)
-            message = json.dumps(data, sort_keys=True)
+            message = json.dumps(data, sort_keys=True, separators=(',', ':'))
         except json.JSONDecodeError:
             message = body
 
