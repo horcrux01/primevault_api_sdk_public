@@ -405,10 +405,10 @@ BalanceResponse = Dict[str, Dict[str, str]]
 
 @dataclass
 class DetailedBalance:
-    chain: str
     symbol: str
-    name: str
     balance: str
+    name: Optional[str] = None
+    chain: Optional[str] = None
     tokenAddress: Optional[str] = None
 
 
