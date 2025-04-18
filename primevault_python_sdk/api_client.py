@@ -15,6 +15,8 @@ from primevault_python_sdk.types import (
     CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
+    DetailedBalance,
+    DetailedBalanceResponse,
     EstimatedFeeResponse,
     EstimateFeeRequest,
     GetTradeQuoteResponse,
@@ -186,6 +188,10 @@ class APIClient(BaseAPIClient):
 
     def get_balances(self, vault_id: str) -> BalanceResponse:
         return self.get(f"/api/external/vaults/{vault_id}/balances/")
+
+    def get_detailed_balances(self, vault_id: str) -> DetailedBalanceResponse:
+        response = self.get(f"/api/external/vaults/{vault_id}/detailed_balances/")
+        return [from_dict(DetailedBalance, balance) for balance in response]
 
     def update_balances(self, vault_id: str) -> BalanceResponse:
         return self.post(f"/api/external/vaults/{vault_id}/update_balances/")

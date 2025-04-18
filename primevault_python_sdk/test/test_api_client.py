@@ -123,6 +123,41 @@ class TestApiClient(unittest.TestCase):
         self.assertEqual(len(balances2["MATIC"]), 1)
         self.assertEqual(balances2["MATIC"], {"POLYGON": "0.00767327"})
 
+    def test_get_detailed_balances(self):
+        # Test with vault having non-zero balances
+        vaults = self.api_client.get_vaults({"vaultName": "Ethereum Vault"})
+        vault_id = vaults.results[0].id
+        detailed_balances = self.api_client.get_detailed_balances(vault_id)
+
+        # Verify the response type and overall structure
+        self.assertIsInstance(detailed_balances, list)
+        self.assertGreater(len(detailed_balances), 0)
+
+        # Create dictionary for easier lookup by chain and symbol
+        balances_by_key = {}
+        for balance in detailed_balances:
+            key = f"{balance.chain}:{balance.symbol}"
+            balances_by_key[key] = balance
+
+        # Check specific expected balances
+        # ETH on Ethereum
+        eth_key = "ETHEREUM:ETH"
+        self.assertIn(eth_key, balances_by_key)
+        eth_balance = balances_by_key[eth_key]
+        self.assertEqual(eth_balance.chain, "ETHEREUM")
+        self.assertEqual(eth_balance.symbol, "ETH")
+        self.assertEqual(eth_balance.name, "Ethereum")
+        self.assertEqual(eth_balance.balance, "0.00950008")
+
+        # MATIC on Polygon
+        matic_key = "POLYGON:MATIC"
+        self.assertIn(matic_key, balances_by_key)
+        matic_balance = balances_by_key[matic_key]
+        self.assertEqual(matic_balance.chain, "POLYGON")
+        self.assertEqual(matic_balance.symbol, "MATIC")
+        self.assertEqual(matic_balance.name, "Polygon")
+        self.assertEqual(matic_balance.balance, "0.00767327")
+
     def test_get_contacts(self):
         contacts = self.api_client.get_contacts({"name": "Lynn Bell"})
         self.assertIsInstance(contacts.results, list)
