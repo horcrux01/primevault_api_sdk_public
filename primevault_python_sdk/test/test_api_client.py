@@ -155,7 +155,7 @@ class TestApiClient(unittest.TestCase):
         matic_balance = balances_by_key[matic_key]
         self.assertEqual(matic_balance.chain, "POLYGON")
         self.assertEqual(matic_balance.symbol, "MATIC")
-        self.assertEqual(matic_balance.name, "Polygon")
+        self.assertEqual(matic_balance.name, "Matic")
         self.assertEqual(matic_balance.balance, "0.00767327")
 
     def test_get_contacts(self):
