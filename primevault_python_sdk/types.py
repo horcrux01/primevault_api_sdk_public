@@ -401,3 +401,26 @@ BalanceResponse = Dict[str, Dict[str, str]]
         "ARBITRUM": "1.00000000"
     }
 """
+
+
+@dataclass
+class DetailedBalance:
+    symbol: str
+    balance: str
+    name: Optional[str] = None
+    chain: Optional[str] = None
+    tokenAddress: Optional[str] = None
+
+
+DetailedBalanceResponse = List[DetailedBalance]
+"""
+[
+    {
+        "chain": "ETHEREUM",
+        "tokenAddress": "0x",
+        "symbol": "USDC",
+        "name": "USD Coin",
+        "balance": "1.12"
+    }
+]
+"""
