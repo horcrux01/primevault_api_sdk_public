@@ -98,6 +98,7 @@ class Wallet:
     id: str
     blockchain: str
     address: Optional[str] = None
+    publicKey: Optional[str] = None
 
 
 @dataclass
