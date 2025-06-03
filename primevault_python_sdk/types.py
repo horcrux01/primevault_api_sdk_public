@@ -70,6 +70,11 @@ class TransactionCreationOptions:
 
 
 @dataclass
+class FeePayer:
+    id: str
+
+
+@dataclass
 class Asset:
     name: str
     symbol: str
@@ -209,6 +214,7 @@ class CreateTransferTransactionRequest:
     isAutomation: Optional[bool] = None
     executeAt: Optional[str] = None
     memo: Optional[str] = None
+    feePayer: Optional[FeePayer] = None
 
 
 @dataclass
