@@ -92,6 +92,7 @@ class APIClient(BaseAPIClient):
             "isAutomation": request.isAutomation,
             "executeAt": request.executeAt,
             "memo": request.memo,
+            "feePayer": request.feePayer and request.feePayer.__dict__,
         }
         response = self.post("/api/external/transactions/", data=data)
         return from_dict(Transaction, response)
