@@ -306,7 +306,7 @@ class TestApiClient(unittest.TestCase):
 
         response_data_list = trade_quote_response.tradeResponseDataList
         self.assertIsInstance(response_data_list, list)
-        self.assertEqual(len(response_data_list), 2)
+        self.assertEqual(len(response_data_list), 3)
         response_data = response_data_list[0]
         self.assertIsNotNone(response_data)
         self.assertIsNotNone(response_data.finalToAmount)
