@@ -240,7 +240,15 @@ class RawSigningData:
     messageHex: str
 
 
-ContractCallData = Union[EVMContractCallData, ICPCanisterCallData, RawSigningData]
+@dataclass
+class AlephiumContractCallData:
+    method: str
+    params: dict
+
+
+ContractCallData = Union[
+    EVMContractCallData, ICPCanisterCallData, RawSigningData, AlephiumContractCallData
+]
 
 
 @dataclass
