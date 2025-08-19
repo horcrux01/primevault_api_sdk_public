@@ -276,6 +276,7 @@ class CreateVaultRequest:
     vaultName: str
     templateId: Optional[str] = None
     chains: Optional[List[str]] = None
+    testNetVault: Optional[bool] = None
 
 
 @dataclass
