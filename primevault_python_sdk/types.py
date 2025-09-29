@@ -31,6 +31,11 @@ class TransactionType(str, Enum):
 class TransactionCategory(str, Enum):
     TRANSFER = "TRANSFER"
     SWAP = "SWAP"
+    TOKEN_TRANSFER = "TOKEN_TRANSFER"
+    TOKEN_APPROVAL = "TOKEN_APPROVAL"
+    CONTRACT_CALL = "CONTRACT_CALL"
+    STAKE = "STAKE"
+    REVOKE_TOKEN_ALLOWANCE = "REVOKE_TOKEN_ALLOWANCE"
 
 
 class TransactionSubCategory(str, Enum):
@@ -40,6 +45,11 @@ class TransactionSubCategory(str, Enum):
     LIMIT_TRADE = "LIMIT_TRADE"
     MARKET_TRADE = "MARKET_TRADE"  # nosec
     APPROVE_TOKEN_ALLOWANCE = "APPROVE_TOKEN_ALLOWANCE"  # nosec
+    CUSTOM_MESSAGE = "CUSTOM_MESSAGE"
+    CONTRACT_CALL = "CONTRACT_CALL"
+    STAKE = "STAKE"
+    UNSTAKE = "UNSTAKE"
+    CLAIM = "CLAIM"
 
 
 class TransactionStatus(str, Enum):
