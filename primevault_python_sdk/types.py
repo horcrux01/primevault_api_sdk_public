@@ -138,6 +138,7 @@ class Vault:
     wallets: Optional[List[Wallet]] = None
     viewers: Optional[List[User]] = None
     templateId: Optional[str] = None
+    totalBalanceInCurrency: Optional[str] = None
 
 
 @dataclass
@@ -436,6 +437,8 @@ class DetailedBalance:
     name: Optional[str] = None
     chain: Optional[str] = None
     tokenAddress: Optional[str] = None
+    balanceInUSD: Optional[str] = None
+    price: Optional[str] = None
 
 
 DetailedBalanceResponse = List[DetailedBalance]
