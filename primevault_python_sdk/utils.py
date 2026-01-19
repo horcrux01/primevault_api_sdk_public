@@ -48,4 +48,4 @@ def generate_aws_kms_key_pair(key_alias: Optional[str] = None) -> dict[str, str]
 
 
 def json_dumps(data: dict) -> str:
-    return json.dumps(data, sort_keys=True, separators=(",", ":"))
+    return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
