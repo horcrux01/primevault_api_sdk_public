@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "boto3==1.34.84",
-        "cryptography==44.0.1",
+        "cryptography==46.0.5",
         "requests==2.32.4",
         "pytest==8.3.4",
         "dacite==1.9.1",
