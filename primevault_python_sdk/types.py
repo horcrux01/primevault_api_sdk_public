@@ -324,7 +324,21 @@ class CreateContactRequest:
     externalId: Optional[str] = None
     assetList:  Optional[List[str]] = None
 
+@dataclass
+class UpdateContactRequest:
+    id: str
+    assetList: Optional[List[str]] = None
 
+
+@dataclass
+class UpdateContactResponse:
+    id: str
+    name: str
+    address: str
+    chain: str
+    tags: Optional[List[str]] = None
+    externalId: Optional[str] = None
+    assetList: Optional[List[str]] = None
 # Fee and Quote Responses
 
 

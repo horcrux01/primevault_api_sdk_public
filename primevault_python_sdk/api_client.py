@@ -24,7 +24,8 @@ from primevault_python_sdk.types import (
     Transaction,
     TransactionListResponse,
     Vault,
-    VaultListResponse, GetApprovalRequest, CreateApprovalResponse, GetApprovalResponse,
+    VaultListResponse, GetApprovalRequest, CreateApprovalResponse, GetApprovalResponse, UpdateContactRequest,
+    UpdateContactResponse,
 )
 
 
@@ -265,3 +266,11 @@ class APIClient(BaseAPIClient):
         }
         response = self.post("/api/external/contacts/", data=data)
         return from_dict(Contact, response)
+
+    def update_contact(self, request: UpdateContactRequest) -> UpdateContactResponse:
+        data = {
+            "assetList": request.assetList if request.assetList else [],
+        }
+        response = self.post(f"/api/external/contacts/{request.id}", data=data)
+        return from_dict(UpdateContactResponse, response)
+
