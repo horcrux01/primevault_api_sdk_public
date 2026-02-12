@@ -77,7 +77,7 @@ class BaseAPIClient(object):
                     timeout=timeout,
                 )
             elif method == "PUT":
-                response = requests(
+                response = requests.put(
                     full_url,
                     headers=headers,
                     params=params,
