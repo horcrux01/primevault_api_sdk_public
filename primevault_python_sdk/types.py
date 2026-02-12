@@ -214,6 +214,20 @@ class Transaction:
 
 
 @dataclass
+class GetApprovalResponse:
+    message: str
+    approvalId: str
+
+@dataclass
+class GetApprovalRequest:
+    entityId: str
+
+@dataclass
+class CreateApprovalResponse:
+    success: bool
+
+
+@dataclass
 class CreateTransferTransactionRequest:
     source: TransferPartyData
     destination: TransferPartyData
@@ -308,6 +322,7 @@ class CreateContactRequest:
     chain: str
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
+    assetList:  Optional[List[str]] = None
 
 
 # Fee and Quote Responses

@@ -24,7 +24,7 @@ from primevault_python_sdk.types import (
     Transaction,
     TransactionListResponse,
     Vault,
-    VaultListResponse,
+    VaultListResponse, GetApprovalRequest, CreateApprovalResponse, GetApprovalResponse,
 )
 
 
@@ -57,6 +57,28 @@ class APIClient(BaseAPIClient):
     def get_transaction_by_id(self, transaction_id: str) -> Transaction:
         return from_dict(
             Transaction, self.get(f"/api/external/transactions/{transaction_id}/")
+        )
+
+    def create_approval(
+        self,  request: GetApprovalRequest
+    ) -> CreateApprovalResponse:
+        data = {"entityId": request.entityId,}
+        response =  from_dict(
+            GetApprovalResponse,
+            self.get("/api/external/change_requests/approvals/approval_message/", params=data),
+        )
+
+        entity_approval_request = {
+            "entityId": request.entityId,
+            "message":  response.message,
+            "signature":  self.signature_service.sign(
+               response.message.encode("utf-8")
+            ).hex(),
+            "action": "approve",
+            "reason": "ok"
+        }
+        return from_dict(
+            CreateApprovalResponse, self.post(f"/api/external/change_requests/approvals/{response.approvalId}/action/", data=data)
         )
 
     def estimate_fee(self, request: EstimateFeeRequest) -> EstimatedFeeResponse:
@@ -239,6 +261,7 @@ class APIClient(BaseAPIClient):
             "blockChain": request.chain,
             "tags": request.tags,
             "externalId": request.externalId,
+            "assetList": request.assetList if request.assetList else [],
         }
         response = self.post("/api/external/contacts/", data=data)
         return from_dict(Contact, response)
