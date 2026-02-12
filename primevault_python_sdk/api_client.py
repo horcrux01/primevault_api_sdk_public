@@ -271,6 +271,6 @@ class APIClient(BaseAPIClient):
         data = {
             "assetList": request.assetList if request.assetList else [],
         }
-        response = self.put(f"/api/external/contacts/{request.id}", data=data)
+        response = self.put(f"/api/external/contacts/{request.id}/", data=data)
         return from_dict(UpdateContactResponse, response)
 
