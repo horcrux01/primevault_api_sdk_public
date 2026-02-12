@@ -335,7 +335,7 @@ class UpdateContactResponse:
     id: str
     name: str
     address: str
-    chain: str
+    blockChain: str
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
     assetList: Optional[List[str]] = None
