@@ -78,7 +78,7 @@ class APIClient(BaseAPIClient):
             "reason": "ok"
         }
         return from_dict(
-            CreateApprovalResponse, self.post(f"/api/external/change_requests/approvals/{response.approvalId}/action/", data=data)
+            CreateApprovalResponse, self.post(f"/api/external/change_requests/approvals/{response.approvalId}/action/", data=entity_approval_request)
         )
 
     def estimate_fee(self, request: EstimateFeeRequest) -> EstimatedFeeResponse:
