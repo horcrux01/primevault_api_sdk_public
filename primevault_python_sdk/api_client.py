@@ -60,22 +60,23 @@ class APIClient(BaseAPIClient):
             Transaction, self.get(f"/api/external/transactions/{transaction_id}/")
         )
 
-    def create_approval(
+    def initiate_change_approval_action(
         self,  request: GetApprovalRequest
     ) -> CreateApprovalResponse:
         data = {"entityId": request.entityId,}
+        # This will fetch the approval message for the change request entity and user
         response =  from_dict(
             GetApprovalResponse,
             self.get("/api/external/change_requests/approvals/approval_message/", params=data),
         )
-
+        # This will sign the  message and take the action given by user on change request
         entity_approval_request = {
             "entityId": request.entityId,
             "message":  response.message,
             "signature":  self.signature_service.sign(
                response.message.encode("utf-8")
             ).hex(),
-            "action": "approve",
+            "action": request.action,
             "reason": "ok"
         }
         return from_dict(

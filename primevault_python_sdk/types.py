@@ -221,6 +221,8 @@ class GetApprovalResponse:
 @dataclass
 class GetApprovalRequest:
     entityId: str
+    # approve/reject
+    action: str
 
 @dataclass
 class CreateApprovalResponse:
