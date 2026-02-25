@@ -1,6 +1,7 @@
 import datetime
 from dataclasses import dataclass
 from enum import Enum
+from symtable import Class
 from typing import Any, Dict, List, Optional, Union
 
 
@@ -27,6 +28,9 @@ class TransactionType(str, Enum):
     INCOMING = "INCOMING"
     OUTGOING = "OUTGOING"
 
+class ApprovalAction(str, Enum):
+    APPROVE = "approve"
+    REJECT =  "reject"
 
 class TransactionCategory(str, Enum):
     TRANSFER = "TRANSFER"

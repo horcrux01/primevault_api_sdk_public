@@ -2,7 +2,7 @@ from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
     CreateContactRequest,
     GetApprovalRequest,
-    UpdateContactRequest,
+    UpdateContactRequest, ApprovalAction,
 )
 
 
@@ -13,7 +13,7 @@ def create_contact(api_client: APIClient):
     contact_response = api_client.create_contact(contact_request)
     # action can be approve/reject for the function created below
     approve_response = api_client.initiate_change_approval_action(
-        GetApprovalRequest(entityId=contact_response.id, action="approve")
+        GetApprovalRequest(entityId=contact_response.id, action=ApprovalAction.APPROVE)
     )
     return approve_response
 
@@ -23,6 +23,6 @@ def update_contact(api_client: APIClient):
     contact_response = api_client.update_contact(contact_request)
     # action can be approve/reject for the function created below
     approve_response = api_client.initiate_change_approval_action(
-        GetApprovalRequest(entityId=contact_response.id, action="approve")
+        GetApprovalRequest(entityId=contact_response.id, action=ApprovalAction.APPROVE)
     )
     return approve_response
