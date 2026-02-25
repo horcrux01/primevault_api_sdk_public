@@ -1,5 +1,5 @@
-import hmac
 import hashlib
+import hmac
 import json
 
 
@@ -26,16 +26,14 @@ def validate_webhook_signature(headers: dict, body: str, verification_key: str) 
         received_timestamp = int(received_timestamp_str)
         try:
             data = json.loads(body)
-            message = json.dumps(data, sort_keys=True, separators=(',', ':'))
+            message = json.dumps(data, sort_keys=True, separators=(",", ":"))
         except json.JSONDecodeError:
             message = body
 
         message_timestamp_concat = f"{message}{received_timestamp}".encode()
         # Calculate the expected signature
         expected_signature = hmac.new(
-            verification_key.encode(),
-            message_timestamp_concat,
-            hashlib.sha256
+            verification_key.encode(), message_timestamp_concat, hashlib.sha256
         ).hexdigest()
 
         # Compare signatures securely

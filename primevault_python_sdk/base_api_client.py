@@ -35,6 +35,9 @@ class BaseAPIClient(object):
     def post(self, path: str, data: Optional[dict[str, Any]] = None):
         return self._make_request("POST", url_path=path, data=data)
 
+    def put(self, path: str, data: Optional[dict[str, Any]] = None):
+        return self._make_request("PUT", url_path=path, data=data)
+
     def get_response(self, response: Any) -> Any:
         try:
             return response.json()
@@ -67,6 +70,14 @@ class BaseAPIClient(object):
                 )
             elif method == "POST":
                 response = requests.post(
+                    full_url,
+                    headers=headers,
+                    params=params,
+                    json=final_data,
+                    timeout=timeout,
+                )
+            elif method == "PUT":
+                response = requests.put(
                     full_url,
                     headers=headers,
                     params=params,

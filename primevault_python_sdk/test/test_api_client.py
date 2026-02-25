@@ -46,7 +46,18 @@ class TestApiClient(unittest.TestCase):
         self.assertEqual(len(supported_chains), 10)
 
         # Ensure the 'value' of each chain matches
-        expected = ['APTOS', 'ARBITRUM', 'ETHEREUM', 'ICP', 'MOONBEAM', 'NEAR', 'OPTIMISM', 'POLYGON', 'RADIX', 'SOLANA']
+        expected = [
+            "APTOS",
+            "ARBITRUM",
+            "ETHEREUM",
+            "ICP",
+            "MOONBEAM",
+            "NEAR",
+            "OPTIMISM",
+            "POLYGON",
+            "RADIX",
+            "SOLANA",
+        ]
 
         actual = [chain.value for chain in supported_chains]
         self.assertEqual(actual, expected)

@@ -1,6 +1,7 @@
 import datetime
 from dataclasses import dataclass
 from enum import Enum
+from symtable import Class
 from typing import Any, Dict, List, Optional, Union
 
 
@@ -27,6 +28,9 @@ class TransactionType(str, Enum):
     INCOMING = "INCOMING"
     OUTGOING = "OUTGOING"
 
+class ApprovalAction(str, Enum):
+    APPROVE = "approve"
+    REJECT =  "reject"
 
 class TransactionCategory(str, Enum):
     TRANSFER = "TRANSFER"
@@ -214,6 +218,24 @@ class Transaction:
 
 
 @dataclass
+class GetApprovalResponse:
+    message: str
+    approvalId: str
+
+
+@dataclass
+class GetApprovalRequest:
+    entityId: str
+    # approve/reject
+    action: str
+
+
+@dataclass
+class CreateApprovalResponse:
+    success: bool
+
+
+@dataclass
 class CreateTransferTransactionRequest:
     source: TransferPartyData
     destination: TransferPartyData
@@ -308,6 +330,24 @@ class CreateContactRequest:
     chain: str
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
+    assetList: Optional[List[str]] = None
+
+
+@dataclass
+class UpdateContactRequest:
+    id: str
+    assetList: Optional[List[str]] = None
+
+
+@dataclass
+class UpdateContactResponse:
+    id: str
+    name: str
+    address: str
+    blockChain: str
+    tags: Optional[List[str]] = None
+    externalId: Optional[str] = None
+    assetList: Optional[List[str]] = None
 
 
 # Fee and Quote Responses
