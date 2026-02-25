@@ -9,6 +9,7 @@ from primevault_python_sdk.types import (
     ChainData,
     Contact,
     ContactListResponse,
+    CreateApprovalResponse,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
     CreateTradeQuoteRequest,
@@ -19,13 +20,16 @@ from primevault_python_sdk.types import (
     DetailedBalanceResponse,
     EstimatedFeeResponse,
     EstimateFeeRequest,
+    GetApprovalRequest,
+    GetApprovalResponse,
     GetTradeQuoteResponse,
     ReplaceTransactionRequest,
     Transaction,
     TransactionListResponse,
-    Vault,
-    VaultListResponse, GetApprovalRequest, CreateApprovalResponse, GetApprovalResponse, UpdateContactRequest,
+    UpdateContactRequest,
     UpdateContactResponse,
+    Vault,
+    VaultListResponse,
 )
 
 
@@ -61,26 +65,35 @@ class APIClient(BaseAPIClient):
         )
 
     def initiate_change_approval_action(
-        self,  request: GetApprovalRequest
+        self, request: GetApprovalRequest
     ) -> CreateApprovalResponse:
-        data = {"entityId": request.entityId,}
+        data = {
+            "entityId": request.entityId,
+        }
         # This will fetch the approval message for the change request entity and user
-        response =  from_dict(
+        response = from_dict(
             GetApprovalResponse,
-            self.get("/api/external/change_requests/approvals/approval_message/", params=data),
+            self.get(
+                "/api/external/change_requests/approvals/approval_message/", params=data
+            ),
         )
         # This will sign the  message and take the action given by user on change request
+        # reason is optional field if someone wants to set the field
         entity_approval_request = {
             "entityId": request.entityId,
-            "message":  response.message,
-            "signature":  self.signature_service.sign(
-               response.message.encode("utf-8")
+            "message": response.message,
+            "signature": self.signature_service.sign(
+                response.message.encode("utf-8")
             ).hex(),
             "action": request.action,
-            "reason": "ok"
+            "reason": "ok",
         }
         return from_dict(
-            CreateApprovalResponse, self.post(f"/api/external/change_requests/approvals/{response.approvalId}/action/", data=entity_approval_request)
+            CreateApprovalResponse,
+            self.post(
+                f"/api/external/change_requests/approvals/{response.approvalId}/action/",
+                data=entity_approval_request,
+            ),
         )
 
     def estimate_fee(self, request: EstimateFeeRequest) -> EstimatedFeeResponse:
@@ -274,4 +287,3 @@ class APIClient(BaseAPIClient):
         }
         response = self.put(f"/api/external/contacts/{request.id}/", data=data)
         return from_dict(UpdateContactResponse, response)
-

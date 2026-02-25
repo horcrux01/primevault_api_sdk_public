@@ -218,11 +218,13 @@ class GetApprovalResponse:
     message: str
     approvalId: str
 
+
 @dataclass
 class GetApprovalRequest:
     entityId: str
     # approve/reject
     action: str
+
 
 @dataclass
 class CreateApprovalResponse:
@@ -324,7 +326,8 @@ class CreateContactRequest:
     chain: str
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
-    assetList:  Optional[List[str]] = None
+    assetList: Optional[List[str]] = None
+
 
 @dataclass
 class UpdateContactRequest:
@@ -341,6 +344,8 @@ class UpdateContactResponse:
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
     assetList: Optional[List[str]] = None
+
+
 # Fee and Quote Responses
 
 
