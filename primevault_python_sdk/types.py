@@ -321,6 +321,8 @@ class CreateTradeQuoteRequest:
     toAsset: str
     toChain: str
     slippage: Optional[str] = None
+    expectedToAmount: Optional[str] = None
+    expiryInMinutes: Optional[int] = None
 
 
 @dataclass
@@ -381,7 +383,7 @@ class EstimatedFeeResponse:
 @dataclass
 class TradeQuoteResponseData:
     finalToAmount: str
-    quoteResponseDict: str
+    quoteResponseDict: Union[str, Dict[str, Any]]
     handler: str
     sourceName: str
     handlerCategory: Optional[str] = None
@@ -427,6 +429,21 @@ class CreateTradeTransactionRequest:
 class GetTradeQuoteResponse:
     tradeRequestData: TradeQuoteRequestData
     tradeResponseDataList: List[TradeQuoteResponseData]
+
+
+@dataclass
+class DepositAddress:
+    address: Optional[str] = None
+    id: Optional[Union[int, str]] = None
+    label: Optional[str] = None
+    network: Optional[str] = None
+    network_name: Optional[str] = None
+    token: Optional[str] = None
+
+
+@dataclass
+class DepositAddressResponse:
+    addresses: List[DepositAddress]
 
 
 @dataclass
