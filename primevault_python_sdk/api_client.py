@@ -248,24 +248,7 @@ class APIClient(BaseAPIClient):
         response = self.get(
             "/api/external/transactions/get_deposit_address/", params=params
         )
-
-        normalized_response = {"addresses": []}
-        if isinstance(response, list):
-            normalized_response = {"addresses": response}
-        elif isinstance(response, dict):
-            addresses = response.get("addresses")
-            if isinstance(addresses, list):
-                normalized_response = {"addresses": addresses}
-            else:
-                nested_data = response.get("data")
-                if isinstance(nested_data, dict) and isinstance(
-                    nested_data.get("addresses"), list
-                ):
-                    normalized_response = {"addresses": nested_data["addresses"]}
-                elif response:
-                    normalized_response = {"addresses": [response]}
-
-        return from_dict(DepositAddressResponse, normalized_response)
+        return from_dict(DepositAddressResponse, response)
 
     def update_balances(self, vault_id: str) -> BalanceResponse:
         return self.post(f"/api/external/vaults/{vault_id}/update_balances/")

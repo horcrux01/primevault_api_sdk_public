@@ -4,9 +4,8 @@ from primevault_python_sdk.types import CreateTradeQuoteRequest, GetTradeQuoteRe
 
 
 def get_quotes(api_client: APIClient) -> GetTradeQuoteResponse:
-    vault = api_client.get_vault_by_id("vault_id")
     params = CreateTradeQuoteRequest(
-        vaultId=str(vault.id),
+        vaultId="vault_id",
         fromAsset="USD",
         toAsset="USDT",
         fromAmount="2",
@@ -16,21 +15,17 @@ def get_quotes(api_client: APIClient) -> GetTradeQuoteResponse:
     return response
 
 def get_balance(api_client: APIClient) -> DetailedBalanceResponse:
-    vault = api_client.get_vault_by_id("vault_id")
-
-    response = api_client.get_detailed_balances(str(vault.id))
+    response = api_client.get_detailed_balances("vault_id")
     return response
 
 def get_deposit_address(api_client: APIClient) -> DepositAddressResponse:
-    vault = api_client.get_vault_by_id("vault_id")
 
-    response = api_client.get_deposit_address(str(vault.id), currency="USDC")
+    response = api_client.get_deposit_address("vault_id",currency="USDC")
     return response
 
 def execute_quote(api_client: APIClient) -> Transaction:
-    vault = api_client.get_vault_by_id("vault_id")
     params = CreateTradeQuoteRequest(
-        vaultId=str(vault.id),
+        vaultId="vault_id",
         fromAsset="USD",
         toAsset="USDT",
         fromAmount="2",
@@ -40,7 +35,7 @@ def execute_quote(api_client: APIClient) -> Transaction:
 
     quote_request = quote_data.tradeRequestData
     quote_response = quote_data.tradeResponseDataList[0]
-    transaction_request = CreateTradeTransactionRequest(vaultId=str(vault.id), tradeRequestData=quote_request,
+    transaction_request = CreateTradeTransactionRequest(vaultId="vault_id", tradeRequestData=quote_request,
                                       tradeResponseData=quote_response,
                                       externalId="a9acfd61-2e36-48ab-b709-5c7c4936ea01")
     transaction_response = api_client.create_trade_transaction(transaction_request)
