@@ -317,9 +317,9 @@ class CreateTradeQuoteRequest:
     vaultId: str
     fromAsset: str
     fromAmount: str
-    fromChain: str
+    fromChain: Optional[str]
     toAsset: str
-    toChain: str
+    toChain: Optional[str]
     slippage: Optional[str] = None
     expectedToAmount: Optional[str] = None
     expiryInMinutes: Optional[int] = None
