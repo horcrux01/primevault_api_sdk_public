@@ -403,10 +403,10 @@ class TradeQuoteResponseData:
 class TradeQuoteRequestData:
     fromAsset: str
     fromAmount: str
-    blockChain: str  # fromChain
     toAsset: str
-    toBlockchain: str  # toChain
-    slippage: str
+    slippage: Optional[str] = None
+    blockChain: Optional[str]  = None
+    toBlockchain: Optional[str]  = None
     fromAmountUSD: Optional[str] = None
     destinationAddress: Optional[str] = None
     chainId: Optional[str] = None
