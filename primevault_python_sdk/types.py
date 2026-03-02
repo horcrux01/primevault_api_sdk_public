@@ -389,7 +389,7 @@ class TradeQuoteResponseData:
     handlerCategory: Optional[str] = None
     unitToAssetAmount: Optional[str] = None
     approvedFinalToAmount: Optional[str] = None
-    quotesValidTill: Optional[datetime.datetime] = None
+    quotesValidTill: Optional[Union[datetime.datetime, str]] = None
     feeInUSD: Optional[str] = None
     finalToAmountUSD: Optional[str] = None
     stepsData: Optional[list] = None
