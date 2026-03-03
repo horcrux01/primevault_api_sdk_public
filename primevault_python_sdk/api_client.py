@@ -16,6 +16,7 @@ from primevault_python_sdk.types import (
     CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
+    DepositAddressResponse,
     DetailedBalance,
     DetailedBalanceResponse,
     EstimatedFeeResponse,
@@ -178,6 +179,8 @@ class APIClient(BaseAPIClient):
             "blockChain": request.fromChain,
             "toBlockchain": request.toChain,
             "slippage": request.slippage,
+            "expectedToAmount": request.expectedToAmount,
+            "expiryInMinutes": request.expiryInMinutes,
         }
         return from_dict(
             GetTradeQuoteResponse,
@@ -227,9 +230,25 @@ class APIClient(BaseAPIClient):
     def get_balances(self, vault_id: str) -> BalanceResponse:
         return self.get(f"/api/external/vaults/{vault_id}/balances/")
 
-    def get_detailed_balances(self, vault_id: str) -> DetailedBalanceResponse:
-        response = self.get(f"/api/external/vaults/{vault_id}/detailed_balances/")
+    def get_detailed_balances(
+        self, vault_id: str, params: Optional[dict] = None
+    ) -> DetailedBalanceResponse:
+        response = self.get(
+            f"/api/external/vaults/{vault_id}/detailed_balances/", params=params
+        )
         return [from_dict(DetailedBalance, balance) for balance in response]
+
+    def get_deposit_address(
+        self, vault_id: str, currency: Optional[str] = None
+    ) -> DepositAddressResponse:
+        params = {"vaultId": vault_id}
+        if currency:
+            params["currency"] = currency
+
+        response = self.get(
+            "/api/external/transactions/get_deposit_address/", params=params
+        )
+        return from_dict(DepositAddressResponse, response)
 
     def update_balances(self, vault_id: str) -> BalanceResponse:
         return self.post(f"/api/external/vaults/{vault_id}/update_balances/")
