@@ -436,9 +436,9 @@ class DepositAddress:
     address: Optional[str] = None
     id: Optional[Union[int, str]] = None
     label: Optional[str] = None
-    network: Optional[str] = None
+    chain: Optional[str] = None
     networkName: Optional[str] = None
-    token: Optional[str] = None
+    asset: Optional[str] = None
 
 
 @dataclass
