@@ -181,6 +181,8 @@ class APIClient(BaseAPIClient):
             "slippage": request.slippage,
             "expectedToAmount": request.expectedToAmount,
             "expiryInMinutes": request.expiryInMinutes,
+            "category": request.category,
+            "paymentMethod": request.paymentMethod,
         }
         return from_dict(
             GetTradeQuoteResponse,
