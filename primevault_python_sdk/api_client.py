@@ -219,6 +219,7 @@ class APIClient(BaseAPIClient):
             "operationMessage": request.operationMessage,
             "memo": request.memo,
             "paymentMethod": request.paymentMethod,
+            "toBlockChain": request.toBlockChain,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)

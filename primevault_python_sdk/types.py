@@ -220,6 +220,7 @@ class Transaction:
     isDeleted: bool
     # Optional fields
     toAddress: Optional[str] = None
+    toBlockChain: Optional[str] = None
     asset: Optional[str] = None
     toAsset: Optional[str] = None
     finalToAmount: Optional[str] = None
@@ -485,6 +486,7 @@ class CreateRampTransactionRequest:
     operationMessage: Optional[str] = None
     memo: Optional[str] = None
     paymentMethod: Optional[str] = None
+    toBlockChain: Optional[str] = None
 
 
 @dataclass
