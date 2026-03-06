@@ -181,6 +181,30 @@ TransactionOutput = Union[EVMOutput, ICPOutput]
 
 
 @dataclass
+class BankDetails:
+    bankName: Optional[str] = None
+    beneficiaryName: Optional[str] = None
+    accountNumberMasked: Optional[str] = None
+    iban: Optional[str] = None
+    swiftBic: Optional[str] = None
+    routingNumber: Optional[str] = None
+    paymentRail: Optional[str] = None
+    currency: Optional[str] = None
+    country: Optional[str] = None
+    bankAddress: Optional[str] = None
+
+
+@dataclass
+class TransactionSourceData:
+    type: Optional[str] = None
+    id: Optional[str] = None
+    name: Optional[str] = None
+    address: Optional[str] = None
+    exchange: Optional[str] = None
+    bank: Optional[BankDetails] = None
+
+
+@dataclass
 class Transaction:
     id: str
     orgId: str
@@ -205,6 +229,7 @@ class Transaction:
     externalId: Optional[str] = None
     gasParams: Optional[Dict[str, Any]] = None
     memo: Optional[str] = None
+    source: Optional[TransactionSourceData] = None
     sourceAddress: Optional[str] = None
     txnSignature: Optional[str] = None
     txnSignatureData: Optional[dict] = None
