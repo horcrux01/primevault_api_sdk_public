@@ -318,6 +318,8 @@ class CreateTradeQuoteRequest:
     fromAsset: str
     fromAmount: str
     toAsset: str
+    category: Optional[str] = None
+    paymentMethod: Optional[str] = None
     fromChain: Optional[str]= None
     toChain: Optional[str] = None
     slippage: Optional[str] = None
