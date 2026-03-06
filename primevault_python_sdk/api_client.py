@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from typing import List, Optional
 
 from dacite import from_dict
@@ -212,8 +213,8 @@ class APIClient(BaseAPIClient):
         data = {
             "vaultId": request.vaultId,
             "category": request.category,
-            "tradeRequestData": request.tradeRequestData.__dict__,
-            "tradeResponseData": request.tradeResponseData.__dict__,
+            "tradeRequestData": asdict(request.tradeRequestData),
+            "tradeResponseData": asdict(request.tradeResponseData),
             "externalId": request.externalId,
             "operationMessage": request.operationMessage,
             "memo": request.memo,
