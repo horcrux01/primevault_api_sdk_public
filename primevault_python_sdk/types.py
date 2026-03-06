@@ -210,7 +210,6 @@ class Transaction:
     orgId: str
     vaultId: str
     amount: str
-    blockChain: str
     status: str  # TransactionStatus
     transactionType: str  # TransactionType
     category: str  # TransactionCategory
@@ -219,6 +218,7 @@ class Transaction:
     updatedAt: str
     isDeleted: bool
     # Optional fields
+    blockChain: Optional[str] = None
     toAddress: Optional[str] = None
     toBlockChain: Optional[str] = None
     asset: Optional[str] = None
