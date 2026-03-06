@@ -221,6 +221,8 @@ class Transaction:
     # Optional fields
     toAddress: Optional[str] = None
     asset: Optional[str] = None
+    toAsset: Optional[str] = None
+    finalToAmount: Optional[str] = None
     toAddressName: Optional[str] = None
     createdById: Optional[str] = None
     txHash: Optional[str] = None
