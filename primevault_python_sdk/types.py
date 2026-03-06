@@ -28,9 +28,11 @@ class TransactionType(str, Enum):
     INCOMING = "INCOMING"
     OUTGOING = "OUTGOING"
 
+
 class ApprovalAction(str, Enum):
     APPROVE = "approve"
-    REJECT =  "reject"
+    REJECT = "reject"
+
 
 class TransactionCategory(str, Enum):
     TRANSFER = "TRANSFER"
@@ -349,7 +351,7 @@ class CreateTradeQuoteRequest:
     toAsset: str
     category: Optional[str] = None
     paymentMethod: Optional[str] = None
-    fromChain: Optional[str]= None
+    fromChain: Optional[str] = None
     toChain: Optional[str] = None
     slippage: Optional[str] = None
     expectedToAmount: Optional[str] = None
@@ -456,8 +458,8 @@ class TradeQuoteRequestData:
     fromAmount: str
     toAsset: str
     slippage: Optional[str] = None
-    blockChain: Optional[str]  = None
-    toBlockchain: Optional[str]  = None
+    blockChain: Optional[str] = None
+    toBlockchain: Optional[str] = None
     fromAmountUSD: Optional[str] = None
     destinationAddress: Optional[str] = None
     chainId: Optional[str] = None
