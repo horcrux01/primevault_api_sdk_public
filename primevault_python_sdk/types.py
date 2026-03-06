@@ -451,7 +451,6 @@ class CreateTradeTransactionRequest:
 class GetTradeQuoteResponse:
     tradeRequestData: TradeQuoteRequestData
     tradeResponseDataList: List[TradeQuoteResponseData]
-    tradeResponseData: Optional[List[TradeQuoteResponseData]] = None
 
 
 @dataclass
