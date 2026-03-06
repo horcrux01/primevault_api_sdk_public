@@ -383,6 +383,22 @@ class EstimatedFeeResponse:
 
 
 @dataclass
+class TradeQuoteFee:
+    amount: Optional[str] = None
+    asset: Optional[str] = None
+
+
+@dataclass
+class TradeQuoteDictData:
+    quoteId: Optional[str] = None
+    fromAmount: Optional[str] = None
+    toAmount: Optional[str] = None
+    fromAsset: Optional[str] = None
+    toAsset: Optional[str] = None
+    fees: Optional[TradeQuoteFee] = None
+
+
+@dataclass
 class TradeQuoteResponseData:
     finalToAmount: str
     quoteResponseDict: Union[str, Dict[str, Any]]
@@ -399,6 +415,10 @@ class TradeQuoteResponseData:
     estCompletionTimeInSec: Optional[int] = None
     autoSlippage: Optional[str] = None
     minimumToAmount: Optional[str] = None
+    fees: Optional[TradeQuoteFee] = None
+    quoteId: Optional[str] = None
+    fromAmount: Optional[str] = None
+    paymentMethod: Optional[str] = None
 
 
 @dataclass
@@ -431,6 +451,7 @@ class CreateTradeTransactionRequest:
 class GetTradeQuoteResponse:
     tradeRequestData: TradeQuoteRequestData
     tradeResponseDataList: List[TradeQuoteResponseData]
+    tradeResponseData: Optional[List[TradeQuoteResponseData]] = None
 
 
 @dataclass
