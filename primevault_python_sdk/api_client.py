@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from typing import List, Optional
 
 from dacite import from_dict
@@ -12,6 +13,7 @@ from primevault_python_sdk.types import (
     CreateApprovalResponse,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
+    CreateRampTransactionRequest,
     CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
@@ -181,6 +183,8 @@ class APIClient(BaseAPIClient):
             "slippage": request.slippage,
             "expectedToAmount": request.expectedToAmount,
             "expiryInMinutes": request.expiryInMinutes,
+            "category": request.category,
+            "paymentMethod": request.paymentMethod,
         }
         return from_dict(
             GetTradeQuoteResponse,
@@ -192,12 +196,30 @@ class APIClient(BaseAPIClient):
     ) -> Transaction:
         data = {
             "vaultId": request.vaultId,
-            "tradeRequestData": request.tradeRequestData.__dict__,
-            "tradeResponseData": request.tradeResponseData.__dict__,
+            "tradeRequestData": asdict(request.tradeRequestData),
+            "tradeResponseData": asdict(request.tradeResponseData),
             "category": "SWAP",
             "blockChain": request.tradeRequestData.blockChain,
             "externalId": request.externalId,
             "memo": request.memo,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
+    def create_ramp_transaction(
+        self, request: CreateRampTransactionRequest
+    ) -> Transaction:
+        data = {
+            "vaultId": request.vaultId,
+            "category": request.category,
+            "tradeRequestData": asdict(request.tradeRequestData),
+            "tradeResponseData": asdict(request.tradeResponseData),
+            "externalId": request.externalId,
+            "operationMessage": request.operationMessage,
+            "memo": request.memo,
+            "paymentMethod": request.paymentMethod,
+            "toBlockChain": request.toBlockChain,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)

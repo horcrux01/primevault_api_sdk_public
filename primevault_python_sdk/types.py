@@ -28,13 +28,16 @@ class TransactionType(str, Enum):
     INCOMING = "INCOMING"
     OUTGOING = "OUTGOING"
 
+
 class ApprovalAction(str, Enum):
     APPROVE = "approve"
-    REJECT =  "reject"
+    REJECT = "reject"
+
 
 class TransactionCategory(str, Enum):
     TRANSFER = "TRANSFER"
     SWAP = "SWAP"
+    ON_RAMP = "ON_RAMP"
     TOKEN_TRANSFER = "TOKEN_TRANSFER"
     TOKEN_APPROVAL = "TOKEN_APPROVAL"
     CONTRACT_CALL = "CONTRACT_CALL"
@@ -180,12 +183,35 @@ TransactionOutput = Union[EVMOutput, ICPOutput]
 
 
 @dataclass
+class BankDetails:
+    bankName: Optional[str] = None
+    beneficiaryName: Optional[str] = None
+    accountNumberMasked: Optional[str] = None
+    iban: Optional[str] = None
+    swiftBic: Optional[str] = None
+    routingNumber: Optional[str] = None
+    paymentRail: Optional[str] = None
+    currency: Optional[str] = None
+    country: Optional[str] = None
+    bankAddress: Optional[str] = None
+
+
+@dataclass
+class TransactionSourceData:
+    type: Optional[str] = None
+    id: Optional[str] = None
+    name: Optional[str] = None
+    address: Optional[str] = None
+    exchange: Optional[str] = None
+    bank: Optional[BankDetails] = None
+
+
+@dataclass
 class Transaction:
     id: str
     orgId: str
     vaultId: str
     amount: str
-    blockChain: str
     status: str  # TransactionStatus
     transactionType: str  # TransactionType
     category: str  # TransactionCategory
@@ -194,8 +220,12 @@ class Transaction:
     updatedAt: str
     isDeleted: bool
     # Optional fields
+    blockChain: Optional[str] = None
     toAddress: Optional[str] = None
+    toBlockChain: Optional[str] = None
     asset: Optional[str] = None
+    toAsset: Optional[str] = None
+    finalToAmount: Optional[str] = None
     toAddressName: Optional[str] = None
     createdById: Optional[str] = None
     txHash: Optional[str] = None
@@ -204,6 +234,7 @@ class Transaction:
     externalId: Optional[str] = None
     gasParams: Optional[Dict[str, Any]] = None
     memo: Optional[str] = None
+    source: Optional[TransactionSourceData] = None
     sourceAddress: Optional[str] = None
     txnSignature: Optional[str] = None
     txnSignatureData: Optional[dict] = None
@@ -318,7 +349,9 @@ class CreateTradeQuoteRequest:
     fromAsset: str
     fromAmount: str
     toAsset: str
-    fromChain: Optional[str]= None
+    category: Optional[str] = None
+    paymentMethod: Optional[str] = None
+    fromChain: Optional[str] = None
     toChain: Optional[str] = None
     slippage: Optional[str] = None
     expectedToAmount: Optional[str] = None
@@ -381,6 +414,22 @@ class EstimatedFeeResponse:
 
 
 @dataclass
+class TradeQuoteFee:
+    amount: Optional[str] = None
+    asset: Optional[str] = None
+
+
+@dataclass
+class TradeQuoteDictData:
+    quoteId: Optional[str] = None
+    fromAmount: Optional[str] = None
+    toAmount: Optional[str] = None
+    fromAsset: Optional[str] = None
+    toAsset: Optional[str] = None
+    fees: Optional[TradeQuoteFee] = None
+
+
+@dataclass
 class TradeQuoteResponseData:
     finalToAmount: str
     quoteResponseDict: Union[str, Dict[str, Any]]
@@ -397,6 +446,10 @@ class TradeQuoteResponseData:
     estCompletionTimeInSec: Optional[int] = None
     autoSlippage: Optional[str] = None
     minimumToAmount: Optional[str] = None
+    fees: Optional[TradeQuoteFee] = None
+    quoteId: Optional[str] = None
+    fromAmount: Optional[str] = None
+    paymentMethod: Optional[str] = None
 
 
 @dataclass
@@ -405,8 +458,8 @@ class TradeQuoteRequestData:
     fromAmount: str
     toAsset: str
     slippage: Optional[str] = None
-    blockChain: Optional[str]  = None
-    toBlockchain: Optional[str]  = None
+    blockChain: Optional[str] = None
+    toBlockchain: Optional[str] = None
     fromAmountUSD: Optional[str] = None
     destinationAddress: Optional[str] = None
     chainId: Optional[str] = None
@@ -423,6 +476,19 @@ class CreateTradeTransactionRequest:
     tradeResponseData: TradeQuoteResponseData
     externalId: Optional[str] = None
     memo: Optional[str] = None
+
+
+@dataclass
+class CreateRampTransactionRequest:
+    vaultId: str
+    tradeRequestData: TradeQuoteRequestData
+    tradeResponseData: TradeQuoteResponseData
+    category: str = TransactionCategory.ON_RAMP.value
+    externalId: Optional[str] = None
+    operationMessage: Optional[str] = None
+    memo: Optional[str] = None
+    paymentMethod: Optional[str] = None
+    toBlockChain: Optional[str] = None
 
 
 @dataclass
