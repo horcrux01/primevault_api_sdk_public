@@ -196,8 +196,8 @@ class APIClient(BaseAPIClient):
     ) -> Transaction:
         data = {
             "vaultId": request.vaultId,
-            "tradeRequestData": request.tradeRequestData.__dict__,
-            "tradeResponseData": request.tradeResponseData.__dict__,
+            "tradeRequestData": asdict(request.tradeRequestData),
+            "tradeResponseData": asdict(request.tradeResponseData),
             "category": "SWAP",
             "blockChain": request.tradeRequestData.blockChain,
             "externalId": request.externalId,
