@@ -35,6 +35,7 @@ class ApprovalAction(str, Enum):
 class TransactionCategory(str, Enum):
     TRANSFER = "TRANSFER"
     SWAP = "SWAP"
+    ON_RAMP = "ON_RAMP"
     TOKEN_TRANSFER = "TOKEN_TRANSFER"
     TOKEN_APPROVAL = "TOKEN_APPROVAL"
     CONTRACT_CALL = "CONTRACT_CALL"
@@ -445,6 +446,18 @@ class CreateTradeTransactionRequest:
     tradeResponseData: TradeQuoteResponseData
     externalId: Optional[str] = None
     memo: Optional[str] = None
+
+
+@dataclass
+class CreateRampTransactionRequest:
+    vaultId: str
+    tradeRequestData: TradeQuoteRequestData
+    tradeResponseData: TradeQuoteResponseData
+    category: str = TransactionCategory.ON_RAMP.value
+    externalId: Optional[str] = None
+    operationMessage: Optional[str] = None
+    memo: Optional[str] = None
+    paymentMethod: Optional[str] = None
 
 
 @dataclass

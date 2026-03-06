@@ -12,6 +12,7 @@ from primevault_python_sdk.types import (
     CreateApprovalResponse,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
+    CreateRampTransactionRequest,
     CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
@@ -200,6 +201,23 @@ class APIClient(BaseAPIClient):
             "blockChain": request.tradeRequestData.blockChain,
             "externalId": request.externalId,
             "memo": request.memo,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
+    def create_ramp_transaction(
+        self, request: CreateRampTransactionRequest
+    ) -> Transaction:
+        data = {
+            "vaultId": request.vaultId,
+            "category": request.category,
+            "tradeRequestData": request.tradeRequestData.__dict__,
+            "tradeResponseData": request.tradeResponseData.__dict__,
+            "externalId": request.externalId,
+            "operationMessage": request.operationMessage,
+            "memo": request.memo,
+            "paymentMethod": request.paymentMethod,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)
