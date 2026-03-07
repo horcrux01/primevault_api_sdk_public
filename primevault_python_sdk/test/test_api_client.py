@@ -232,7 +232,7 @@ class TestApiClient(unittest.TestCase):
             )
 
         self.assertIn(
-            "Vault has insufficient balance to complete the transaction",
+            "A record with the same information already exists",
             exc_info.value.response_text,
         )
 
