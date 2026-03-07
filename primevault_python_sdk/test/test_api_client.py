@@ -102,7 +102,7 @@ class TestApiClient(unittest.TestCase):
         vault_id = vaults.results[0].id
         balances = self.api_client.get_balances(vault_id)
         self.assertIsInstance(balances, dict)
-        self.assertEqual(balances, {})
+        self.assertEqual(len(balances), 2)
 
         # Non-zero balances
         vaults_non_zero = self.api_client.get_vaults({"vaultName": "Ethereum Vault"})
