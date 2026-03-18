@@ -1,7 +1,6 @@
 import datetime
 from dataclasses import dataclass
 from enum import Enum
-from symtable import Class
 from typing import Any, Dict, List, Optional, Union
 
 
@@ -38,11 +37,12 @@ class TransactionCategory(str, Enum):
     TRANSFER = "TRANSFER"
     SWAP = "SWAP"
     ON_RAMP = "ON_RAMP"
-    TOKEN_TRANSFER = "TOKEN_TRANSFER"
-    TOKEN_APPROVAL = "TOKEN_APPROVAL"
+    OFF_RAMP = "OFF_RAMP"
+    TOKEN_TRANSFER = "TOKEN_TRANSFER"  # nosec B105
+    TOKEN_APPROVAL = "TOKEN_APPROVAL"  # nosec B105
     CONTRACT_CALL = "CONTRACT_CALL"
     STAKE = "STAKE"
-    REVOKE_TOKEN_ALLOWANCE = "REVOKE_TOKEN_ALLOWANCE"
+    REVOKE_TOKEN_ALLOWANCE = "REVOKE_TOKEN_ALLOWANCE"  # nosec B105
 
 
 class TransactionSubCategory(str, Enum):
@@ -57,6 +57,8 @@ class TransactionSubCategory(str, Enum):
     STAKE = "STAKE"
     UNSTAKE = "UNSTAKE"
     CLAIM = "CLAIM"
+    ON_RAMP = "ON_RAMP"
+    OFF_RAMP = "OFF_RAMP"
 
 
 class TransactionStatus(str, Enum):
@@ -474,6 +476,51 @@ class CreateTradeTransactionRequest:
     vaultId: str
     tradeRequestData: TradeQuoteRequestData
     tradeResponseData: TradeQuoteResponseData
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
+
+
+@dataclass
+class RampExchangeRatesRequest:
+    amount: str
+    currency: str
+    asset: str
+    category: str
+    blockChain: str
+    vaultId: str
+    paymentMethod: Optional[str] = None
+
+
+@dataclass
+class RampExchangeRateFees:
+    amount: str
+    asset: str
+
+
+@dataclass
+class RampExchangeRateQuote:
+    quoteId: str
+    convertedAmount: str
+    fees: RampExchangeRateFees
+    source: str
+
+
+@dataclass
+class CreateOnRampTransactionRequest:
+    vaultId: str
+    quoteId: str
+    onRampRequestData: Dict[str, Any]
+    onRampResponseData: Dict[str, Any]
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
+
+
+@dataclass
+class CreateOffRampTransactionRequest:
+    vaultId: str
+    quoteId: str
+    offRampRequestData: Dict[str, Any]
+    offRampResponseData: Dict[str, Any]
     externalId: Optional[str] = None
     memo: Optional[str] = None
 

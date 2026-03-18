@@ -13,6 +13,8 @@ from primevault_python_sdk.types import (
     CreateApprovalResponse,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
+    CreateOffRampTransactionRequest,
+    CreateOnRampTransactionRequest,
     CreateRampTransactionRequest,
     CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
@@ -26,6 +28,8 @@ from primevault_python_sdk.types import (
     GetApprovalRequest,
     GetApprovalResponse,
     GetTradeQuoteResponse,
+    RampExchangeRateQuote,
+    RampExchangeRatesRequest,
     ReplaceTransactionRequest,
     Transaction,
     TransactionListResponse,
@@ -191,6 +195,23 @@ class APIClient(BaseAPIClient):
             self.get("/api/external/transactions/trade_quote/", params=data),
         )
 
+    def get_ramp_exchange_rates(
+        self, request: RampExchangeRatesRequest
+    ) -> List[RampExchangeRateQuote]:
+        data = {
+            "amount": request.amount,
+            "currency": request.currency,
+            "asset": request.asset,
+            "category": request.category,
+            "blockChain": request.blockChain,
+            "vaultId": request.vaultId,
+            "paymentMethod": request.paymentMethod,
+        }
+        response = self.get(
+            "/api/external/transactions/ramp_exchange_rates/", params=data
+        )
+        return [from_dict(RampExchangeRateQuote, quote) for quote in response]
+
     def create_trade_transaction(
         self, request: CreateTradeTransactionRequest
     ) -> Transaction:
@@ -200,6 +221,40 @@ class APIClient(BaseAPIClient):
             "tradeResponseData": asdict(request.tradeResponseData),
             "category": "SWAP",
             "blockChain": request.tradeRequestData.blockChain,
+            "externalId": request.externalId,
+            "memo": request.memo,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
+    def create_on_ramp_transaction(
+        self, request: CreateOnRampTransactionRequest
+    ) -> Transaction:
+        data = {
+            "vaultId": request.vaultId,
+            "quoteId": request.quoteId,
+            "onRampRequestData": request.onRampRequestData,
+            "onRampResponseData": request.onRampResponseData,
+            "category": "ON_RAMP",
+            "blockChain": request.onRampRequestData.get("blockChain"),
+            "externalId": request.externalId,
+            "memo": request.memo,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
+    def create_off_ramp_transaction(
+        self, request: CreateOffRampTransactionRequest
+    ) -> Transaction:
+        data = {
+            "vaultId": request.vaultId,
+            "quoteId": request.quoteId,
+            "offRampRequestData": request.offRampRequestData,
+            "offRampResponseData": request.offRampResponseData,
+            "category": "OFF_RAMP",
+            "blockChain": request.offRampRequestData.get("blockChain"),
             "externalId": request.externalId,
             "memo": request.memo,
         }
