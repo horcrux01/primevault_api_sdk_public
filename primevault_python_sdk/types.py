@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from dataclasses import dataclass
 from enum import Enum
@@ -122,6 +124,10 @@ class TransferPartyData:
     type: str  # TransferPartyType
     id: Optional[str] = None
     value: Optional[str] = None
+    name: Optional[str] = None
+    address: Optional[str] = None
+    exchange: Optional[str] = None
+    bank: Optional[BankDetails] = None
 
 
 @dataclass
@@ -206,16 +212,6 @@ class BankDetails:
 
 
 @dataclass
-class TransactionSourceData:
-    type: Optional[str] = None
-    id: Optional[str] = None
-    name: Optional[str] = None
-    address: Optional[str] = None
-    exchange: Optional[str] = None
-    bank: Optional[BankDetails] = None
-
-
-@dataclass
 class Transaction:
     id: str
     orgId: str
@@ -243,7 +239,7 @@ class Transaction:
     externalId: Optional[str] = None
     gasParams: Optional[Dict[str, Any]] = None
     memo: Optional[str] = None
-    source: Optional[TransactionSourceData] = None
+    source: Optional[TransferPartyData] = None
     destination: Optional[TransferPartyData] = None
     sourceAddress: Optional[str] = None
     txnSignature: Optional[str] = None
