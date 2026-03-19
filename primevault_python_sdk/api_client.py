@@ -13,6 +13,8 @@ from primevault_python_sdk.types import (
     CreateApprovalResponse,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
+    CreateOffRampTransactionRequest,
+    CreateOnRampTransactionRequest,
     CreateRampTransactionRequest,
     CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
@@ -26,8 +28,11 @@ from primevault_python_sdk.types import (
     GetApprovalRequest,
     GetApprovalResponse,
     GetTradeQuoteResponse,
+    RampQuoteRequest,
+    RampQuoteResponse,
     ReplaceTransactionRequest,
     Transaction,
+    TransactionCategory,
     TransactionListResponse,
     UpdateContactRequest,
     UpdateContactResponse,
@@ -220,6 +225,54 @@ class APIClient(BaseAPIClient):
             "memo": request.memo,
             "paymentMethod": request.paymentMethod,
             "toBlockChain": request.toBlockChain,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
+    def get_ramp_quote(self, request: RampQuoteRequest) -> RampQuoteResponse:
+        data = {
+            "destination": asdict(request.destination) if request.destination else None,
+            "source": asdict(request.source) if request.source else None,
+            "fromAsset": request.fromAsset,
+            "fromAmount": request.fromAmount,
+            "fromChain": request.fromChain,
+            "toAsset": request.toAsset,
+            "toChain": request.toChain,
+            "category": request.category,
+            "paymentMethod": request.paymentMethod,
+        }
+        return from_dict(
+            RampQuoteResponse,
+            self.post("/api/external/transactions/quote/", data=data),
+        )
+
+    def create_on_ramp_transaction(
+        self, request: CreateOnRampTransactionRequest
+    ) -> Transaction:
+        data = {
+            "destination": asdict(request.destination),
+            "onRampRequestData": request.rampRequestData,
+            "onRampResponseData": request.rampResponseData,
+            "category": TransactionCategory.ON_RAMP.value,
+            "externalId": request.externalId,
+            "memo": request.memo,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
+    def create_off_ramp_transaction(
+        self, request: CreateOffRampTransactionRequest
+    ) -> Transaction:
+        data = {
+            "source": asdict(request.source),
+            "destination": asdict(request.destination),
+            "onRampRequestData": request.rampRequestData,
+            "onRampResponseData": request.rampResponseData,
+            "category": TransactionCategory.OFF_RAMP.value,
+            "externalId": request.externalId,
+            "memo": request.memo,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)

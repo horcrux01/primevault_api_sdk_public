@@ -1,7 +1,6 @@
 import datetime
 from dataclasses import dataclass
 from enum import Enum
-from symtable import Class
 from typing import Any, Dict, List, Optional, Union
 
 
@@ -10,6 +9,7 @@ class TransferPartyType(str, Enum):
     CONTACT = "CONTACT"
     VAULT = "VAULT"
     EXTERNAL_ADDRESS = "EXTERNAL_ADDRESS"
+    EXTERNAL_BANK_ACCOUNT = "EXTERNAL_BANK_ACCOUNT"
 
 
 class VaultType(str, Enum):
@@ -38,11 +38,12 @@ class TransactionCategory(str, Enum):
     TRANSFER = "TRANSFER"
     SWAP = "SWAP"
     ON_RAMP = "ON_RAMP"
-    TOKEN_TRANSFER = "TOKEN_TRANSFER"
-    TOKEN_APPROVAL = "TOKEN_APPROVAL"
+    OFF_RAMP = "OFF_RAMP"
+    TOKEN_TRANSFER = "TOKEN_TRANSFER"  # nosec B105
+    TOKEN_APPROVAL = "TOKEN_APPROVAL"  # nosec B105
     CONTRACT_CALL = "CONTRACT_CALL"
     STAKE = "STAKE"
-    REVOKE_TOKEN_ALLOWANCE = "REVOKE_TOKEN_ALLOWANCE"
+    REVOKE_TOKEN_ALLOWANCE = "REVOKE_TOKEN_ALLOWANCE"  # nosec B105
 
 
 class TransactionSubCategory(str, Enum):
@@ -68,6 +69,14 @@ class TransactionStatus(str, Enum):
     DECLINED = "DECLINED"
     SUBMITTED = "SUBMITTED"
     WAITING_CONFIRMATION = "WAITING_CONFIRMATION"
+
+
+class PaymentMethod(str, Enum):
+    US_ACH = "US_ACH"
+    US_WIRE = "US_WIRE"
+    SEPA = "SEPA"
+    SWIFT = "SWIFT"
+    BANK_TRANSFER = "BANK_TRANSFER"
 
 
 class TransactionFeeTier(str, Enum):
@@ -235,6 +244,7 @@ class Transaction:
     gasParams: Optional[Dict[str, Any]] = None
     memo: Optional[str] = None
     source: Optional[TransactionSourceData] = None
+    destination: Optional[TransferPartyData] = None
     sourceAddress: Optional[str] = None
     txnSignature: Optional[str] = None
     txnSignatureData: Optional[dict] = None
@@ -243,6 +253,8 @@ class Transaction:
     operationId: Optional[str] = None
     amountInUSD: Optional[str] = None
     nonce: Optional[int] = None
+    rampRequestData: Optional[Dict[str, Any]] = None
+    rampResponseData: Optional[Dict[str, Any]] = None
 
 
 # Requests
@@ -474,6 +486,53 @@ class CreateTradeTransactionRequest:
     vaultId: str
     tradeRequestData: TradeQuoteRequestData
     tradeResponseData: TradeQuoteResponseData
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
+
+
+@dataclass
+class RampQuoteRequest:
+    fromAsset: str
+    fromAmount: str
+    toAsset: str
+    category: str  # TransactionCategory.ON_RAMP or OFF_RAMP
+    source: Optional[TransferPartyData] = None
+    destination: Optional[TransferPartyData] = None
+    fromChain: Optional[str] = None
+    toChain: Optional[str] = None
+    paymentMethod: Optional[str] = None  # PaymentMethod value
+
+
+@dataclass
+class RampQuoteResponseFees:
+    amount: Optional[str] = None
+    asset: Optional[str] = None
+
+
+@dataclass
+class RampQuoteResponse:
+    finalToAmount: str
+    quoteId: str
+    fees: RampQuoteResponseFees
+    sourceName: str
+    quoteResponseDict: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class CreateOnRampTransactionRequest:
+    destination: TransferPartyData
+    rampRequestData: Dict[str, Any]
+    rampResponseData: Dict[str, Any]
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
+
+
+@dataclass
+class CreateOffRampTransactionRequest:
+    source: TransferPartyData
+    destination: TransferPartyData
+    rampRequestData: Dict[str, Any]
+    rampResponseData: Dict[str, Any]
     externalId: Optional[str] = None
     memo: Optional[str] = None
 
