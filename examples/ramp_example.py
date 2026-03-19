@@ -51,4 +51,19 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
         )
     )
 
+    # The transaction response includes bank details for the fiat deposit
+    # in the source field:
+    #
+    #   on_ramp_transaction.source.type      # "EXTERNAL_BANK_ACCOUNT"
+    #   on_ramp_transaction.source.name      # e.g. "PrimeVault Treasury"
+    #   on_ramp_transaction.source.bank.bankName           # e.g. "PrimeVault National Bank"
+    #   on_ramp_transaction.source.bank.beneficiaryName    # e.g. "PrimeVault Treasury"
+    #   on_ramp_transaction.source.bank.accountNumberMasked
+    #   on_ramp_transaction.source.bank.routingNumber
+    #   on_ramp_transaction.source.bank.swiftBic
+    #   on_ramp_transaction.source.bank.paymentRail        # e.g. "US_ACH"
+    #   on_ramp_transaction.source.bank.currency           # e.g. "USD"
+    #   on_ramp_transaction.source.bank.bankAddress
+    #   on_ramp_transaction.source.bank.iban
+
     return on_ramp_transaction
