@@ -536,6 +536,49 @@ class ContactListResponse:
     next: Optional[str] = None
 
 
+@dataclass
+class BankAccountInfo:
+    accountNumber: str
+    accountName: str
+    routingNumber: str
+    accountType: str
+
+
+@dataclass
+class BankAccount:
+    id: str
+    orgId: str
+    createdAt: str
+    updatedAt: str
+    isDeleted: bool
+    bankAccountInfo: Optional[Dict[str, Any]] = None
+    thirdParty: Optional[str] = None
+    clientBankAccountId: Optional[str] = None
+    region: Optional[str] = None
+    paymentMethod: Optional[str] = None
+    metaData: Optional[Dict[str, Any]] = None
+    status: Optional[str] = None
+    createdById: Optional[str] = None
+
+
+@dataclass
+class BankAccountListResponse:
+    results: List["BankAccount"]
+    count: int
+    previous: Optional[str] = None
+    next: Optional[str] = None
+
+
+@dataclass
+class CreateBankAccountRequest:
+    bankAccountInfo: Optional[Dict[str, Any]] = None
+    thirdParty: Optional[str] = None
+    clientBankAccountId: Optional[str] = None
+    region: Optional[str] = None
+    paymentMethod: Optional[str] = None
+    metaData: Optional[Dict[str, Any]] = None
+
+
 # Balance Response
 BalanceResponse = Dict[str, Dict[str, str]]
 """

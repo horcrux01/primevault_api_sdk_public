@@ -7,10 +7,13 @@ from primevault_python_sdk.base_api_client import BaseAPIClient
 from primevault_python_sdk.types import (
     Asset,
     BalanceResponse,
+    BankAccount,
+    BankAccountListResponse,
     ChainData,
     Contact,
     ContactListResponse,
     CreateApprovalResponse,
+    CreateBankAccountRequest,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
     CreateRampTransactionRequest,
@@ -328,3 +331,51 @@ class APIClient(BaseAPIClient):
         }
         response = self.put(f"/api/external/contacts/{request.id}/", data=data)
         return from_dict(UpdateContactResponse, response)
+
+    # Bank Account Methods
+
+    def get_bank_accounts(
+        self,
+        params: Optional[dict] = None,
+        page: Optional[int] = 1,
+        limit: Optional[int] = 20,
+    ) -> BankAccountListResponse:
+        query_params = ""
+        if params:
+            query_params = "&".join([f"{k}={v}" for k, v in params.items()])
+
+        response = self.get(
+            f"/api/external/bank_accounts/?limit={limit}&page={page}&{query_params}"
+        )
+        return from_dict(data_class=BankAccountListResponse, data=response)
+
+    def get_bank_account_by_id(self, bank_account_id: str) -> BankAccount:
+        return from_dict(
+            BankAccount,
+            self.get(f"/api/external/bank_accounts/{bank_account_id}/"),
+        )
+
+    def create_bank_account(
+        self, request: CreateBankAccountRequest
+    ) -> BankAccount:
+        data = {}
+        if request.bankAccountInfo:
+            data["bankAccountInfo"] = request.bankAccountInfo
+        if request.thirdParty:
+            data["thirdParty"] = request.thirdParty
+        if request.clientBankAccountId:
+            data["clientBankAccountId"] = request.clientBankAccountId
+        if request.region:
+            data["region"] = request.region
+        if request.paymentMethod:
+            data["paymentMethod"] = request.paymentMethod
+        if request.metaData:
+            data["metaData"] = request.metaData
+
+        response = self.post("/api/external/bank_accounts/", data=data)
+        return from_dict(BankAccount, response)
+
+    def approve_bank_account(
+        self, request: GetApprovalRequest
+    ) -> CreateApprovalResponse:
+        return self.initiate_change_approval_action(request)
