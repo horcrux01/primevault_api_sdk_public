@@ -361,7 +361,7 @@ class APIClient(BaseAPIClient):
         response = self.post("/api/external/bank_accounts/", data=asdict(request))
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
 
-    def approve_bank_account(
+    def submit_bank_account_approval_action(
         self, request: GetApprovalRequest
     ) -> CreateApprovalResponse:
         return self.initiate_change_approval_action(request)
