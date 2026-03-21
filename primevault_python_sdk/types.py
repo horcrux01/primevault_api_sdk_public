@@ -109,10 +109,30 @@ class ChainData:
 
 
 @dataclass
+class BankDetails:
+    bankAccountId: Optional[str] = None
+    bankName: Optional[str] = None
+    beneficiaryName: Optional[str] = None
+    accountName: Optional[str] = None
+    accountNumber: Optional[str] = None
+    routingNumber: Optional[str] = None
+    paymentRail: Optional[str] = None
+    bankAddress: Optional[str] = None
+    swiftCode: Optional[str] = None
+    iban: Optional[str] = None
+    currency: Optional[str] = None
+    country: Optional[str] = None
+
+
+@dataclass
 class TransferPartyData:
     type: str  # TransferPartyType
     id: Optional[str] = None
     value: Optional[str] = None
+    name: Optional[str] = None
+    address: Optional[str] = None
+    exchange: Optional[str] = None
+    bank: Optional[BankDetails] = None
 
 
 @dataclass
