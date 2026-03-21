@@ -364,7 +364,7 @@ class CreateVaultRequest:
 
 
 @dataclass
-class GetQuoteRequest:
+class CreateTradeQuoteRequest:
     vaultId: str
     fromAsset: str
     fromAmount: str

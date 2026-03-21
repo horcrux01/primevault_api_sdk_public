@@ -9,7 +9,7 @@ from primevault_python_sdk.base_api_client import BadRequestError
 from primevault_python_sdk.types import (
     ContactStatus,
     CreateContractCallTransactionRequest,
-    GetQuoteRequest,
+    CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
@@ -284,7 +284,7 @@ class TestApiClient(unittest.TestCase):
         source_vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
         vault_id = source_vaults.results[0].id
         trade_quote_response = self.api_client.get_trade_quote(
-            GetQuoteRequest(
+            CreateTradeQuoteRequest(
                 **{
                     "vaultId": vault_id,
                     "fromAsset": "ETH",
@@ -318,7 +318,7 @@ class TestApiClient(unittest.TestCase):
         source_vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
         vault_id = source_vaults.results[0].id
         trade_quote_response = self.api_client.get_trade_quote(
-            GetQuoteRequest(
+            CreateTradeQuoteRequest(
                 **{
                     "vaultId": vault_id,
                     "fromAsset": "ETH",

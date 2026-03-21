@@ -1,6 +1,6 @@
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
-    GetQuoteRequest,
+    CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
     DepositAddressResponse,
     DetailedBalanceResponse,
@@ -10,7 +10,7 @@ from primevault_python_sdk.types import (
 
 
 def get_quotes(api_client: APIClient) -> GetTradeQuoteResponse:
-    params = GetQuoteRequest(
+    params = CreateTradeQuoteRequest(
         vaultId="vault_id",
         fromAsset="USD",
         toAsset="USDT",
@@ -31,7 +31,7 @@ def get_deposit_address(api_client: APIClient) -> DepositAddressResponse:
 
 
 def execute_quote(api_client: APIClient) -> Transaction:
-    params = GetQuoteRequest(
+    params = CreateTradeQuoteRequest(
         vaultId="vault_id",
         fromAsset="USD",
         toAsset="USDT",
