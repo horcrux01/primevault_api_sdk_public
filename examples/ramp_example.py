@@ -1,14 +1,14 @@
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
     CreateRampTransactionRequest,
-    CreateTradeQuoteRequest,
+    GetQuoteRequest,
     Transaction,
     TransactionCategory,
 )
 
 
 def create_ramp_transfer(api_client: APIClient) -> Transaction:
-    create_trade_quote_request = CreateTradeQuoteRequest(
+    create_trade_quote_request = GetQuoteRequest(
         vaultId="393f359c-6e66-4490-bf1f-5a4ec44f49d6",
         fromAsset="USD",
         toAsset="USDC",

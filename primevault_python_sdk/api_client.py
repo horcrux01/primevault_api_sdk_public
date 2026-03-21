@@ -17,7 +17,7 @@ from primevault_python_sdk.types import (
     CreateContactRequest,
     CreateContractCallTransactionRequest,
     CreateRampTransactionRequest,
-    CreateTradeQuoteRequest,
+    GetQuoteRequest,
     CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
@@ -174,7 +174,7 @@ class APIClient(BaseAPIClient):
         )
 
     def get_trade_quote(
-        self, request: CreateTradeQuoteRequest
+        self, request: GetQuoteRequest
     ) -> GetTradeQuoteResponse:
         data = {
             "vaultId": request.vaultId,
