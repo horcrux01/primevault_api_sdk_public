@@ -1,18 +1,23 @@
 from dataclasses import asdict
 from typing import List, Optional
 
-from dacite import from_dict
+from dacite import Config, from_dict
 
 from primevault_python_sdk.base_api_client import BaseAPIClient
 from primevault_python_sdk.types import (
     Asset,
     BalanceResponse,
+    BankAccount,
+    BankAccountListResponse,
     ChainData,
     Contact,
     ContactListResponse,
     CreateApprovalResponse,
+    CreateBankAccountRequest,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
+    CreateOffRampTransactionRequest,
+    CreateOnRampTransactionRequest,
     CreateRampTransactionRequest,
     CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
@@ -26,8 +31,11 @@ from primevault_python_sdk.types import (
     GetApprovalRequest,
     GetApprovalResponse,
     GetTradeQuoteResponse,
+    RampQuoteRequest,
+    RampQuoteResponse,
     ReplaceTransactionRequest,
     Transaction,
+    TransactionCategory,
     TransactionListResponse,
     UpdateContactRequest,
     UpdateContactResponse,
@@ -225,6 +233,54 @@ class APIClient(BaseAPIClient):
             Transaction, self.post("/api/external/transactions/", data=data)
         )
 
+    def get_ramp_quote(self, request: RampQuoteRequest) -> RampQuoteResponse:
+        data = {
+            "destination": asdict(request.destination) if request.destination else None,
+            "source": asdict(request.source) if request.source else None,
+            "fromAsset": request.fromAsset,
+            "fromAmount": request.fromAmount,
+            "fromChain": request.fromChain,
+            "toAsset": request.toAsset,
+            "toChain": request.toChain,
+            "category": request.category,
+            "paymentMethod": request.paymentMethod,
+        }
+        return from_dict(
+            RampQuoteResponse,
+            self.post("/api/external/transactions/quote/", data=data),
+        )
+
+    def create_on_ramp_transaction(
+        self, request: CreateOnRampTransactionRequest
+    ) -> Transaction:
+        data = {
+            "destination": asdict(request.destination),
+            "onRampRequestData": request.rampRequestData,
+            "onRampResponseData": request.rampResponseData,
+            "category": TransactionCategory.ON_RAMP.value,
+            "externalId": request.externalId,
+            "memo": request.memo,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
+    def create_off_ramp_transaction(
+        self, request: CreateOffRampTransactionRequest
+    ) -> Transaction:
+        data = {
+            "source": asdict(request.source),
+            "destination": asdict(request.destination),
+            "onRampRequestData": request.rampRequestData,
+            "onRampResponseData": request.rampResponseData,
+            "category": TransactionCategory.OFF_RAMP.value,
+            "externalId": request.externalId,
+            "memo": request.memo,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
     def get_vaults(
         self,
         params: Optional[dict] = None,
@@ -328,3 +384,37 @@ class APIClient(BaseAPIClient):
         }
         response = self.put(f"/api/external/contacts/{request.id}/", data=data)
         return from_dict(UpdateContactResponse, response)
+
+    # Bank Account Methods
+
+    _BANK_DACITE_CFG = Config(cast=[str])
+
+    def get_bank_accounts(
+        self,
+        params: Optional[dict] = None,
+        page: Optional[int] = 1,
+        limit: Optional[int] = 20,
+    ) -> BankAccountListResponse:
+        query_params = ""
+        if params:
+            query_params = "&".join([f"{k}={v}" for k, v in params.items()])
+
+        response = self.get(
+            f"/api/external/bank_accounts/?limit={limit}&page={page}&{query_params}"
+        )
+        return from_dict(BankAccountListResponse, response, config=self._BANK_DACITE_CFG)
+
+    def get_bank_account_by_id(self, bank_account_id: str) -> BankAccount:
+        response = self.get(f"/api/external/bank_accounts/{bank_account_id}/")
+        return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
+
+    def create_bank_account(
+        self, request: CreateBankAccountRequest
+    ) -> BankAccount:
+        response = self.post("/api/external/bank_accounts/", data=asdict(request))
+        return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
+
+    def submit_bank_account_approval_action(
+        self, request: GetApprovalRequest
+    ) -> CreateApprovalResponse:
+        return self.initiate_change_approval_action(request)
