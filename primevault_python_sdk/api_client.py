@@ -1,7 +1,7 @@
 from dataclasses import asdict
 from typing import List, Optional
 
-from dacite import from_dict
+from dacite import Config, from_dict
 
 from primevault_python_sdk.base_api_client import BaseAPIClient
 from primevault_python_sdk.types import (
@@ -334,6 +334,8 @@ class APIClient(BaseAPIClient):
 
     # Bank Account Methods
 
+    _BANK_DACITE_CFG = Config(cast=[str])
+
     def get_bank_accounts(
         self,
         params: Optional[dict] = None,
@@ -347,33 +349,17 @@ class APIClient(BaseAPIClient):
         response = self.get(
             f"/api/external/bank_accounts/?limit={limit}&page={page}&{query_params}"
         )
-        return from_dict(data_class=BankAccountListResponse, data=response)
+        return from_dict(BankAccountListResponse, response, config=self._BANK_DACITE_CFG)
 
     def get_bank_account_by_id(self, bank_account_id: str) -> BankAccount:
-        return from_dict(
-            BankAccount,
-            self.get(f"/api/external/bank_accounts/{bank_account_id}/"),
-        )
+        response = self.get(f"/api/external/bank_accounts/{bank_account_id}/")
+        return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
 
     def create_bank_account(
         self, request: CreateBankAccountRequest
     ) -> BankAccount:
-        data = {}
-        if request.bankAccountInfo:
-            data["bankAccountInfo"] = request.bankAccountInfo
-        if request.thirdParty:
-            data["thirdParty"] = request.thirdParty
-        if request.clientBankAccountId:
-            data["clientBankAccountId"] = request.clientBankAccountId
-        if request.region:
-            data["region"] = request.region
-        if request.paymentMethod:
-            data["paymentMethod"] = request.paymentMethod
-        if request.metaData:
-            data["metaData"] = request.metaData
-
-        response = self.post("/api/external/bank_accounts/", data=data)
-        return from_dict(BankAccount, response)
+        response = self.post("/api/external/bank_accounts/", data=asdict(request))
+        return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
 
     def approve_bank_account(
         self, request: GetApprovalRequest

@@ -537,33 +537,34 @@ class ContactListResponse:
 
 
 @dataclass
-class BankAccountInfo:
-    accountNumber: str
-    accountName: str
-    routingNumber: str
-    accountType: str
-
-
-@dataclass
 class BankAccount:
     id: str
     orgId: str
+    orgEntityId: str
     createdAt: str
     updatedAt: str
     isDeleted: bool
-    bankAccountInfo: Optional[Dict[str, Any]] = None
+    status: str
+    accountNumber: Optional[str] = None
+    accountName: Optional[str] = None
+    routingNumber: Optional[str] = None
+    accountType: Optional[str] = None
     thirdParty: Optional[str] = None
     clientBankAccountId: Optional[str] = None
     region: Optional[str] = None
     paymentMethod: Optional[str] = None
-    metaData: Optional[Dict[str, Any]] = None
-    status: Optional[str] = None
-    createdById: Optional[str] = None
+    bankName: Optional[str] = None
+    currency: Optional[str] = None
+    streetLine: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postalCode: Optional[str] = None
+    country: Optional[str] = None
 
 
 @dataclass
 class BankAccountListResponse:
-    results: List["BankAccount"]
+    results: List[BankAccount]
     count: int
     previous: Optional[str] = None
     next: Optional[str] = None
@@ -571,12 +572,21 @@ class BankAccountListResponse:
 
 @dataclass
 class CreateBankAccountRequest:
-    bankAccountInfo: Optional[Dict[str, Any]] = None
+    accountNumber: Optional[str] = None
+    accountName: Optional[str] = None
     thirdParty: Optional[str] = None
+    routingNumber: Optional[str] = None
+    accountType: Optional[str] = None
     clientBankAccountId: Optional[str] = None
     region: Optional[str] = None
     paymentMethod: Optional[str] = None
-    metaData: Optional[Dict[str, Any]] = None
+    bankName: Optional[str] = None
+    currency: Optional[str] = None
+    streetLine: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postalCode: Optional[str] = None
+    country: Optional[str] = None
 
 
 # Balance Response
