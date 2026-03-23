@@ -13,7 +13,6 @@ def create_and_approve_bank_account(api_client: APIClient):
         accountName="Treasury Account",
         routingNumber="021000021",
         paymentMethod="ACH",
-        region="US",
         bankName="Chase",
         currency="USD",
         streetLine="123 Main St",

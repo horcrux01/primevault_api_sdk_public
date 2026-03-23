@@ -626,7 +626,6 @@ class BankAccount:
     routingNumber: Optional[str] = None
     accountType: Optional[str] = None
     clientBankAccountId: Optional[str] = None
-    region: Optional[str] = None
     paymentMethod: Optional[str] = None
     bankName: Optional[str] = None
     currency: Optional[str] = None
@@ -652,7 +651,6 @@ class CreateBankAccountRequest:
     routingNumber: Optional[str] = None
     accountType: Optional[str] = None
     clientBankAccountId: Optional[str] = None
-    region: Optional[str] = None
     paymentMethod: Optional[str] = None
     bankName: Optional[str] = None
     currency: Optional[str] = None
