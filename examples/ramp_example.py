@@ -40,13 +40,14 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
     )
 
     ramp_quote_response = api_client.get_ramp_quote(ramp_quote_request)
+    selected_quote = ramp_quote_response.quotes[0]
 
-    # Step 2: Create the on-ramp transaction using the quote data.
+    # Step 2: Create the on-ramp transaction using the selected quote data.
     on_ramp_transaction = api_client.create_on_ramp_transaction(
         CreateOnRampTransactionRequest(
             destination=destination,
             rampRequestData=asdict(ramp_quote_request),
-            rampResponseData=asdict(ramp_quote_response),
+            rampResponseData=asdict(selected_quote),
             externalId="on-ramp-1110eee2e",
             memo="on ramp test",
         )
@@ -102,13 +103,14 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
     )
 
     ramp_quote_response = api_client.get_ramp_quote(ramp_quote_request)
+    selected_quote = ramp_quote_response.quotes[0]
 
     off_ramp_transaction = api_client.create_off_ramp_transaction(
         CreateOffRampTransactionRequest(
             source=source,
             destination=destination,
             rampRequestData=asdict(ramp_quote_request),
-            rampResponseData=asdict(ramp_quote_response),
+            rampResponseData=asdict(selected_quote),
             externalId="off-ramp-example-1",
             memo="off ramp test",
         )

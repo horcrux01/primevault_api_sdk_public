@@ -50,14 +50,15 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
     )
 
     ramp_quote_response = api_client.get_ramp_quote(ramp_quote_request)
+    selected_quote = ramp_quote_response.quotes[0]
 
-    # Step 2: Create the off-ramp transaction
+    # Step 2: Create the off-ramp transaction using the selected quote
     off_ramp_transaction = api_client.create_off_ramp_transaction(
         CreateOffRampTransactionRequest(
             source=source,
             destination=destination,
             rampRequestData=asdict(ramp_quote_request),
-            rampResponseData=asdict(ramp_quote_response),
+            rampResponseData=asdict(selected_quote),
             externalId="off-ramp-example-1",
             memo="off ramp example",
         )

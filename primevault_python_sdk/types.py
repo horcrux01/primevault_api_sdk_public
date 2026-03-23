@@ -522,12 +522,17 @@ class RampQuoteResponseFees:
 
 
 @dataclass
-class RampQuoteResponse:
+class RampQuoteResponseItem:
     finalToAmount: str
     quoteId: str
     fees: RampQuoteResponseFees
     sourceName: str
     quoteResponseDict: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class RampQuoteResponse:
+    quotes: List[RampQuoteResponseItem]
 
 
 @dataclass
