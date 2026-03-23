@@ -12,7 +12,6 @@ def create_and_approve_bank_account(api_client: APIClient):
         accountNumber="123456789",
         accountName="Treasury Account",
         routingNumber="021000021",
-        thirdParty="Bridge",
         paymentMethod="ACH",
         region="US",
         bankName="Chase",

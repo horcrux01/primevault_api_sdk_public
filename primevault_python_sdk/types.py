@@ -625,7 +625,6 @@ class BankAccount:
     accountName: Optional[str] = None
     routingNumber: Optional[str] = None
     accountType: Optional[str] = None
-    thirdParty: Optional[str] = None
     clientBankAccountId: Optional[str] = None
     region: Optional[str] = None
     paymentMethod: Optional[str] = None
@@ -650,7 +649,6 @@ class BankAccountListResponse:
 class CreateBankAccountRequest:
     accountNumber: Optional[str] = None
     accountName: Optional[str] = None
-    thirdParty: Optional[str] = None
     routingNumber: Optional[str] = None
     accountType: Optional[str] = None
     clientBankAccountId: Optional[str] = None
