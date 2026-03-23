@@ -12,6 +12,7 @@ class TransferPartyType(str, Enum):
     VAULT = "VAULT"
     EXTERNAL_ADDRESS = "EXTERNAL_ADDRESS"
     EXTERNAL_BANK_ACCOUNT = "EXTERNAL_BANK_ACCOUNT"
+    BANK_ACCOUNT = "BANK_ACCOUNT"
 
 
 class VaultType(str, Enum):
@@ -624,7 +625,6 @@ class BankAccount:
     accountNumber: Optional[str] = None
     accountName: Optional[str] = None
     routingNumber: Optional[str] = None
-    accountType: Optional[str] = None
     clientBankAccountId: Optional[str] = None
     paymentMethod: Optional[str] = None
     bankName: Optional[str] = None
@@ -649,7 +649,6 @@ class CreateBankAccountRequest:
     accountNumber: Optional[str] = None
     accountName: Optional[str] = None
     routingNumber: Optional[str] = None
-    accountType: Optional[str] = None
     clientBankAccountId: Optional[str] = None
     paymentMethod: Optional[str] = None
     bankName: Optional[str] = None
