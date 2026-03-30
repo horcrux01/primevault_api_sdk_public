@@ -230,6 +230,34 @@ class TransactionSourceData:
 
 
 @dataclass
+class RampQuoteFee:
+    amount: Optional[str] = None
+    asset: Optional[str] = None
+
+
+@dataclass
+class RampQuote:
+    quoteId: Optional[str] = None
+    finalToAmount: Optional[str] = None
+    sourceName: Optional[str] = None
+    fees: Optional[RampQuoteFee] = None
+    rate: Optional[str] = None
+    quoteResponseDict: Optional[Dict] = None
+
+
+@dataclass
+class RampQuoteRequest:
+    destination: Optional[TransferPartyData] = None
+    source: Optional[TransferPartyData] = None
+    fromAsset: Optional[str] = None
+    fromAmount: Optional[str] = None
+    fromChain: Optional[str] = None
+    toAsset: Optional[str] = None
+    toChain: Optional[str] = None
+    category: Optional[str] = None
+
+
+@dataclass
 class Transaction:
     id: str
     orgId: str
@@ -518,34 +546,6 @@ class CreateRampTransactionRequest:
 class GetTradeQuoteResponse:
     tradeRequestData: TradeQuoteRequestData
     tradeResponseDataList: List[TradeQuoteResponseData]
-
-
-@dataclass
-class RampQuoteFee:
-    amount: Optional[str] = None
-    asset: Optional[str] = None
-
-
-@dataclass
-class RampQuote:
-    quoteId: Optional[str] = None
-    finalToAmount: Optional[str] = None
-    sourceName: Optional[str] = None
-    fees: Optional[RampQuoteFee] = None
-    rate: Optional[str] = None
-    quoteResponseDict: Optional[Dict] = None
-
-
-@dataclass
-class RampQuoteRequest:
-    destination: Optional[TransferPartyData] = None
-    source: Optional[TransferPartyData] = None
-    fromAsset: Optional[str] = None
-    fromAmount: Optional[str] = None
-    fromChain: Optional[str] = None
-    toAsset: Optional[str] = None
-    toChain: Optional[str] = None
-    category: Optional[str] = None
 
 
 @dataclass
