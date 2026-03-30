@@ -83,7 +83,7 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
 
     bank_account_id = "your-bank-account-id"
     destination = TransferPartyData(
-        type="EXTERNAL_BANK_ACCOUNT",
+        type="BANK_ACCOUNT",
         id=bank_account_id,
     )
 
@@ -112,7 +112,7 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
     # The transaction response includes bank details for the fiat delivery
     # in the destination field:
     #
-    #   off_ramp_transaction.destination.type   # "EXTERNAL_BANK_ACCOUNT"
+    #   off_ramp_transaction.destination.type   # "BANK_ACCOUNT"
     #   off_ramp_transaction.destination.bank.bankName
     #   off_ramp_transaction.destination.bank.beneficiaryName
     #   off_ramp_transaction.destination.bank.routingNumber

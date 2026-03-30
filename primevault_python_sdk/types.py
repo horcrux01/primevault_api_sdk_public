@@ -10,6 +10,8 @@ class TransferPartyType(str, Enum):
     CONTACT = "CONTACT"
     VAULT = "VAULT"
     EXTERNAL_ADDRESS = "EXTERNAL_ADDRESS"
+    EXTERNAL_BANK_ACCOUNT = "EXTERNAL_BANK_ACCOUNT"
+    BANK_ACCOUNT = "BANK_ACCOUNT"
 
 
 class VaultType(str, Enum):
@@ -246,7 +248,6 @@ class Transaction:
     toBlockChain: Optional[str] = None
     asset: Optional[str] = None
     toAsset: Optional[str] = None
-    finalToAmount: Optional[str] = None
     toAddressName: Optional[str] = None
     createdById: Optional[str] = None
     txHash: Optional[str] = None
@@ -264,6 +265,10 @@ class Transaction:
     operationId: Optional[str] = None
     amountInUSD: Optional[str] = None
     nonce: Optional[int] = None
+    bankDetails: Optional[Dict[str, Any]] = None
+    destination: Optional[TransactionSourceData] = None
+    rampRequestData: Optional[Dict[str, Any]] = None
+    rampResponseData: Optional[Dict[str, Any]] = None
 
 
 # Requests
