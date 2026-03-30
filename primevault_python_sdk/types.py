@@ -604,7 +604,6 @@ class BankAccount:
     accountNumber: Optional[str] = None
     accountName: Optional[str] = None
     routingNumber: Optional[str] = None
-    thirdParty: Optional[str] = None
     clientBankAccountId: Optional[str] = None
     paymentMethod: Optional[str] = None
     bankName: Optional[str] = None
@@ -645,7 +644,6 @@ class CreateOffRampTransactionRequest:
 class CreateBankAccountRequest:
     accountNumber: Optional[str] = None
     accountName: Optional[str] = None
-    thirdParty: Optional[str] = None
     routingNumber: Optional[str] = None
     clientBankAccountId: Optional[str] = None
     paymentMethod: Optional[str] = None

@@ -243,6 +243,7 @@ class APIClient(BaseAPIClient):
             "toAsset": request.toAsset,
             "toChain": request.toChain,
             "category": request.category,
+            "paymentMethod": request.paymentMethod,
         }
         return from_dict(
             RampQuoteResponse,
