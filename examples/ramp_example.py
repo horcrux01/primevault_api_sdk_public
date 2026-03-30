@@ -1,10 +1,7 @@
-from dataclasses import asdict
-
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
     CreateOffRampTransactionRequest,
     CreateOnRampTransactionRequest,
-    PaymentMethod,
     RampQuoteRequest,
     Transaction,
     TransactionCategory,
@@ -35,7 +32,6 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
         toAsset="USDC",
         fromAmount="100",
         category=TransactionCategory.ON_RAMP.value,
-        paymentMethod=PaymentMethod.US_ACH.value,
         toChain="POLYGON",
     )
 
@@ -46,8 +42,7 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
     on_ramp_transaction = api_client.create_on_ramp_transaction(
         CreateOnRampTransactionRequest(
             destination=destination,
-            rampRequestData=asdict(ramp_quote_request),
-            rampResponseData=asdict(selected_quote),
+            quoteId=selected_quote.quoteId,
             externalId="on-ramp-1110eee2e",
             memo="on ramp test",
         )
@@ -88,7 +83,7 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
 
     bank_account_id = "your-bank-account-id"
     destination = TransferPartyData(
-        type=TransferPartyType.EXTERNAL_BANK_ACCOUNT.value,
+        type="EXTERNAL_BANK_ACCOUNT",
         id=bank_account_id,
     )
 
@@ -98,7 +93,6 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
         toAsset="USD",
         fromAmount="100",
         category=TransactionCategory.OFF_RAMP.value,
-        paymentMethod=PaymentMethod.US_ACH.value,
         fromChain="ETHEREUM",
     )
 
@@ -109,8 +103,7 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
         CreateOffRampTransactionRequest(
             source=source,
             destination=destination,
-            rampRequestData=asdict(ramp_quote_request),
-            rampResponseData=asdict(selected_quote),
+            quoteId=selected_quote.quoteId,
             externalId="off-ramp-example-1",
             memo="off ramp test",
         )
