@@ -38,7 +38,7 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
     # Step 1: Get off-ramp quote
     ramp_quote_request = RampQuoteRequest(
         source=source,
-        fromAsset="USDT",
+        fromAsset="USDC",
         toAsset="USD",
         fromAmount="100",
         category=TransactionCategory.OFF_RAMP.value,

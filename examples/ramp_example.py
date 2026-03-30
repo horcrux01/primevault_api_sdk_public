@@ -25,14 +25,14 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
         id=vault_id,
     )
 
-    # Step 1: Request a ramp quote for converting 100 USD -> USDC on Polygon
+    # Step 1: Request a ramp quote for converting 137,500 NGN -> USDC on Ethereum
     ramp_quote_request = RampQuoteRequest(
         destination=destination,
-        fromAsset="USD",
+        fromAsset="NGN",
         toAsset="USDC",
-        fromAmount="100",
+        fromAmount="137500",
         category=TransactionCategory.ON_RAMP.value,
-        toChain="POLYGON",
+        toChain="ETHEREUM",
     )
 
     ramp_quote_response = api_client.get_ramp_quote(ramp_quote_request)
@@ -58,8 +58,8 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
     #   on_ramp_transaction.source.bank.accountNumberMasked
     #   on_ramp_transaction.source.bank.routingNumber
     #   on_ramp_transaction.source.bank.swiftBic
-    #   on_ramp_transaction.source.bank.paymentRail        # e.g. "US_ACH"
-    #   on_ramp_transaction.source.bank.currency           # e.g. "USD"
+    #   on_ramp_transaction.source.bank.paymentRail        # e.g. "WIRE"
+    #   on_ramp_transaction.source.bank.currency           # e.g. "NGN"
     #   on_ramp_transaction.source.bank.bankAddress
     #   on_ramp_transaction.source.bank.iban
 
@@ -89,7 +89,7 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
 
     ramp_quote_request = RampQuoteRequest(
         source=source,
-        fromAsset="USDT",
+        fromAsset="USDC",
         toAsset="USD",
         fromAmount="100",
         category=TransactionCategory.OFF_RAMP.value,
