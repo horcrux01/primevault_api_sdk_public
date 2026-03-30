@@ -1,9 +1,6 @@
-from dataclasses import asdict
-
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
     CreateOffRampTransactionRequest,
-    PaymentMethod,
     RampQuoteRequest,
     Transaction,
     TransactionCategory,
@@ -34,18 +31,17 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
     )
 
     destination = TransferPartyData(
-        type=TransferPartyType.EXTERNAL_BANK_ACCOUNT.value,
+        type="BANK_ACCOUNT",
         id=bank_account_id,
     )
 
     # Step 1: Get off-ramp quote
     ramp_quote_request = RampQuoteRequest(
         source=source,
-        fromAsset="USDT",
+        fromAsset="USDC",
         toAsset="USD",
         fromAmount="100",
         category=TransactionCategory.OFF_RAMP.value,
-        paymentMethod=PaymentMethod.US_ACH.value,
         fromChain="ETHEREUM",
     )
 
@@ -57,8 +53,7 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
         CreateOffRampTransactionRequest(
             source=source,
             destination=destination,
-            rampRequestData=asdict(ramp_quote_request),
-            rampResponseData=asdict(selected_quote),
+            quoteId=selected_quote.quoteId,
             externalId="off-ramp-example-1",
             memo="off ramp example",
         )
@@ -67,7 +62,7 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
     # The transaction response includes bank details for the fiat delivery
     # in the destination field:
     #
-    #   off_ramp_transaction.destination.type   # "EXTERNAL_BANK_ACCOUNT"
+    #   off_ramp_transaction.destination.type   # "BANK_ACCOUNT"
     #   off_ramp_transaction.destination.bank.bankName
     #   off_ramp_transaction.destination.bank.beneficiaryName
     #   off_ramp_transaction.destination.bank.routingNumber
