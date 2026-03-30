@@ -243,7 +243,6 @@ class APIClient(BaseAPIClient):
             "toAsset": request.toAsset,
             "toChain": request.toChain,
             "category": request.category,
-            "paymentMethod": request.paymentMethod,
         }
         return from_dict(
             RampQuoteResponse,
@@ -255,8 +254,7 @@ class APIClient(BaseAPIClient):
     ) -> Transaction:
         data = {
             "destination": asdict(request.destination),
-            "onRampRequestData": request.rampRequestData,
-            "onRampResponseData": request.rampResponseData,
+            "quoteId": request.quoteId,
             "category": TransactionCategory.ON_RAMP.value,
             "externalId": request.externalId,
             "memo": request.memo,
@@ -271,8 +269,7 @@ class APIClient(BaseAPIClient):
         data = {
             "source": asdict(request.source),
             "destination": asdict(request.destination),
-            "onRampRequestData": request.rampRequestData,
-            "onRampResponseData": request.rampResponseData,
+            "quoteId": request.quoteId,
             "category": TransactionCategory.OFF_RAMP.value,
             "externalId": request.externalId,
             "memo": request.memo,
