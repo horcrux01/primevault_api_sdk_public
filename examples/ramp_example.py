@@ -83,7 +83,7 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
 
     bank_account_id = "your-bank-account-id"
     destination = TransferPartyData(
-        type="BANK_ACCOUNT",
+        type=TransferPartyType.BANK_ACCOUNT.value,
         id=bank_account_id,
     )
 
