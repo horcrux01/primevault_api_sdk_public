@@ -188,6 +188,7 @@ class Contact:
     isSmartContractAddress: Optional[bool] = None
     isSanctioned: Optional[bool] = None
     createdById: Optional[str] = None
+    assetList: Optional[List[str]] = None
 
 
 @dataclass
