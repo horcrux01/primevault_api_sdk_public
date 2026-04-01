@@ -70,6 +70,7 @@ class APIClient(BaseAPIClient):
         return from_dict(
             TransactionListResponse,
             self.get(f"/api/external/transactions/?{query}"),
+            config=Config(cast=[str, int, float]),
         )
 
     def get_transaction_by_id(self, transaction_id: str) -> Transaction:

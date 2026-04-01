@@ -101,7 +101,8 @@ def create_transfer_transaction(api_client: APIClient):
 
 def get_transactions(api_client: APIClient):
     """
-    for date range filters, use createdAtGte and createdAtLte
+    Page-based pagination.
+    For date range filters, use createdAtGte and createdAtLte.
     """
     limit = 50
     page = 1
@@ -124,3 +125,37 @@ def get_transactions(api_client: APIClient):
         page += 1
 
     print(transactions)
+
+
+def get_transactions_with_cursor(api_client: APIClient):
+    """
+    Cursor-based pagination — pass ``cursor`` to switch from page-based to
+    cursor-based mode.  Use ``cursor=""`` for the first page, then pass
+    ``response.next_cursor`` for subsequent pages.
+
+    Advantages over page-based pagination:
+      - Deterministic ordering (createdAt DESC, id DESC) — no duplicates or
+        missed rows when new data is inserted between requests.
+      - Faster for deep pages because it avoids OFFSET scanning.
+    """
+    limit = 50
+    cursor = ""  # empty string = first page
+    all_transactions = []
+
+    while True:
+        response = api_client.get_transactions(
+            params={
+                "vaultId": "7ad54443-21d2-4075-abef-83758c9dceb7",
+                "status": TransactionStatus.COMPLETED.value,
+            },
+            limit=limit,
+            cursor=cursor,
+        )
+        all_transactions.extend(response.results)
+        print(f"Fetched {len(response.results)} transactions (has_next={response.has_next})")
+
+        if not response.has_next:
+            break
+        cursor = response.next_cursor
+
+    print(f"Total transactions: {len(all_transactions)}")
