@@ -154,7 +154,7 @@ def get_transactions_with_cursor(api_client: APIClient):
         all_transactions.extend(response.results)
         print(f"Fetched {len(response.results)} transactions (has_next={response.has_next})")
 
-        if not response.has_next:
+        if not response.has_next or not response.next_cursor:
             break
         cursor = response.next_cursor
 
