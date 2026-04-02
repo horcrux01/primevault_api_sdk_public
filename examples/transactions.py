@@ -101,7 +101,7 @@ def create_transfer_transaction(api_client: APIClient):
 
 def get_transactions(api_client: APIClient):
     """
-    Page-based pagination.
+    Page-based pagination example.
     For date range filters, use createdAtGte and createdAtLte.
     """
     limit = 50
@@ -127,19 +127,9 @@ def get_transactions(api_client: APIClient):
     print(transactions)
 
 
-def get_transactions_with_cursor(api_client: APIClient):
-    """
-    Cursor-based pagination — pass ``cursor`` to switch from page-based to
-    cursor-based mode.  Use ``cursor=""`` for the first page, then pass
-    ``response.next_cursor`` for subsequent pages.
-
-    Advantages over page-based pagination:
-      - Deterministic ordering (createdAt DESC, id DESC) — no duplicates or
-        missed rows when new data is inserted between requests.
-      - Faster for deep pages because it avoids OFFSET scanning.
-    """
+def get_transactions_cursor(api_client: APIClient):
     limit = 50
-    cursor = ""  # empty string = first page
+    cursor = ""
     all_transactions = []
 
     while True:
@@ -152,7 +142,7 @@ def get_transactions_with_cursor(api_client: APIClient):
             cursor=cursor,
         )
         all_transactions.extend(response.results)
-        print(f"Fetched {len(response.results)} transactions (has_next={response.has_next})")
+        print(f"Fetched {len(response.results)} transactions (total: {len(all_transactions)})")
 
         if not response.has_next or not response.next_cursor:
             break
