@@ -58,16 +58,19 @@ class APIClient(BaseAPIClient):
         params: Optional[dict] = None,
         page: Optional[int] = 1,
         limit: Optional[int] = 20,
+        cursor: Optional[str] = None,
     ) -> TransactionListResponse:
-        query_params = ""
+        if cursor is not None:
+            query = f"limit={limit}&cursor={cursor}"
+        else:
+            query = f"page={page}&limit={limit}"
         if params:
-            query_params = "&".join([f"{k}={v}" for k, v in params.items()])
+            query += "&" + "&".join([f"{k}={v}" for k, v in params.items()])
 
         return from_dict(
             TransactionListResponse,
-            self.get(
-                f"/api/external/transactions/?page={page}&limit={limit}&{query_params}"
-            ),
+            self.get(f"/api/external/transactions/?{query}"),
+            config=Config(cast=[str, int, float]),
         )
 
     def get_transaction_by_id(self, transaction_id: str) -> Transaction:

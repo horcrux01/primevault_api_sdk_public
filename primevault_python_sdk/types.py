@@ -580,9 +580,11 @@ class VaultListResponse:
 @dataclass
 class TransactionListResponse:
     results: List[Transaction]
-    count: int
+    count: Optional[int] = None
     previous: Optional[str] = None
     next: Optional[str] = None
+    next_cursor: Optional[str] = None
+    has_next: Optional[bool] = None
 
 
 @dataclass
