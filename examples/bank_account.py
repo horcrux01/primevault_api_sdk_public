@@ -24,7 +24,9 @@ def create_and_approve_bank_account(api_client: APIClient):
 
     bank_account = api_client.create_bank_account(request)
     print(f"Created: {bank_account.id} status={bank_account.status}")
-    print(f"  accountName={bank_account.accountName} bankName={bank_account.bankName} city={bank_account.city}")
+    print(
+        f"  accountName={bank_account.accountName} bankName={bank_account.bankName} city={bank_account.city}"
+    )
 
     approve_response = api_client.submit_bank_account_approval_action(
         GetApprovalRequest(
@@ -49,13 +51,12 @@ def decline_bank_account(api_client: APIClient, bank_account_id: str):
 
 
 def list_bank_accounts(api_client: APIClient):
-    """List all bank accounts with pagination."""
-    response = api_client.get_bank_accounts(
-        params={"status": "APPROVED"}, page=1, limit=20
-    )
-    print(f"Found {response.count} approved bank accounts")
+    """List all bank accounts with cursor-based pagination."""
+    response = api_client.get_bank_accounts(params={"status": "APPROVED"}, limit=20)
     for account in response.results:
-        print(f"  - {account.accountName} ({account.paymentMethod}) bankName={account.bankName}")
+        print(
+            f"  - {account.accountName} ({account.paymentMethod}) bankName={account.bankName}"
+        )
     return response
 
 
