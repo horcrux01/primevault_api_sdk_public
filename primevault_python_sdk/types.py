@@ -206,7 +206,7 @@ TransactionOutput = Union[EVMOutput, ICPOutput]
 
 
 @dataclass
-class TransactionBankDetails:
+class BankDetails:  # type: ignore[no-redef]
     bankName: Optional[str] = None
     beneficiaryName: Optional[str] = None
     accountNumberMasked: Optional[str] = None
@@ -226,7 +226,7 @@ class TransactionSourceData:
     name: Optional[str] = None
     address: Optional[str] = None
     exchange: Optional[str] = None
-    bank: Optional[TransactionBankDetails] = None
+    bank: Optional[BankDetails] = None
 
 
 @dataclass
