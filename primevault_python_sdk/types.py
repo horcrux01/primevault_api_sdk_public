@@ -255,7 +255,6 @@ class RampQuoteRequest:
     toAsset: Optional[str] = None
     toChain: Optional[str] = None
     category: Optional[str] = None
-    paymentMethod: Optional[str] = None
 
 
 @dataclass
