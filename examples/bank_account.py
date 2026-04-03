@@ -52,12 +52,25 @@ def decline_bank_account(api_client: APIClient, bank_account_id: str):
 
 def list_bank_accounts(api_client: APIClient):
     """List all bank accounts with cursor-based pagination."""
-    response = api_client.get_bank_accounts(params={"status": "APPROVED"}, limit=20)
-    for account in response.results:
-        print(
-            f"  - {account.accountName} ({account.paymentMethod}) bankName={account.bankName}"
+    all_accounts = []
+    cursor = None
+
+    while True:
+        response = api_client.get_bank_accounts(
+            params={"status": "APPROVED"}, limit=20, cursor=cursor
         )
-    return response
+        all_accounts.extend(response.results)
+        for account in response.results:
+            print(
+                f"  - {account.accountName} ({account.paymentMethod}) bankName={account.bankName}"
+            )
+
+        if not response.has_next or not response.next_cursor:
+            break
+        cursor = response.next_cursor
+
+    print(f"Total bank accounts: {len(all_accounts)}")
+    return all_accounts
 
 
 def get_bank_account(api_client: APIClient, bank_account_id: str):

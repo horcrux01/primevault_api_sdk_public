@@ -44,32 +44,5 @@ private_key = b"-----BEGIN PRIVATE KEY-----\n....-----END PRIVATE KEY-----\n"
 api_client = APIClient(api_key, api_url, private_key=private_key)
 ```
 
-### Cursor Pagination
-All list endpoints use cursor-based pagination. Pass `cursor` to iterate through results.
-
-```python
-# Fetch first page
-response = api_client.get_transactions(limit=20)
-print(response.results)
-
-# Fetch next page using the cursor from the previous response
-if response.has_next:
-    next_response = api_client.get_transactions(limit=20, cursor=response.next_cursor)
-    print(next_response.results)
-
-# Iterate through all pages
-cursor = None
-all_items = []
-while True:
-    response = api_client.get_vaults(limit=50, cursor=cursor)
-    all_items.extend(response.results)
-    if not response.has_next:
-        break
-    cursor = response.next_cursor
-
-# With filters
-response = api_client.get_contacts(params={"blockChain": "ETHEREUM"}, limit=10)
-```
-
 ### Code Examples
 [Here](https://github.com/horcrux01/primevault_api_sdk_public/tree/main/examples)

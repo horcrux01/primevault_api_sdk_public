@@ -26,13 +26,13 @@ def create_and_approve_contact(api_client: APIClient):
         )
     )
     print(f"Contact created: {contact.id} ({contact.status})")
-    print(f"  name={contact.name}, chain={contact.blockChain}, assetList={contact.assetList}")
+    print(
+        f"  name={contact.name}, chain={contact.blockChain}, assetList={contact.assetList}"
+    )
 
     # Step 2: Approve the contact using its ID as the entityId
     approval = api_client.initiate_change_approval_action(
-        GetApprovalRequest(
-            entityId=contact.id, action=ApprovalAction.APPROVE.value
-        )
+        GetApprovalRequest(entityId=contact.id, action=ApprovalAction.APPROVE.value)
     )
     print(f"Approval result: success={approval.success}")
 
@@ -46,10 +46,33 @@ def create_and_approve_contact(api_client: APIClient):
 def decline_contact(api_client: APIClient, contact_id: str):
     """Decline a pending contact change request."""
     return api_client.initiate_change_approval_action(
-        GetApprovalRequest(
-            entityId=contact_id, action=ApprovalAction.REJECT.value
-        )
+        GetApprovalRequest(entityId=contact_id, action=ApprovalAction.REJECT.value)
     )
+
+
+def get_contacts(api_client: APIClient):
+    """List all contacts with cursor-based pagination."""
+    all_contacts = []
+    cursor = None
+
+    while True:
+        response = api_client.get_contacts(limit=50, cursor=cursor)
+        all_contacts.extend(response.results)
+        print(f"Fetched {len(response.results)} contacts (total: {len(all_contacts)})")
+
+        if not response.has_next or not response.next_cursor:
+            break
+        cursor = response.next_cursor
+
+    print(f"Total contacts: {len(all_contacts)}")
+    return all_contacts
+
+
+def get_contacts_filtered(api_client: APIClient):
+    """List contacts with a filter."""
+    response = api_client.get_contacts(params={"blockChain": "ETHEREUM"}, limit=10)
+    for contact in response.results:
+        print(f"  {contact.id} — {contact.name} ({contact.blockChain})")
 
 
 def update_contact_asset_list(
@@ -69,9 +92,7 @@ def update_contact_asset_list(
 
     # Step 2: Approve the update
     approval = api_client.initiate_change_approval_action(
-        GetApprovalRequest(
-            entityId=updated.id, action=ApprovalAction.APPROVE.value
-        )
+        GetApprovalRequest(entityId=updated.id, action=ApprovalAction.APPROVE.value)
     )
     print(f"Update approval result: success={approval.success}")
 
