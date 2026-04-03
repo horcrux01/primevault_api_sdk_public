@@ -117,7 +117,6 @@ class BankDetails:
     beneficiaryName: Optional[str] = None
     accountName: Optional[str] = None
     accountNumber: Optional[str] = None
-    accountNumberMasked: Optional[str] = None
     routingNumber: Optional[str] = None
     paymentRail: Optional[str] = None
     bankAddress: Optional[str] = None
