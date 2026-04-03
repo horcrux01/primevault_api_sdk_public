@@ -117,10 +117,12 @@ class BankDetails:
     beneficiaryName: Optional[str] = None
     accountName: Optional[str] = None
     accountNumber: Optional[str] = None
+    accountNumberMasked: Optional[str] = None
     routingNumber: Optional[str] = None
     paymentRail: Optional[str] = None
     bankAddress: Optional[str] = None
     swiftCode: Optional[str] = None
+    swiftBic: Optional[str] = None
     iban: Optional[str] = None
     currency: Optional[str] = None
     country: Optional[str] = None
@@ -203,20 +205,6 @@ class ICPOutput:
 
 # A transaction output can be one of these two
 TransactionOutput = Union[EVMOutput, ICPOutput]
-
-
-@dataclass
-class BankDetails:  # type: ignore[no-redef]
-    bankName: Optional[str] = None
-    beneficiaryName: Optional[str] = None
-    accountNumberMasked: Optional[str] = None
-    iban: Optional[str] = None
-    swiftBic: Optional[str] = None
-    routingNumber: Optional[str] = None
-    paymentRail: Optional[str] = None
-    currency: Optional[str] = None
-    country: Optional[str] = None
-    bankAddress: Optional[str] = None
 
 
 @dataclass
