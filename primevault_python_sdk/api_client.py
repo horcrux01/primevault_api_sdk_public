@@ -56,7 +56,6 @@ class APIClient(BaseAPIClient):
     def get_transactions(
         self,
         params: Optional[dict] = None,
-        page: Optional[int] = 1,
         limit: Optional[int] = 20,
         cursor: Optional[str] = None,
     ) -> TransactionListResponse:
@@ -64,10 +63,7 @@ class APIClient(BaseAPIClient):
         if params:
             query_params = "&".join([f"{k}={v}" for k, v in params.items()])
 
-        if cursor is not None:
-            url = f"/api/external/transactions/?limit={limit}&cursor={cursor}"
-        else:
-            url = f"/api/external/transactions/?page={page}&limit={limit}"
+        url = f"/api/external/transactions/?limit={limit}&cursor={cursor or ''}"
 
         if query_params:
             url += f"&{query_params}"
@@ -289,19 +285,14 @@ class APIClient(BaseAPIClient):
     def get_vaults(
         self,
         params: Optional[dict] = None,
-        page: Optional[int] = 1,
         limit: Optional[int] = 20,
-        reverse: Optional[bool] = False,
         cursor: Optional[str] = None,
     ) -> VaultListResponse:
         query_params = ""
         if params:
             query_params = "&".join([f"{k}={v}" for k, v in params.items()])
 
-        if cursor is not None:
-            url = f"/api/external/vaults/?limit={limit}&cursor={cursor}"
-        else:
-            url = f"/api/external/vaults/?limit={limit}&page={page}&reverse={reverse}"
+        url = f"/api/external/vaults/?limit={limit}&cursor={cursor or ''}"
 
         if query_params:
             url += f"&{query_params}"
@@ -362,7 +353,6 @@ class APIClient(BaseAPIClient):
     def get_contacts(
         self,
         params: Optional[dict] = None,
-        page: Optional[int] = 1,
         limit: Optional[int] = 20,
         cursor: Optional[str] = None,
     ) -> ContactListResponse:
@@ -370,10 +360,7 @@ class APIClient(BaseAPIClient):
         if params:
             query_params = "&".join([f"{k}={v}" for k, v in params.items()])
 
-        if cursor is not None:
-            url = f"/api/external/contacts/?limit={limit}&cursor={cursor}"
-        else:
-            url = f"/api/external/contacts/?limit={limit}&page={page}"
+        url = f"/api/external/contacts/?limit={limit}&cursor={cursor or ''}"
 
         if query_params:
             url += f"&{query_params}"
@@ -409,7 +396,6 @@ class APIClient(BaseAPIClient):
     def get_bank_accounts(
         self,
         params: Optional[dict] = None,
-        page: Optional[int] = 1,
         limit: Optional[int] = 20,
         cursor: Optional[str] = None,
     ) -> BankAccountListResponse:
@@ -417,10 +403,7 @@ class APIClient(BaseAPIClient):
         if params:
             query_params = "&".join([f"{k}={v}" for k, v in params.items()])
 
-        if cursor is not None:
-            url = f"/api/external/bank_accounts/?limit={limit}&cursor={cursor}"
-        else:
-            url = f"/api/external/bank_accounts/?limit={limit}&page={page}"
+        url = f"/api/external/bank_accounts/?limit={limit}&cursor={cursor or ''}"
 
         if query_params:
             url += f"&{query_params}"
@@ -433,9 +416,7 @@ class APIClient(BaseAPIClient):
         response = self.get(f"/api/external/bank_accounts/{bank_account_id}/")
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
 
-    def create_bank_account(
-        self, request: CreateBankAccountRequest
-    ) -> BankAccount:
+    def create_bank_account(self, request: CreateBankAccountRequest) -> BankAccount:
         response = self.post("/api/external/bank_accounts/", data=asdict(request))
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
 
