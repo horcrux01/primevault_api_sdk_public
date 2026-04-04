@@ -1,7 +1,6 @@
 import datetime
 from dataclasses import dataclass
 from enum import Enum
-from symtable import Class
 from typing import Any, Dict, List, Optional, Union
 
 
@@ -41,11 +40,11 @@ class TransactionCategory(str, Enum):
     SWAP = "SWAP"
     ON_RAMP = "ON_RAMP"
     OFF_RAMP = "OFF_RAMP"
-    TOKEN_TRANSFER = "TOKEN_TRANSFER"
-    TOKEN_APPROVAL = "TOKEN_APPROVAL"
+    TOKEN_TRANSFER = "TOKEN_TRANSFER"  # nosec B105
+    TOKEN_APPROVAL = "TOKEN_APPROVAL"  # nosec B105
     CONTRACT_CALL = "CONTRACT_CALL"
     STAKE = "STAKE"
-    REVOKE_TOKEN_ALLOWANCE = "REVOKE_TOKEN_ALLOWANCE"
+    REVOKE_TOKEN_ALLOWANCE = "REVOKE_TOKEN_ALLOWANCE"  # nosec B105
 
 
 class TransactionSubCategory(str, Enum):
@@ -122,6 +121,7 @@ class BankDetails:
     paymentRail: Optional[str] = None
     bankAddress: Optional[str] = None
     swiftCode: Optional[str] = None
+    swiftBic: Optional[str] = None
     iban: Optional[str] = None
     currency: Optional[str] = None
     country: Optional[str] = None
@@ -204,20 +204,6 @@ class ICPOutput:
 
 # A transaction output can be one of these two
 TransactionOutput = Union[EVMOutput, ICPOutput]
-
-
-@dataclass
-class BankDetails:
-    bankName: Optional[str] = None
-    beneficiaryName: Optional[str] = None
-    accountNumberMasked: Optional[str] = None
-    iban: Optional[str] = None
-    swiftBic: Optional[str] = None
-    routingNumber: Optional[str] = None
-    paymentRail: Optional[str] = None
-    currency: Optional[str] = None
-    country: Optional[str] = None
-    bankAddress: Optional[str] = None
 
 
 @dataclass
@@ -572,17 +558,13 @@ class DepositAddressResponse:
 @dataclass
 class VaultListResponse:
     results: List[Vault]
-    count: int
-    previous: Optional[str] = None
-    next: Optional[str] = None
+    next_cursor: Optional[str] = None
+    has_next: Optional[bool] = None
 
 
 @dataclass
 class TransactionListResponse:
     results: List[Transaction]
-    count: Optional[int] = None
-    previous: Optional[str] = None
-    next: Optional[str] = None
     next_cursor: Optional[str] = None
     has_next: Optional[bool] = None
 
@@ -590,9 +572,8 @@ class TransactionListResponse:
 @dataclass
 class ContactListResponse:
     results: List[Contact]
-    count: int
-    previous: Optional[str] = None
-    next: Optional[str] = None
+    next_cursor: Optional[str] = None
+    has_next: Optional[bool] = None
 
 
 @dataclass
@@ -621,9 +602,8 @@ class BankAccount:
 @dataclass
 class BankAccountListResponse:
     results: List[BankAccount]
-    count: int
-    previous: Optional[str] = None
-    next: Optional[str] = None
+    next_cursor: Optional[str] = None
+    has_next: Optional[bool] = None
 
 
 @dataclass
