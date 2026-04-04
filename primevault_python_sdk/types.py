@@ -558,22 +558,22 @@ class DepositAddressResponse:
 @dataclass
 class VaultListResponse:
     results: List[Vault]
-    next_cursor: Optional[str] = None
-    has_next: Optional[bool] = None
+    nextCursor: Optional[str] = None
+    hasNext: Optional[bool] = None
 
 
 @dataclass
 class TransactionListResponse:
     results: List[Transaction]
-    next_cursor: Optional[str] = None
-    has_next: Optional[bool] = None
+    nextCursor: Optional[str] = None
+    hasNext: Optional[bool] = None
 
 
 @dataclass
 class ContactListResponse:
     results: List[Contact]
-    next_cursor: Optional[str] = None
-    has_next: Optional[bool] = None
+    nextCursor: Optional[str] = None
+    hasNext: Optional[bool] = None
 
 
 @dataclass
@@ -602,8 +602,8 @@ class BankAccount:
 @dataclass
 class BankAccountListResponse:
     results: List[BankAccount]
-    next_cursor: Optional[str] = None
-    has_next: Optional[bool] = None
+    nextCursor: Optional[str] = None
+    hasNext: Optional[bool] = None
 
 
 @dataclass
