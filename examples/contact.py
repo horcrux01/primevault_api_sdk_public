@@ -60,9 +60,9 @@ def get_contacts(api_client: APIClient):
         all_contacts.extend(response.results)
         print(f"Fetched {len(response.results)} contacts (total: {len(all_contacts)})")
 
-        if not response.has_next or not response.next_cursor:
+        if not response.hasNext or not response.nextCursor:
             break
-        cursor = response.next_cursor
+        cursor = response.nextCursor
 
     print(f"Total contacts: {len(all_contacts)}")
     return all_contacts
