@@ -123,8 +123,8 @@ def get_transactions(api_client: APIClient):
             f"Fetched {len(response.results)} transactions (total: {len(all_transactions)})"
         )
 
-        if not response.has_next or not response.next_cursor:
+        if not response.hasNext or not response.nextCursor:
             break
-        cursor = response.next_cursor
+        cursor = response.nextCursor
 
     print(f"Total transactions: {len(all_transactions)}")

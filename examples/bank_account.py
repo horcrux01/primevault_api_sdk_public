@@ -65,9 +65,9 @@ def list_bank_accounts(api_client: APIClient):
                 f"  - {account.accountName} ({account.paymentMethod}) bankName={account.bankName}"
             )
 
-        if not response.has_next or not response.next_cursor:
+        if not response.hasNext or not response.nextCursor:
             break
-        cursor = response.next_cursor
+        cursor = response.nextCursor
 
     print(f"Total bank accounts: {len(all_accounts)}")
     return all_accounts

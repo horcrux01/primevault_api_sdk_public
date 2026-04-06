@@ -33,9 +33,9 @@ def get_vaults(api_client: APIClient):
         all_vaults.extend(response.results)
         print(f"Fetched {len(response.results)} vaults (total: {len(all_vaults)})")
 
-        if not response.has_next or not response.next_cursor:
+        if not response.hasNext or not response.nextCursor:
             break
-        cursor = response.next_cursor
+        cursor = response.nextCursor
 
     print(f"Total vaults: {len(all_vaults)}")
     return all_vaults
