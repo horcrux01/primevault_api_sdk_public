@@ -1,0 +1,37 @@
+name: Sync to public repo
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  sync:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create branch and PR on public repo
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+
+          git remote add public https://x-access-token:${GH_TOKEN}@github.com/horcrux01/primevault_api_sdk_public.git
+          git checkout -b "$BRANCH_NAME"
+          git push public "$BRANCH_NAME"
+
+          gh pr create \
+            --repo horcrux01/primevault_api_sdk_public \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "$PR_TITLE" \
+            --body "Automated sync from private repo. Source PR: #${{ github.event.pull_request.number }}"
