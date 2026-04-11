@@ -1,0 +1,3 @@
+# gitleaks:allow - Add fingerprints of known false positives below.
+# Format: commit:file:rule:line
+# Example: abc123def:tests/fixtures/dummy_key.pem:private-key:1
