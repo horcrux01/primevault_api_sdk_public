@@ -1,0 +1,4 @@
+# gitleaks:allow - Add fingerprints of known false positives below.
+# Copy the Fingerprint field from `gitleaks detect` or CI output — do not hand-construct entries.
+# Example: abc123def:tests/fixtures/dummy_key.pem:private-key:1
+38c19440f9c4f9e71d86ac8e7b5620974d5d911c:primevault_python_sdk/test/test_api_client.py:generic-api-key:27
