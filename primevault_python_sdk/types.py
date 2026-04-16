@@ -699,8 +699,7 @@ class WithdrawAddressesResponse:
 @dataclass
 class SubmitWithdrawalRequest:
     exchangeVaultId: str
-    token: str
+    asset: str
     amount: str
-    bankAccountId: Optional[str] = None
-    cryptoAddress: Optional[str] = None
-    platform: str = "browser"
+    type: str
+    id: str
