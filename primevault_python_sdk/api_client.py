@@ -431,14 +431,9 @@ class APIClient(BaseAPIClient):
     def get_withdraw_addresses(
         self, request: GetWithdrawAddressesRequest
     ) -> WithdrawAddressesResponse:
-        params = {
-            "sourceType": request.source.type,
-            "sourceId": request.source.id,
-        }
-        if request.currency:
-            params["currency"] = request.currency
-        response = self.get(
-            "/api/external/vaults/get_withdraw_addresses/", params=params
+        response = self.post(
+            "/api/external/vaults/get_withdraw_addresses/",
+            data=asdict(request),
         )
         return from_dict(WithdrawAddressesResponse, response)
 
