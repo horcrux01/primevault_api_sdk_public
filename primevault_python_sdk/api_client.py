@@ -434,7 +434,7 @@ class APIClient(BaseAPIClient):
         if currency:
             params["currency"] = currency
         response = self.get(
-            "/api/external/exchanges/get_withdraw_addresses/", params=params
+            "/api/external/vaults/get_withdraw_addresses/", params=params
         )
         return from_dict(WithdrawAddressesResponse, response)
 
@@ -442,6 +442,6 @@ class APIClient(BaseAPIClient):
         self, request: SubmitWithdrawalRequest
     ) -> dict:
         return self.post(
-            "/api/external/exchanges/submit_withdrawal_request/",
+            "/api/external/vaults/submit_withdrawal_request/",
             data=asdict(request),
         )
