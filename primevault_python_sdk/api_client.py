@@ -428,9 +428,9 @@ class APIClient(BaseAPIClient):
         return self.initiate_change_approval_action(request)
 
     def get_withdraw_addresses(
-        self, vault_id: str, currency: Optional[str] = None
+        self, source: dict, currency: Optional[str] = None
     ) -> WithdrawAddressesResponse:
-        params = {"vaultId": vault_id}
+        params = {"sourceType": source["type"], "sourceId": source["id"]}
         if currency:
             params["currency"] = currency
         response = self.get(

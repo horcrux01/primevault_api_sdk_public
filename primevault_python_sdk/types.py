@@ -698,8 +698,7 @@ class WithdrawAddressesResponse:
 
 @dataclass
 class SubmitWithdrawalRequest:
-    vaultId: str
+    source: TransferPartyData
+    destination: TransferPartyData
     asset: str
     amount: str
-    type: str
-    id: str
