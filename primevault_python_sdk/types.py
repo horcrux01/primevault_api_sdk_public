@@ -698,7 +698,7 @@ class WithdrawAddressesResponse:
 
 @dataclass
 class SubmitWithdrawalRequest:
-    exchangeVaultId: str
+    vaultId: str
     asset: str
     amount: str
     type: str
