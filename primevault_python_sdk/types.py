@@ -679,3 +679,28 @@ DetailedBalanceResponse = List[DetailedBalance]
     }
 ]
 """
+
+
+@dataclass
+class WithdrawAddress:
+    id: Optional[int] = None
+    address: Optional[str] = None
+    token: Optional[str] = None
+    network: Optional[str] = None
+    network_name: Optional[str] = None
+    label: Optional[str] = None
+
+
+@dataclass
+class WithdrawAddressesResponse:
+    addresses: List[WithdrawAddress]
+
+
+@dataclass
+class SubmitWithdrawalRequest:
+    exchangeVaultId: str
+    token: str
+    amount: str
+    bankAccountId: Optional[str] = None
+    cryptoAddress: Optional[str] = None
+    platform: str = "browser"
