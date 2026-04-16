@@ -31,6 +31,7 @@ from primevault_python_sdk.types import (
     GetApprovalRequest,
     GetApprovalResponse,
     GetTradeQuoteResponse,
+    GetWithdrawAddressesRequest,
     RampQuoteRequest,
     RampQuoteResponse,
     ReplaceTransactionRequest,
@@ -428,11 +429,14 @@ class APIClient(BaseAPIClient):
         return self.initiate_change_approval_action(request)
 
     def get_withdraw_addresses(
-        self, source: dict, currency: Optional[str] = None
+        self, request: GetWithdrawAddressesRequest
     ) -> WithdrawAddressesResponse:
-        params = {"sourceType": source["type"], "sourceId": source["id"]}
-        if currency:
-            params["currency"] = currency
+        params = {
+            "sourceType": request.source.type,
+            "sourceId": request.source.id,
+        }
+        if request.currency:
+            params["currency"] = request.currency
         response = self.get(
             "/api/external/vaults/get_withdraw_addresses/", params=params
         )

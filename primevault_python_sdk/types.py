@@ -697,6 +697,12 @@ class WithdrawAddressesResponse:
 
 
 @dataclass
+class GetWithdrawAddressesRequest:
+    source: TransferPartyData
+    currency: Optional[str] = None
+
+
+@dataclass
 class SubmitWithdrawalRequest:
     source: TransferPartyData
     destination: TransferPartyData
