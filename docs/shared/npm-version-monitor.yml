@@ -1,0 +1,62 @@
+name: Monitor npm version
+on:
+  schedule:
+    - cron: '0 * * * *'  # every hour
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for unexpected npm publish
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          NPM_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "not-found")
+
+          if [ "$NPM_VERSION" = "not-found" ]; then
+            echo "Package not on npm yet, skipping."
+            exit 0
+          fi
+
+          if [ "$NPM_VERSION" != "$LOCAL_VERSION" ]; then
+            curl -X POST "$SLACK_WEBHOOK_URL" \
+              -H 'Content-type: application/json' \
+              -d "{
+                \"blocks\": [
+                  {
+                    \"type\": \"header\",
+                    \"text\": {
+                      \"type\": \"plain_text\",
+                      \"text\": \"npm Version Mismatch: $PACKAGE_NAME\"
+                    }
+                  },
+                  {
+                    \"type\": \"section\",
+                    \"fields\": [
+                      {
+                        \"type\": \"mrkdwn\",
+                        \"text\": \"*npm registry:*\n$NPM_VERSION\"
+                      },
+                      {
+                        \"type\": \"mrkdwn\",
+                        \"text\": \"*repo main branch:*\n$LOCAL_VERSION\"
+                      }
+                    ]
+                  },
+                  {
+                    \"type\": \"section\",
+                    \"text\": {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"A version on npm doesn't match main. This could mean someone published manually outside of the CI pipeline.\"
+                    }
+                  }
+                ]
+              }"
+          else
+            echo "Versions match: $NPM_VERSION"
+          fi

@@ -1,0 +1,3 @@
+# gitleaks:allow - Add fingerprints of known false positives below.
+# Copy the Fingerprint field from `gitleaks detect` or CI output — do not hand-construct entries.
+# Example: abc123def:tests/fixtures/dummy_key.pem:private-key:1

@@ -40,6 +40,7 @@ class TransactionCategory(str, Enum):
     SWAP = "SWAP"
     ON_RAMP = "ON_RAMP"
     OFF_RAMP = "OFF_RAMP"
+    TRADE = "TRADE"
     TOKEN_TRANSFER = "TOKEN_TRANSFER"  # nosec B105
     TOKEN_APPROVAL = "TOKEN_APPROVAL"  # nosec B105
     CONTRACT_CALL = "CONTRACT_CALL"

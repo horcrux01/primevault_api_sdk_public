@@ -1,0 +1,40 @@
+name: Sync to public repo
+on:
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: 'Branch name to create on public repo'
+        required: true
+      pr_title:
+        description: 'PR title for the public repo'
+        required: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create branch and PR on public repo
+        env:
+          GH_TOKEN: ${{ secrets.SDK_PRIVATE_PUBLIC_SYNC_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ github.event.inputs.branch_name }}"
+          PR_TITLE="${{ github.event.inputs.pr_title }}"
+
+          git remote add public https://x-access-token:${GH_TOKEN}@github.com/horcrux01/primevault_api_sdk_js_public.git
+          git checkout -b "$BRANCH_NAME"
+          git push public "$BRANCH_NAME"
+
+          gh pr create \
+            --repo horcrux01/primevault_api_sdk_js_public \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "$PR_TITLE" \
+            --body "Synced from private repo."

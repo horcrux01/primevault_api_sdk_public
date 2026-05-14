@@ -1,0 +1,9 @@
+# gitleaks:allow - Add fingerprints of known false positives below.
+# Copy the Fingerprint field from `gitleaks detect` or CI output — do not hand-construct entries.
+# Example: abc123def:tests/fixtures/dummy_key.pem:private-key:1
+a85d4facfd1a6ce42b986a79a59cd08cf0f3e76e:README.md:generic-api-key:21
+ce5f540eaec4eb8c38d02ed44bf8be29c202d407:examples/client.tsx:generic-api-key:4
+ce5f540eaec4eb8c38d02ed44bf8be29c202d407:examples/client.tsx:generic-api-key:14
+580adaa6c7559d15f0b94970d9f79b6d3108de3e:README.md:generic-api-key:33
+24a7855ca949159aa42307e8227518aa0f4384b9:README.md:generic-api-key:62
+c65cedb8101f293b55628acb3acd065373215f30:.env.test:generic-api-key:2
