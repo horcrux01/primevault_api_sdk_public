@@ -13,6 +13,7 @@ from primevault_python_sdk.types import (
     Contact,
     ContactListResponse,
     CreateApprovalResponse,
+    CreateAssetTransferRequest,
     CreateBankAccountRequest,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
@@ -231,6 +232,23 @@ class APIClient(BaseAPIClient):
             "memo": request.memo,
             "paymentMethod": request.paymentMethod,
             "toBlockChain": request.toBlockChain,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
+    def create_asset_transfer(self, request: CreateAssetTransferRequest) -> Transaction:
+        data = {
+            "vaultId": request.vaultId,
+            "category": request.category,
+            "subCategory": request.subCategory,
+            "asset": request.asset,
+            "amount": request.amount,
+            "counterparty": asdict(request.counterparty)
+            if request.counterparty
+            else None,
+            "externalId": request.externalId,
+            "memo": request.memo,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)

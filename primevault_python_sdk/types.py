@@ -60,6 +60,8 @@ class TransactionSubCategory(str, Enum):
     STAKE = "STAKE"
     UNSTAKE = "UNSTAKE"
     CLAIM = "CLAIM"
+    DEPOSIT = "DEPOSIT"
+    WITHDRAW = "WITHDRAW"
 
 
 class TransactionStatus(str, Enum):
@@ -513,6 +515,25 @@ class CreateTradeTransactionRequest:
     vaultId: str
     tradeRequestData: TradeQuoteRequestData
     tradeResponseData: TradeQuoteResponseData
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
+
+
+@dataclass
+class CounterpartyData:
+    type: str
+    id: Optional[str] = None
+    name: Optional[str] = None
+
+
+@dataclass
+class CreateAssetTransferRequest:
+    vaultId: str
+    asset: str
+    amount: str
+    subCategory: str
+    counterparty: Optional[CounterpartyData] = None
+    category: str = TransactionCategory.TRANSFER.value
     externalId: Optional[str] = None
     memo: Optional[str] = None
 
