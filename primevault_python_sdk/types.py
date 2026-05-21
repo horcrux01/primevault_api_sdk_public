@@ -512,9 +512,10 @@ class TradeQuoteRequestData:
 
 @dataclass
 class CreateTradeTransactionRequest:
-    vaultId: str
-    tradeRequestData: TradeQuoteRequestData
-    tradeResponseData: TradeQuoteResponseData
+    vaultId: Optional[str] = None
+    quoteId: Optional[str] = None
+    tradeRequestData: Optional[TradeQuoteRequestData] = None
+    tradeResponseData: Optional[TradeQuoteResponseData] = None
     category: Optional[str] = None
     externalId: Optional[str] = None
     operationMessage: Optional[str] = None

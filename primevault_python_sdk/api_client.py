@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from dacite import Config, from_dict
 
@@ -181,10 +181,25 @@ class APIClient(BaseAPIClient):
             Transaction, self.post("/api/external/transactions/", data=data)
         )
 
-    def get_trade_quote(
-        self, request: CreateTradeQuoteRequest
-    ) -> GetTradeQuoteResponse:
-        data = {
+    def get_trade_quote(self, request: CreateTradeQuoteRequest):
+        if request.category == TransactionCategory.TRADE:
+            trade_data: dict[str, Any] = {
+                "source": (
+                    {"type": "VAULT", "id": request.vaultId}
+                    if request.vaultId
+                    else None
+                ),
+                "fromAsset": request.fromAsset,
+                "toAsset": request.toAsset,
+                "fromAmount": request.fromAmount,
+                "category": request.category,
+                "paymentMethod": request.paymentMethod,
+            }
+            return from_dict(
+                RampQuoteResponse,
+                self.post("/api/external/transactions/quote/", data=trade_data),
+            )
+        swap_data: dict[str, Any] = {
             "vaultId": request.vaultId,
             "fromAsset": request.fromAsset,
             "toAsset": request.toAsset,
@@ -199,24 +214,40 @@ class APIClient(BaseAPIClient):
         }
         return from_dict(
             GetTradeQuoteResponse,
-            self.get("/api/external/transactions/trade_quote/", params=data),
+            self.get("/api/external/transactions/trade_quote/", params=swap_data),
         )
 
     def create_trade_transaction(
         self, request: CreateTradeTransactionRequest
     ) -> Transaction:
-        data = {
-            "vaultId": request.vaultId,
-            "tradeRequestData": asdict(request.tradeRequestData),
-            "tradeResponseData": asdict(request.tradeResponseData),
-            "category": request.category or "SWAP",
-            "blockChain": request.tradeRequestData.blockChain,
-            "externalId": request.externalId,
-            "operationMessage": request.operationMessage,
-            "memo": request.memo,
-        }
+        category = request.category or "SWAP"
+        payload: dict[str, Any]
+        if request.quoteId:
+            payload = {
+                "quoteId": request.quoteId,
+                "category": category,
+                "externalId": request.externalId,
+                "operationMessage": request.operationMessage,
+                "memo": request.memo,
+            }
+        else:
+            if not request.tradeRequestData or not request.tradeResponseData:
+                raise ValueError(
+                    "tradeRequestData and tradeResponseData are required "
+                    "when quoteId is not provided"
+                )
+            payload = {
+                "vaultId": request.vaultId,
+                "tradeRequestData": asdict(request.tradeRequestData),
+                "tradeResponseData": asdict(request.tradeResponseData),
+                "category": category,
+                "blockChain": request.tradeRequestData.blockChain,
+                "externalId": request.externalId,
+                "operationMessage": request.operationMessage,
+                "memo": request.memo,
+            }
         return from_dict(
-            Transaction, self.post("/api/external/transactions/", data=data)
+            Transaction, self.post("/api/external/transactions/", data=payload)
         )
 
     def create_asset_transfer(self, request: CreateAssetTransferRequest) -> Transaction:
