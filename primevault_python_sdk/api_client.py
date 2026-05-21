@@ -19,9 +19,9 @@ from primevault_python_sdk.types import (
     CreateContractCallTransactionRequest,
     CreateOffRampTransactionRequest,
     CreateOnRampTransactionRequest,
-    CreateRampTransactionRequest,
     CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
+    CreateTradeV2TransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     DepositAddressResponse,
@@ -219,8 +219,8 @@ class APIClient(BaseAPIClient):
             Transaction, self.post("/api/external/transactions/", data=data)
         )
 
-    def create_ramp_transaction(
-        self, request: CreateRampTransactionRequest
+    def create_trade_v2_transaction(
+        self, request: CreateTradeV2TransactionRequest
     ) -> Transaction:
         data = {
             "vaultId": request.vaultId,
@@ -238,15 +238,18 @@ class APIClient(BaseAPIClient):
         )
 
     def create_asset_transfer(self, request: CreateAssetTransferRequest) -> Transaction:
+        counterparty = None
+        if request.counterparty:
+            counterparty = {
+                k: v for k, v in asdict(request.counterparty).items() if v is not None
+            }
         data = {
             "vaultId": request.vaultId,
             "category": request.category,
             "subCategory": request.subCategory,
             "asset": request.asset,
             "amount": request.amount,
-            "counterparty": asdict(request.counterparty)
-            if request.counterparty
-            else None,
+            "counterparty": counterparty,
             "externalId": request.externalId,
             "memo": request.memo,
         }

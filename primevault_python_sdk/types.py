@@ -520,26 +520,19 @@ class CreateTradeTransactionRequest:
 
 
 @dataclass
-class CounterpartyData:
-    type: str
-    id: Optional[str] = None
-    name: Optional[str] = None
-
-
-@dataclass
 class CreateAssetTransferRequest:
     vaultId: str
     asset: str
     amount: str
     subCategory: str
-    counterparty: Optional[CounterpartyData] = None
+    counterparty: Optional[TransferPartyData] = None
     category: str = TransactionCategory.TRANSFER.value
     externalId: Optional[str] = None
     memo: Optional[str] = None
 
 
 @dataclass
-class CreateRampTransactionRequest:
+class CreateTradeV2TransactionRequest:
     vaultId: str
     tradeRequestData: TradeQuoteRequestData
     tradeResponseData: TradeQuoteResponseData
