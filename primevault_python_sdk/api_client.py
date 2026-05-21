@@ -21,7 +21,6 @@ from primevault_python_sdk.types import (
     CreateOnRampTransactionRequest,
     CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
-    CreateTradeV2TransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     DepositAddressResponse,
@@ -210,28 +209,11 @@ class APIClient(BaseAPIClient):
             "vaultId": request.vaultId,
             "tradeRequestData": asdict(request.tradeRequestData),
             "tradeResponseData": asdict(request.tradeResponseData),
-            "category": "SWAP",
+            "category": request.category or "SWAP",
             "blockChain": request.tradeRequestData.blockChain,
-            "externalId": request.externalId,
-            "memo": request.memo,
-        }
-        return from_dict(
-            Transaction, self.post("/api/external/transactions/", data=data)
-        )
-
-    def create_trade_v2_transaction(
-        self, request: CreateTradeV2TransactionRequest
-    ) -> Transaction:
-        data = {
-            "vaultId": request.vaultId,
-            "category": request.category,
-            "tradeRequestData": asdict(request.tradeRequestData),
-            "tradeResponseData": asdict(request.tradeResponseData),
             "externalId": request.externalId,
             "operationMessage": request.operationMessage,
             "memo": request.memo,
-            "paymentMethod": request.paymentMethod,
-            "toBlockChain": request.toBlockChain,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)

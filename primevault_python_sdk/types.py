@@ -515,7 +515,9 @@ class CreateTradeTransactionRequest:
     vaultId: str
     tradeRequestData: TradeQuoteRequestData
     tradeResponseData: TradeQuoteResponseData
+    category: Optional[str] = None
     externalId: Optional[str] = None
+    operationMessage: Optional[str] = None
     memo: Optional[str] = None
 
 
@@ -529,19 +531,6 @@ class CreateAssetTransferRequest:
     category: str = TransactionCategory.TRANSFER.value
     externalId: Optional[str] = None
     memo: Optional[str] = None
-
-
-@dataclass
-class CreateTradeV2TransactionRequest:
-    vaultId: str
-    tradeRequestData: TradeQuoteRequestData
-    tradeResponseData: TradeQuoteResponseData
-    category: str = TransactionCategory.ON_RAMP.value
-    externalId: Optional[str] = None
-    operationMessage: Optional[str] = None
-    memo: Optional[str] = None
-    paymentMethod: Optional[str] = None
-    toBlockChain: Optional[str] = None
 
 
 @dataclass
