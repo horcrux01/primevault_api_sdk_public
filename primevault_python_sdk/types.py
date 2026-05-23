@@ -576,12 +576,10 @@ class Fees:
 @dataclass
 class QuoteResponseItem:
     quoteId: str
-    fromAsset: str
-    toAsset: str
-    fromAmount: str
-    toAmount: str
-    rate: str
-    fees: Fees
+    rate: Optional[str] = None
+    fees: Optional[Fees] = None
+    fromAmount: Optional[str] = None
+    toAmount: Optional[str] = None
 
 
 @dataclass
