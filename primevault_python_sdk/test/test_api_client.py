@@ -9,6 +9,8 @@ from primevault_python_sdk.base_api_client import BadRequestError
 from primevault_python_sdk.types import (
     ContactStatus,
     CreateContractCallTransactionRequest,
+    CreateOffRampTransactionRequest,
+    CreateOnRampTransactionRequest,
     CreateTradeQuoteRequest,
     CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
@@ -17,6 +19,9 @@ from primevault_python_sdk.types import (
     TransactionCreationGasParams,
     TransactionFeeTier,
     TransactionStatus,
+    RampQuoteRequest,
+    TransactionExecutionIntentRequest,
+    TransactionIntentRequest,
     TransferPartyData,
     TransferPartyType,
     VaultType,
@@ -28,6 +33,217 @@ def api_client():
     api_url = os.environ.get("API_URL", "https://test.excheqr.xyz")
     private_key = os.environ.get("ACCESS_PRIVATE_KEY", "")
     return APIClient(api_key, api_url, private_key)
+
+
+class RecordingAPIClient(APIClient):
+    def __init__(self, post_response):
+        self.post_response = post_response
+        self.post_calls = []
+
+    def post(self, path, data=None):
+        self.post_calls.append((path, data))
+        return self.post_response
+
+
+class TestApiClientIntentMethods(unittest.TestCase):
+    def test_get_transaction_quote_posts_generic_transaction_intent(self):
+        client = RecordingAPIClient(
+            [
+                {
+                    "quoteId": "quote-1",
+                    "fromAsset": "ETH",
+                    "toAsset": "USDC",
+                    "fromAmount": "1",
+                    "toAmount": "3000",
+                    "rate": "3000",
+                    "fees": {"amount": "2", "asset": "USDC"},
+                }
+            ]
+        )
+        source = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
+
+        response = client.get_transaction_quote(
+            TransactionIntentRequest(
+                source=source,
+                fromAsset="ETH",
+                toAsset="USDC",
+                fromAmount="1",
+                fromChain="ETHEREUM",
+                toChain="ETHEREUM",
+            )
+        )
+
+        self.assertEqual(response.quotes[0].quoteId, "quote-1")
+        self.assertEqual(client.post_calls[0][0], "/api/external/transactions/quote/")
+        self.assertEqual(
+            client.post_calls[0][1],
+            {
+                "source": {
+                    "type": "VAULT",
+                    "id": "vault-id",
+                    "value": None,
+                    "name": None,
+                    "address": None,
+                    "exchange": None,
+                    "bank": None,
+                },
+                "destination": None,
+                "fromAsset": "ETH",
+                "toAsset": "USDC",
+                "fromAmount": "1",
+                "fromChain": "ETHEREUM",
+                "fromPaymentRail": None,
+                "toAmount": None,
+                "toChain": "ETHEREUM",
+                "toPaymentRail": None,
+            },
+        )
+
+    def test_create_transaction_from_intent_posts_generic_execution_intent(self):
+        client = RecordingAPIClient(self._transaction_response())
+        source = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
+
+        client.create_transaction_from_intent(
+            TransactionExecutionIntentRequest(
+                source=source,
+                quoteId="quote-1",
+                fromAsset="ETH",
+                toAsset="USDC",
+                fromAmount="1",
+                fromChain="ETHEREUM",
+                toChain="ETHEREUM",
+                externalId="external-1",
+                memo="memo",
+            )
+        )
+
+        self.assertEqual(client.post_calls[0][0], "/api/external/transactions/execute/")
+        self.assertEqual(client.post_calls[0][1]["source"]["id"], "vault-id")
+        self.assertEqual(client.post_calls[0][1]["quoteId"], "quote-1")
+        self.assertEqual(client.post_calls[0][1]["fromAsset"], "ETH")
+        self.assertEqual(client.post_calls[0][1]["toAsset"], "USDC")
+        self.assertEqual(client.post_calls[0][1]["externalId"], "external-1")
+
+    def test_get_ramp_quote_posts_transaction_intent_and_reads_list_response(self):
+        client = RecordingAPIClient(
+            [
+                {
+                    "quoteId": "quote-1",
+                    "fromAsset": "USD",
+                    "toAsset": "USDC",
+                    "fromAmount": "100",
+                    "toAmount": "99",
+                    "rate": "0.99",
+                    "fees": {"amount": "1", "asset": "USD"},
+                }
+            ]
+        )
+        destination = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
+
+        response = client.get_ramp_quote(
+            RampQuoteRequest(
+                destination=destination,
+                fromAsset="USD",
+                toAsset="USDC",
+                fromAmount="100",
+                toAmount="99",
+                toChain="ETHEREUM",
+                fromPaymentRail="WIRE",
+            )
+        )
+
+        self.assertEqual(response.quotes[0].quoteId, "quote-1")
+        self.assertEqual(
+            client.post_calls,
+            [
+                (
+                    "/api/external/transactions/quote/",
+                    {
+                        "destination": {
+                            "type": "VAULT",
+                            "id": "vault-id",
+                            "value": None,
+                            "name": None,
+                            "address": None,
+                            "exchange": None,
+                            "bank": None,
+                        },
+                        "source": None,
+                        "fromAsset": "USD",
+                        "fromAmount": "100",
+                        "fromChain": None,
+                        "fromPaymentRail": "WIRE",
+                        "toAsset": "USDC",
+                        "toAmount": "99",
+                        "toChain": "ETHEREUM",
+                        "toPaymentRail": None,
+                    },
+                )
+            ],
+        )
+
+    def test_create_on_ramp_transaction_posts_execution_intent(self):
+        client = RecordingAPIClient(self._transaction_response())
+        destination = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
+
+        client.create_on_ramp_transaction(
+            CreateOnRampTransactionRequest(
+                destination=destination,
+                quoteId="quote-1",
+                fromAsset="USD",
+                toAsset="USDC",
+                fromAmount="100",
+                toChain="ETHEREUM",
+                externalId="external-1",
+                memo="memo",
+            )
+        )
+
+        self.assertEqual(client.post_calls[0][0], "/api/external/transactions/execute/")
+        self.assertEqual(client.post_calls[0][1]["quoteId"], "quote-1")
+        self.assertEqual(client.post_calls[0][1]["fromAsset"], "USD")
+        self.assertEqual(client.post_calls[0][1]["toAsset"], "USDC")
+        self.assertEqual(client.post_calls[0][1]["destination"]["id"], "vault-id")
+
+    def test_create_off_ramp_transaction_posts_execution_intent(self):
+        client = RecordingAPIClient(self._transaction_response())
+        source = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
+        destination = TransferPartyData(
+            type=TransferPartyType.BANK_ACCOUNT.value, id="bank-account-id"
+        )
+
+        client.create_off_ramp_transaction(
+            CreateOffRampTransactionRequest(
+                source=source,
+                destination=destination,
+                quoteId="quote-1",
+                fromAsset="USDC",
+                toAsset="USD",
+                fromAmount="100",
+                fromChain="ETHEREUM",
+            )
+        )
+
+        self.assertEqual(client.post_calls[0][0], "/api/external/transactions/execute/")
+        self.assertEqual(client.post_calls[0][1]["source"]["id"], "vault-id")
+        self.assertEqual(client.post_calls[0][1]["destination"]["id"], "bank-account-id")
+        self.assertEqual(client.post_calls[0][1]["fromChain"], "ETHEREUM")
+
+    @staticmethod
+    def _transaction_response():
+        return {
+            "id": "transaction-id",
+            "orgId": "org-id",
+            "vaultId": "vault-id",
+            "amount": "100",
+            "status": "PENDING",
+            "transactionType": "OUTGOING",
+            "category": "ON_RAMP",
+            "subCategory": "MARKET_TRADE",
+            "createdAt": "2026-05-23T00:00:00Z",
+            "updatedAt": "2026-05-23T00:00:00Z",
+            "isDeleted": False,
+        }
 
 
 class TestApiClient(unittest.TestCase):

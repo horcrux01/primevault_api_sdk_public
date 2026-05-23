@@ -225,6 +225,10 @@ class RampQuoteFee:
 @dataclass
 class RampQuote:
     quoteId: Optional[str] = None
+    fromAsset: Optional[str] = None
+    toAsset: Optional[str] = None
+    fromAmount: Optional[str] = None
+    toAmount: Optional[str] = None
     finalToAmount: Optional[str] = None
     sourceName: Optional[str] = None
     fees: Optional[RampQuoteFee] = None
@@ -233,15 +237,29 @@ class RampQuote:
 
 
 @dataclass
-class RampQuoteRequest:
+class TransactionIntentRequest:
     destination: Optional[TransferPartyData] = None
     source: Optional[TransferPartyData] = None
     fromAsset: Optional[str] = None
     fromAmount: Optional[str] = None
     fromChain: Optional[str] = None
+    fromPaymentRail: Optional[str] = None
     toAsset: Optional[str] = None
+    toAmount: Optional[str] = None
     toChain: Optional[str] = None
+    toPaymentRail: Optional[str] = None
+
+
+@dataclass
+class RampQuoteRequest(TransactionIntentRequest):
     category: Optional[str] = None
+
+
+@dataclass
+class TransactionExecutionIntentRequest(TransactionIntentRequest):
+    quoteId: Optional[str] = None
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
 
 
 @dataclass
@@ -610,6 +628,15 @@ class BankAccountListResponse:
 class CreateOnRampTransactionRequest:
     destination: TransferPartyData
     quoteId: str
+    source: Optional[TransferPartyData] = None
+    fromAsset: Optional[str] = None
+    fromAmount: Optional[str] = None
+    fromChain: Optional[str] = None
+    fromPaymentRail: Optional[str] = None
+    toAsset: Optional[str] = None
+    toAmount: Optional[str] = None
+    toChain: Optional[str] = None
+    toPaymentRail: Optional[str] = None
     externalId: Optional[str] = None
     memo: Optional[str] = None
 
@@ -619,6 +646,14 @@ class CreateOffRampTransactionRequest:
     source: TransferPartyData
     destination: TransferPartyData
     quoteId: str
+    fromAsset: Optional[str] = None
+    fromAmount: Optional[str] = None
+    fromChain: Optional[str] = None
+    fromPaymentRail: Optional[str] = None
+    toAsset: Optional[str] = None
+    toAmount: Optional[str] = None
+    toChain: Optional[str] = None
+    toPaymentRail: Optional[str] = None
     externalId: Optional[str] = None
     memo: Optional[str] = None
 
