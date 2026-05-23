@@ -32,14 +32,16 @@ from primevault_python_sdk.types import (
     GetApprovalResponse,
     GetTradeQuoteResponse,
     GetWithdrawAddressesRequest,
+    QuoteRequest,
+    QuoteResponseItem,
     RampQuoteRequest,
     RampQuoteResponse,
     ReplaceTransactionRequest,
     SubmitWithdrawalRequest,
     Transaction,
     TransactionCategory,
-    TransactionExecutionIntentRequest,
-    TransactionIntentRequest,
+    TransactionExecuteIntent,
+    TransactionIntent,
     TransactionListResponse,
     UpdateContactRequest,
     UpdateContactResponse,
@@ -243,7 +245,7 @@ class APIClient(BaseAPIClient):
         )
 
     @staticmethod
-    def _transaction_intent_data(request: TransactionIntentRequest) -> dict[str, Any]:
+    def _transaction_intent_data(request: TransactionIntent) -> dict[str, Any]:
         return {
             "source": asdict(request.source) if request.source else None,
             "destination": asdict(request.destination) if request.destination else None,
@@ -258,29 +260,43 @@ class APIClient(BaseAPIClient):
         }
 
     @staticmethod
+    def _quote_request_data(request: QuoteRequest) -> dict[str, Any]:
+        return {
+            "transactionIntent": APIClient._transaction_intent_data(
+                request.transactionIntent
+            )
+        }
+
+    @staticmethod
+    def _transaction_execute_intent_data(
+        request: TransactionExecuteIntent,
+    ) -> dict[str, Any]:
+        return {
+            "transactionIntent": (
+                APIClient._transaction_intent_data(request.transactionIntent)
+                if request.transactionIntent
+                else None
+            ),
+            "quoteId": request.quoteId,
+            "externalId": request.externalId,
+            "memo": request.memo,
+        }
+
+    def get_quote(self, request: QuoteRequest) -> List[QuoteResponseItem]:
+        response = self.post(
+            "/api/external/transactions/quote/",
+            data=self._quote_request_data(request),
+        )
+        return [from_dict(QuoteResponseItem, quote) for quote in response]
+
+    @staticmethod
     def _ramp_quote_response(response: Any) -> RampQuoteResponse:
         if isinstance(response, list):
             response = {"quotes": response}
         return from_dict(RampQuoteResponse, response)
 
-    def get_transaction_quote(
-        self, request: TransactionIntentRequest
-    ) -> RampQuoteResponse:
-        response = self.post(
-            "/api/external/transactions/quote/",
-            data=self._transaction_intent_data(request),
-        )
-        return self._ramp_quote_response(response)
-
-    def create_transaction_from_intent(
-        self, request: TransactionExecutionIntentRequest
-    ) -> Transaction:
-        data = {
-            **self._transaction_intent_data(request),
-            "quoteId": request.quoteId,
-            "externalId": request.externalId,
-            "memo": request.memo,
-        }
+    def createIntent(self, request: TransactionExecuteIntent) -> Transaction:
+        data = self._transaction_execute_intent_data(request)
         return from_dict(
             Transaction, self.post("/api/external/transactions/execute/", data=data)
         )

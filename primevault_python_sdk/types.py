@@ -237,7 +237,7 @@ class RampQuote:
 
 
 @dataclass
-class TransactionIntentRequest:
+class TransactionIntent:
     destination: Optional[TransferPartyData] = None
     source: Optional[TransferPartyData] = None
     fromAsset: Optional[str] = None
@@ -251,12 +251,18 @@ class TransactionIntentRequest:
 
 
 @dataclass
-class RampQuoteRequest(TransactionIntentRequest):
+class QuoteRequest:
+    transactionIntent: TransactionIntent
+
+
+@dataclass
+class RampQuoteRequest(TransactionIntent):
     category: Optional[str] = None
 
 
 @dataclass
-class TransactionExecutionIntentRequest(TransactionIntentRequest):
+class TransactionExecuteIntent:
+    transactionIntent: Optional[TransactionIntent] = None
     quoteId: Optional[str] = None
     externalId: Optional[str] = None
     memo: Optional[str] = None
@@ -556,6 +562,23 @@ class GetTradeQuoteResponse:
 @dataclass
 class RampQuoteResponse:
     quotes: Optional[List[RampQuote]] = None
+
+
+@dataclass
+class QuoteResponseFees:
+    amount: str
+    asset: str
+
+
+@dataclass
+class QuoteResponseItem:
+    quoteId: str
+    fromAsset: str
+    toAsset: str
+    fromAmount: str
+    toAmount: str
+    rate: str
+    fees: QuoteResponseFees
 
 
 @dataclass
