@@ -568,7 +568,7 @@ class RampQuoteResponse:
 
 
 @dataclass
-class QuoteResponseFees:
+class Fees:
     amount: str
     asset: str
 
@@ -581,7 +581,7 @@ class QuoteResponseItem:
     fromAmount: str
     toAmount: str
     rate: str
-    fees: QuoteResponseFees
+    fees: Fees
 
 
 @dataclass
