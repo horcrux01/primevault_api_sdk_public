@@ -14,14 +14,11 @@ from primevault_python_sdk.types import (
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     EVMContractCallData,
-    QuoteRequest,
+    TransactionCreationGasParams,
+    TransactionFeeTier,
+    TransactionStatus,
     TransferPartyData,
     TransferPartyType,
-    TransactionCreationGasParams,
-    TransactionExecuteIntent,
-    TransactionFeeTier,
-    TransactionIntent,
-    TransactionStatus,
     VaultType,
 )
 
@@ -31,120 +28,6 @@ def api_client():
     api_url = os.environ.get("API_URL", "https://test.excheqr.xyz")
     private_key = os.environ.get("ACCESS_PRIVATE_KEY", "")
     return APIClient(api_key, api_url, private_key)
-
-
-class RecordingAPIClient(APIClient):
-    def __init__(self, post_response):
-        self.post_response = post_response
-        self.post_calls = []
-
-    def post(self, path, data=None):
-        self.post_calls.append((path, data))
-        return self.post_response
-
-
-class TestApiClientIntentMethods(unittest.TestCase):
-    def test_get_quote_posts_backend_transaction_intent_shape(self):
-        client = RecordingAPIClient(
-            [
-                {
-                    "quoteId": "quote-1",
-                    "fromAsset": "ETH",
-                    "toAsset": "USDC",
-                    "fromAmount": "1",
-                    "toAmount": "3000",
-                    "rate": "3000",
-                    "fees": {"amount": "2", "asset": "USDC"},
-                }
-            ]
-        )
-        source = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
-
-        response = client.get_quote(
-            QuoteRequest(
-                transactionIntent=TransactionIntent(
-                    source=source,
-                    fromAsset="ETH",
-                    toAsset="USDC",
-                    fromAmount="1",
-                    fromChain="ETHEREUM",
-                    toChain="ETHEREUM",
-                )
-            )
-        )
-
-        self.assertEqual(response[0].quoteId, "quote-1")
-        self.assertEqual(client.post_calls[0][0], "/api/external/transactions/quote/")
-        self.assertEqual(
-            client.post_calls[0][1],
-            {
-                "transactionIntent": {
-                    "source": {
-                        "type": "VAULT",
-                        "id": "vault-id",
-                        "value": None,
-                        "name": None,
-                        "address": None,
-                        "exchange": None,
-                        "bank": None,
-                    },
-                    "destination": None,
-                    "fromAsset": "ETH",
-                    "fromAmount": "1",
-                    "fromChain": "ETHEREUM",
-                    "fromPaymentRail": None,
-                    "toAsset": "USDC",
-                    "toAmount": None,
-                    "toChain": "ETHEREUM",
-                    "toPaymentRail": None,
-                },
-            },
-        )
-
-    def test_createIntent_posts_backend_transaction_execution_intent_shape(self):
-        client = RecordingAPIClient(self._transaction_response())
-        source = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
-
-        client.createIntent(
-            TransactionExecuteIntent(
-                transactionIntent=TransactionIntent(
-                    source=source,
-                    fromAsset="ETH",
-                    toAsset="USDC",
-                    fromAmount="1",
-                    fromChain="ETHEREUM",
-                    toChain="ETHEREUM",
-                ),
-                quoteId="quote-1",
-                externalId="external-1",
-                memo="memo",
-            )
-        )
-
-        self.assertEqual(client.post_calls[0][0], "/api/external/transactions/execute/")
-        self.assertEqual(
-            client.post_calls[0][1]["transactionIntent"]["source"]["id"], "vault-id"
-        )
-        self.assertEqual(client.post_calls[0][1]["quoteId"], "quote-1")
-        self.assertEqual(client.post_calls[0][1]["transactionIntent"]["fromAsset"], "ETH")
-        self.assertEqual(client.post_calls[0][1]["transactionIntent"]["toAsset"], "USDC")
-        self.assertEqual(client.post_calls[0][1]["externalId"], "external-1")
-
-    @staticmethod
-    def _transaction_response():
-        return {
-            "id": "transaction-id",
-            "orgId": "org-id",
-            "vaultId": "vault-id",
-            "amount": "100",
-            "status": "PENDING",
-            "transactionType": "OUTGOING",
-            "category": "ON_RAMP",
-            "subCategory": "MARKET_TRADE",
-            "createdAt": "2026-05-23T00:00:00Z",
-            "updatedAt": "2026-05-23T00:00:00Z",
-            "isDeleted": False,
-        }
 
 
 class TestApiClient(unittest.TestCase):

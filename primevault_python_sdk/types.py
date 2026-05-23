@@ -225,10 +225,6 @@ class RampQuoteFee:
 @dataclass
 class RampQuote:
     quoteId: Optional[str] = None
-    fromAsset: Optional[str] = None
-    toAsset: Optional[str] = None
-    fromAmount: Optional[str] = None
-    toAmount: Optional[str] = None
     finalToAmount: Optional[str] = None
     sourceName: Optional[str] = None
     fees: Optional[RampQuoteFee] = None
@@ -237,7 +233,19 @@ class RampQuote:
 
 
 @dataclass
-class TransactionIntent:
+class RampQuoteRequest:
+    destination: Optional[TransferPartyData] = None
+    source: Optional[TransferPartyData] = None
+    fromAsset: Optional[str] = None
+    fromAmount: Optional[str] = None
+    fromChain: Optional[str] = None
+    toAsset: Optional[str] = None
+    toChain: Optional[str] = None
+    category: Optional[str] = None
+
+
+@dataclass
+class TransactionIntentRequest:
     destination: Optional[TransferPartyData] = None
     source: Optional[TransferPartyData] = None
     fromAsset: Optional[str] = None
@@ -251,18 +259,13 @@ class TransactionIntent:
 
 
 @dataclass
-class QuoteRequest:
-    transactionIntent: TransactionIntent
-
-
-@dataclass
-class RampQuoteRequest(TransactionIntent):
-    category: Optional[str] = None
+class GetQuoteRequest:
+    intent: TransactionIntentRequest
 
 
 @dataclass
 class TransactionExecuteIntent:
-    transactionIntent: Optional[TransactionIntent] = None
+    intent: Optional[TransactionIntentRequest] = None
     quoteId: Optional[str] = None
     externalId: Optional[str] = None
     memo: Optional[str] = None
@@ -651,15 +654,6 @@ class BankAccountListResponse:
 class CreateOnRampTransactionRequest:
     destination: TransferPartyData
     quoteId: str
-    source: Optional[TransferPartyData] = None
-    fromAsset: Optional[str] = None
-    fromAmount: Optional[str] = None
-    fromChain: Optional[str] = None
-    fromPaymentRail: Optional[str] = None
-    toAsset: Optional[str] = None
-    toAmount: Optional[str] = None
-    toChain: Optional[str] = None
-    toPaymentRail: Optional[str] = None
     externalId: Optional[str] = None
     memo: Optional[str] = None
 
@@ -669,14 +663,6 @@ class CreateOffRampTransactionRequest:
     source: TransferPartyData
     destination: TransferPartyData
     quoteId: str
-    fromAsset: Optional[str] = None
-    fromAmount: Optional[str] = None
-    fromChain: Optional[str] = None
-    fromPaymentRail: Optional[str] = None
-    toAsset: Optional[str] = None
-    toAmount: Optional[str] = None
-    toChain: Optional[str] = None
-    toPaymentRail: Optional[str] = None
     externalId: Optional[str] = None
     memo: Optional[str] = None
 

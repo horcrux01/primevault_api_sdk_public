@@ -30,9 +30,9 @@ from primevault_python_sdk.types import (
     EstimateFeeRequest,
     GetApprovalRequest,
     GetApprovalResponse,
+    GetQuoteRequest,
     GetTradeQuoteResponse,
     GetWithdrawAddressesRequest,
-    QuoteRequest,
     QuoteResponseItem,
     RampQuoteRequest,
     RampQuoteResponse,
@@ -41,7 +41,7 @@ from primevault_python_sdk.types import (
     Transaction,
     TransactionCategory,
     TransactionExecuteIntent,
-    TransactionIntent,
+    TransactionIntentRequest,
     TransactionListResponse,
     UpdateContactRequest,
     UpdateContactResponse,
@@ -245,7 +245,7 @@ class APIClient(BaseAPIClient):
         )
 
     @staticmethod
-    def _transaction_intent_data(request: TransactionIntent) -> dict[str, Any]:
+    def _transaction_intent_data(request: TransactionIntentRequest) -> dict[str, Any]:
         return {
             "source": asdict(request.source) if request.source else None,
             "destination": asdict(request.destination) if request.destination else None,
@@ -260,21 +260,17 @@ class APIClient(BaseAPIClient):
         }
 
     @staticmethod
-    def _quote_request_data(request: QuoteRequest) -> dict[str, Any]:
-        return {
-            "transactionIntent": APIClient._transaction_intent_data(
-                request.transactionIntent
-            )
-        }
+    def _quote_request_data(request: GetQuoteRequest) -> dict[str, Any]:
+        return {"intent": APIClient._transaction_intent_data(request.intent)}
 
     @staticmethod
     def _transaction_execute_intent_data(
         request: TransactionExecuteIntent,
     ) -> dict[str, Any]:
         return {
-            "transactionIntent": (
-                APIClient._transaction_intent_data(request.transactionIntent)
-                if request.transactionIntent
+            "intent": (
+                APIClient._transaction_intent_data(request.intent)
+                if request.intent
                 else None
             ),
             "quoteId": request.quoteId,
@@ -282,18 +278,12 @@ class APIClient(BaseAPIClient):
             "memo": request.memo,
         }
 
-    def get_quote(self, request: QuoteRequest) -> List[QuoteResponseItem]:
+    def get_quote(self, request: GetQuoteRequest) -> List[QuoteResponseItem]:
         response = self.post(
             "/api/external/transactions/quote/",
             data=self._quote_request_data(request),
         )
         return [from_dict(QuoteResponseItem, quote) for quote in response]
-
-    @staticmethod
-    def _ramp_quote_response(response: Any) -> RampQuoteResponse:
-        if isinstance(response, list):
-            response = {"quotes": response}
-        return from_dict(RampQuoteResponse, response)
 
     def createIntent(self, request: TransactionExecuteIntent) -> Transaction:
         data = self._transaction_execute_intent_data(request)
@@ -308,35 +298,27 @@ class APIClient(BaseAPIClient):
             "fromAsset": request.fromAsset,
             "fromAmount": request.fromAmount,
             "fromChain": request.fromChain,
-            "fromPaymentRail": request.fromPaymentRail,
             "toAsset": request.toAsset,
-            "toAmount": request.toAmount,
             "toChain": request.toChain,
-            "toPaymentRail": request.toPaymentRail,
+            "category": request.category,
         }
-        response = self.post("/api/external/transactions/quote/", data=data)
-        return self._ramp_quote_response(response)
+        return from_dict(
+            RampQuoteResponse,
+            self.post("/api/external/transactions/quote/", data=data),
+        )
 
     def create_on_ramp_transaction(
         self, request: CreateOnRampTransactionRequest
     ) -> Transaction:
         data = {
-            "source": asdict(request.source) if request.source else None,
             "destination": asdict(request.destination),
             "quoteId": request.quoteId,
-            "fromAsset": request.fromAsset,
-            "fromAmount": request.fromAmount,
-            "fromChain": request.fromChain,
-            "fromPaymentRail": request.fromPaymentRail,
-            "toAsset": request.toAsset,
-            "toAmount": request.toAmount,
-            "toChain": request.toChain,
-            "toPaymentRail": request.toPaymentRail,
+            "category": TransactionCategory.ON_RAMP.value,
             "externalId": request.externalId,
             "memo": request.memo,
         }
         return from_dict(
-            Transaction, self.post("/api/external/transactions/execute/", data=data)
+            Transaction, self.post("/api/external/transactions/", data=data)
         )
 
     def create_off_ramp_transaction(
@@ -346,19 +328,12 @@ class APIClient(BaseAPIClient):
             "source": asdict(request.source),
             "destination": asdict(request.destination),
             "quoteId": request.quoteId,
-            "fromAsset": request.fromAsset,
-            "fromAmount": request.fromAmount,
-            "fromChain": request.fromChain,
-            "fromPaymentRail": request.fromPaymentRail,
-            "toAsset": request.toAsset,
-            "toAmount": request.toAmount,
-            "toChain": request.toChain,
-            "toPaymentRail": request.toPaymentRail,
+            "category": TransactionCategory.OFF_RAMP.value,
             "externalId": request.externalId,
             "memo": request.memo,
         }
         return from_dict(
-            Transaction, self.post("/api/external/transactions/execute/", data=data)
+            Transaction, self.post("/api/external/transactions/", data=data)
         )
 
     def get_vaults(
