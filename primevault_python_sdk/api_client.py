@@ -40,7 +40,7 @@ from primevault_python_sdk.types import (
     SubmitWithdrawalRequest,
     Transaction,
     TransactionCategory,
-    TransactionExecuteIntent,
+    TransactionExecuteIntentRequest,
     TransactionIntentRequest,
     TransactionListResponse,
     UpdateContactRequest,
@@ -264,8 +264,8 @@ class APIClient(BaseAPIClient):
         return {"intent": APIClient._transaction_intent_data(request.intent)}
 
     @staticmethod
-    def _transaction_execute_intent_data(
-        request: TransactionExecuteIntent,
+    def _transaction_execute_intent_request_data(
+        request: TransactionExecuteIntentRequest,
     ) -> dict[str, Any]:
         return {
             "intent": (
@@ -285,8 +285,10 @@ class APIClient(BaseAPIClient):
         )
         return [from_dict(QuoteResponseItem, quote) for quote in response]
 
-    def createIntent(self, request: TransactionExecuteIntent) -> Transaction:
-        data = self._transaction_execute_intent_data(request)
+    def create_transaction_from_intent(
+        self, request: TransactionExecuteIntentRequest
+    ) -> Transaction:
+        data = self._transaction_execute_intent_request_data(request)
         return from_dict(
             Transaction, self.post("/api/external/transactions/execute/", data=data)
         )

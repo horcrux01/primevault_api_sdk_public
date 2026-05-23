@@ -264,7 +264,7 @@ class GetQuoteRequest:
 
 
 @dataclass
-class TransactionExecuteIntent:
+class TransactionExecuteIntentRequest:
     intent: Optional[TransactionIntentRequest] = None
     quoteId: Optional[str] = None
     externalId: Optional[str] = None
