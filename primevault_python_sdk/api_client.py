@@ -280,7 +280,7 @@ class APIClient(BaseAPIClient):
 
     def get_quote(self, request: GetQuoteRequest) -> List[QuoteResponseItem]:
         response = self.post(
-            "/api/external/transactions/quote/",
+            "/api/external/transactions/v2/quote/",
             data=self._quote_request_data(request),
         )
         return [from_dict(QuoteResponseItem, quote) for quote in response]
