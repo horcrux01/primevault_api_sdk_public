@@ -1,9 +1,10 @@
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
-    CreateOffRampTransactionRequest,
     RampQuoteRequest,
     Transaction,
     TransactionCategory,
+    TransactionExecuteIntentRequest,
+    TransactionIntentRequest,
     TransferPartyData,
     TransferPartyType,
 )
@@ -50,9 +51,8 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
 
     # Step 2: Create the off-ramp transaction using the selected quote
     off_ramp_transaction = api_client.create_off_ramp_transaction(
-        CreateOffRampTransactionRequest(
-            source=source,
-            destination=destination,
+        TransactionExecuteIntentRequest(
+            intent=TransactionIntentRequest(source=source, destination=destination),
             quoteId=selected_quote.quoteId,
             externalId="off-ramp-example-1",
             memo="off ramp example",

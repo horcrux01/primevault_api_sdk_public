@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import Mock, call
 
 import pytest
 from dacite import from_dict
@@ -7,6 +8,7 @@ from dacite import from_dict
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.base_api_client import BadRequestError
 from primevault_python_sdk.types import (
+    ApprovalAction,
     ContactStatus,
     CreateContractCallTransactionRequest,
     CreateTradeQuoteRequest,
@@ -14,12 +16,15 @@ from primevault_python_sdk.types import (
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     EVMContractCallData,
+    GetApprovalRequest,
     GetQuoteRequest,
     TransactionCreationGasParams,
     TransactionExecuteIntentRequest,
     TransactionFeeTier,
     TransactionIntentRequest,
     TransactionStatus,
+    TradeQuoteRequestData,
+    TradeQuoteResponseData,
     TransferPartyData,
     TransferPartyType,
     VaultType,
@@ -84,6 +89,244 @@ def test_intent_request_serialization_matches_backend_contract():
     assert "userId" not in quote_payload["intent"]
     assert "orgId" not in execute_payload
     assert "userId" not in execute_payload
+
+
+def test_change_approval_helpers_fetch_message_sign_and_submit_action():
+    client = object.__new__(APIClient)
+    client.get = Mock(
+        return_value={
+            "message": "message-to-sign",
+            "approvalId": "approval-id",
+            "changeRequestId": "change-request-id",
+            "entityId": "entity-id",
+        }
+    )
+    client.post = Mock(
+        return_value={
+            "success": True,
+        }
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("deadbeef")
+
+    approval_message = client.get_change_approval_message("entity-id")
+    assert approval_message.message == "message-to-sign"
+    assert approval_message.approvalId == "approval-id"
+    client.get.assert_called_once_with(
+        "/api/external/change_requests/approvals/approval_message/",
+        params={"entityId": "entity-id"},
+    )
+
+    approval_response = client.approve_change_request("entity-id")
+
+    client.signature_service.sign.assert_called_once_with(b"message-to-sign")
+    client.post.assert_called_once_with(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "deadbeef",
+            "reason": "ok",
+        },
+    )
+    assert approval_response.success is True
+
+
+def test_initiate_change_approval_action_delegates_to_approval_helpers():
+    client = object.__new__(APIClient)
+    client.get = Mock(
+        return_value={
+            "message": "message-to-sign",
+            "approvalId": "approval-id",
+        }
+    )
+    client.post = Mock(return_value={"success": True})
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0102")
+
+    response = client.initiate_change_approval_action(
+        GetApprovalRequest(
+            entityId="entity-id",
+            action=ApprovalAction.APPROVE.value,
+            reason="approved by sdk",
+        )
+    )
+
+    assert response.success is True
+    client.post.assert_called_once_with(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0102",
+            "reason": "approved by sdk",
+        },
+    )
+
+
+def test_create_transaction_from_intent_approves_pending_transaction():
+    client = object.__new__(APIClient)
+    transaction_response = {
+        "id": "transaction-id",
+        "orgId": "org-id",
+        "vaultId": "vault-id",
+        "amount": "1",
+        "status": TransactionStatus.PENDING.value,
+        "transactionType": "OUTGOING",
+        "category": "TRANSFER",
+        "subCategory": "EXTERNAL_TRANSFER",
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+    }
+    client.post = Mock(
+        side_effect=[
+            transaction_response,
+            {"success": True},
+        ]
+    )
+    approved_transaction_response = {
+        **transaction_response,
+        "status": TransactionStatus.APPROVED.value,
+    }
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            approved_transaction_response,
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    transaction = client.create_transaction_from_intent(
+        TransactionExecuteIntentRequest(
+            intent=TransactionIntentRequest(),
+            quoteId="quote-id",
+            externalId="external-id",
+            memo="memo",
+        )
+    )
+
+    assert transaction.id == "transaction-id"
+    assert transaction.status == TransactionStatus.APPROVED.value
+    assert client.post.call_args_list[0][0][0] == (
+        "/api/external/transactions/execute/"
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "transaction-id"},
+        ),
+        call("/api/external/transactions/transaction-id/"),
+    ]
+    assert client.post.call_args_list[1] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_on_and_off_ramp_transactions_delegate_to_intent_execution():
+    client = object.__new__(APIClient)
+    client.create_transaction_from_intent = Mock(return_value="transaction")
+    intent_request = TransactionExecuteIntentRequest(
+        intent=TransactionIntentRequest(),
+        quoteId="quote-id",
+        externalId="external-id",
+        memo="memo",
+    )
+
+    assert client.create_on_ramp_transaction(intent_request) == "transaction"
+    assert client.create_off_ramp_transaction(intent_request) == "transaction"
+    assert client.create_transaction_from_intent.call_args_list == [
+        call(intent_request),
+        call(intent_request),
+    ]
+
+
+def test_legacy_transfer_transaction_does_not_auto_approve():
+    client = object.__new__(APIClient)
+    transaction_response = {
+        "id": "transaction-id",
+        "orgId": "org-id",
+        "vaultId": "vault-id",
+        "amount": "1",
+        "status": TransactionStatus.PENDING.value,
+        "transactionType": "OUTGOING",
+        "category": "TRANSFER",
+        "subCategory": "EXTERNAL_TRANSFER",
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+    }
+    client.post = Mock(return_value=transaction_response)
+    client.get = Mock()
+    client.signature_service = Mock()
+
+    transaction = client.create_transfer_transaction(
+        CreateTransferTransactionRequest(
+            source=TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id"),
+            destination=TransferPartyData(
+                type=TransferPartyType.CONTACT.value,
+                id="contact-id",
+            ),
+            amount="1",
+            asset="USDC",
+            chain="ETHEREUM",
+        )
+    )
+
+    assert transaction.id == "transaction-id"
+    client.post.assert_called_once()
+    client.get.assert_not_called()
+    client.signature_service.sign.assert_not_called()
+
+
+def test_legacy_trade_transaction_does_not_auto_approve():
+    client = object.__new__(APIClient)
+    transaction_response = {
+        "id": "transaction-id",
+        "orgId": "org-id",
+        "vaultId": "vault-id",
+        "amount": "1",
+        "status": TransactionStatus.PENDING.value,
+        "transactionType": "OUTGOING",
+        "category": "SWAP",
+        "subCategory": "MARKET_TRADE",
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+    }
+    client.post = Mock(return_value=transaction_response)
+    client.get = Mock()
+    client.signature_service = Mock()
+
+    transaction = client.create_trade_transaction(
+        CreateTradeTransactionRequest(
+            vaultId="vault-id",
+            tradeRequestData=TradeQuoteRequestData(
+                fromAsset="USDC",
+                fromAmount="1",
+                toAsset="ETH",
+                blockChain="ETHEREUM",
+            ),
+            tradeResponseData=TradeQuoteResponseData(
+                finalToAmount="0.1",
+                quoteResponseDict={},
+                handler="handler",
+                sourceName="source",
+            ),
+        )
+    )
+
+    assert transaction.id == "transaction-id"
+    client.post.assert_called_once()
+    client.get.assert_not_called()
+    client.signature_service.sign.assert_not_called()
 
 
 class TestApiClient(unittest.TestCase):

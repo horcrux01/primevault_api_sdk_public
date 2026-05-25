@@ -324,6 +324,7 @@ class GetApprovalRequest:
     entityId: str
     # approve/reject
     action: str
+    reason: Optional[str] = "ok"
 
 
 @dataclass
@@ -544,19 +545,6 @@ class CreateTradeTransactionRequest:
 
 
 @dataclass
-class CreateRampTransactionRequest:
-    vaultId: str
-    tradeRequestData: TradeQuoteRequestData
-    tradeResponseData: TradeQuoteResponseData
-    category: str = TransactionCategory.ON_RAMP.value
-    externalId: Optional[str] = None
-    operationMessage: Optional[str] = None
-    memo: Optional[str] = None
-    paymentMethod: Optional[str] = None
-    toBlockChain: Optional[str] = None
-
-
-@dataclass
 class GetTradeQuoteResponse:
     tradeRequestData: TradeQuoteRequestData
     tradeResponseDataList: List[TradeQuoteResponseData]
@@ -651,23 +639,6 @@ class BankAccountListResponse:
     results: List[BankAccount]
     nextCursor: Optional[str] = None
     hasNext: Optional[bool] = None
-
-
-@dataclass
-class CreateOnRampTransactionRequest:
-    destination: TransferPartyData
-    quoteId: str
-    externalId: Optional[str] = None
-    memo: Optional[str] = None
-
-
-@dataclass
-class CreateOffRampTransactionRequest:
-    source: TransferPartyData
-    destination: TransferPartyData
-    quoteId: str
-    externalId: Optional[str] = None
-    memo: Optional[str] = None
 
 
 @dataclass
