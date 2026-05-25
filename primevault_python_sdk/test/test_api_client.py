@@ -14,8 +14,11 @@ from primevault_python_sdk.types import (
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     EVMContractCallData,
+    GetQuoteRequest,
     TransactionCreationGasParams,
+    TransactionExecuteIntentRequest,
     TransactionFeeTier,
+    TransactionIntentRequest,
     TransactionStatus,
     TransferPartyData,
     TransferPartyType,
@@ -28,6 +31,59 @@ def api_client():
     api_url = os.environ.get("API_URL", "https://test.excheqr.xyz")
     private_key = os.environ.get("ACCESS_PRIVATE_KEY", "")
     return APIClient(api_key, api_url, private_key)
+
+
+def test_intent_request_serialization_matches_backend_contract():
+    source = TransferPartyData(type=TransferPartyType.VAULT.value, id="source-vault")
+    destination = TransferPartyData(
+        type=TransferPartyType.BANK_ACCOUNT.value,
+        id="destination-bank-account",
+    )
+    intent = TransactionIntentRequest(
+        source=source,
+        destination=destination,
+        fromAsset="USDC",
+        toAsset="USD",
+        fromAmount="100",
+        fromChain="ETHEREUM",
+        fromPaymentRail="BLOCKCHAIN",
+        toAmount="99",
+        toPaymentRail="ACH",
+    )
+
+    quote_payload = APIClient._quote_request_data(GetQuoteRequest(intent=intent))
+    execute_payload = APIClient._transaction_execute_intent_request_data(
+        TransactionExecuteIntentRequest(
+            intent=intent,
+            quoteId="quote-id",
+            externalId="external-id",
+            memo="memo",
+        )
+    )
+
+    expected_intent = {
+        "source": source.__dict__,
+        "destination": destination.__dict__,
+        "fromAsset": "USDC",
+        "toAsset": "USD",
+        "fromAmount": "100",
+        "fromChain": "ETHEREUM",
+        "fromPaymentRail": "BLOCKCHAIN",
+        "toAmount": "99",
+        "toChain": None,
+        "toPaymentRail": "ACH",
+    }
+    assert quote_payload == {"intent": expected_intent}
+    assert execute_payload == {
+        "intent": expected_intent,
+        "quoteId": "quote-id",
+        "externalId": "external-id",
+        "memo": "memo",
+    }
+    assert "orgId" not in quote_payload["intent"]
+    assert "userId" not in quote_payload["intent"]
+    assert "orgId" not in execute_payload
+    assert "userId" not in execute_payload
 
 
 class TestApiClient(unittest.TestCase):

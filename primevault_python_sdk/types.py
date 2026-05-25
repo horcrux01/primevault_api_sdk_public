@@ -246,8 +246,8 @@ class RampQuoteRequest:
 
 @dataclass
 class TransactionIntentRequest:
-    destination: Optional[TransferPartyData] = None
     source: Optional[TransferPartyData] = None
+    destination: Optional[TransferPartyData] = None
     fromAsset: Optional[str] = None
     fromAmount: Optional[str] = None
     fromChain: Optional[str] = None
@@ -580,6 +580,11 @@ class QuoteResponseItem:
     fees: Optional[Fees] = None
     fromAmount: Optional[str] = None
     toAmount: Optional[str] = None
+
+
+@dataclass
+class QuoteResponse:
+    quotes: List[QuoteResponseItem]
 
 
 @dataclass

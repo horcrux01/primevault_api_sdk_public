@@ -268,11 +268,7 @@ class APIClient(BaseAPIClient):
         request: TransactionExecuteIntentRequest,
     ) -> dict[str, Any]:
         return {
-            "intent": (
-                APIClient._transaction_intent_data(request.intent)
-                if request.intent
-                else None
-            ),
+            "intent": APIClient._transaction_intent_data(request.intent),
             "quoteId": request.quoteId,
             "externalId": request.externalId,
             "memo": request.memo,
