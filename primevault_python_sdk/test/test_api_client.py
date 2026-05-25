@@ -91,6 +91,40 @@ def test_intent_request_serialization_matches_backend_contract():
     assert "userId" not in execute_payload
 
 
+def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
+    client = object.__new__(APIClient)
+    client.post = Mock(
+        return_value=[
+            {
+                "quoteId": "quote-id",
+                "finalToAmount": "100",
+                "fees": {"amount": "0", "asset": "NGN"},
+                "sourceName": "Busha",
+            }
+        ]
+    )
+
+    destination = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
+    intent = TransactionIntentRequest(
+        destination=destination,
+        fromAsset="NGN",
+        fromAmount="137500",
+        toAsset="USDC",
+        toChain="ETHEREUM",
+    )
+
+    quotes = client.get_quote(GetQuoteRequest(intent=intent))
+
+    client.post.assert_called_once_with(
+        "/api/external/transactions/v2/quote/",
+        data={"intent": APIClient._transaction_intent_data(intent)},
+    )
+    assert quotes[0].quoteId == "quote-id"
+    assert quotes[0].finalToAmount == "100"
+    assert quotes[0].fees.amount == "0"
+    assert quotes[0].sourceName == "Busha"
+
+
 def test_change_approval_helpers_fetch_message_sign_and_submit_action():
     client = object.__new__(APIClient)
     client.get = Mock(

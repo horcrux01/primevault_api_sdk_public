@@ -217,34 +217,6 @@ class TransactionSourceData:
 
 
 @dataclass
-class RampQuoteFee:
-    amount: Optional[str] = None
-    asset: Optional[str] = None
-
-
-@dataclass
-class RampQuote:
-    quoteId: Optional[str] = None
-    finalToAmount: Optional[str] = None
-    sourceName: Optional[str] = None
-    fees: Optional[RampQuoteFee] = None
-    rate: Optional[str] = None
-    quoteResponseDict: Optional[Dict] = None
-
-
-@dataclass
-class RampQuoteRequest:
-    destination: Optional[TransferPartyData] = None
-    source: Optional[TransferPartyData] = None
-    fromAsset: Optional[str] = None
-    fromAmount: Optional[str] = None
-    fromChain: Optional[str] = None
-    toAsset: Optional[str] = None
-    toChain: Optional[str] = None
-    category: Optional[str] = None
-
-
-@dataclass
 class TransactionIntentRequest:
     source: Optional[TransferPartyData] = None
     destination: Optional[TransferPartyData] = None
@@ -306,8 +278,8 @@ class Transaction:
     amountInUSD: Optional[str] = None
     nonce: Optional[int] = None
     destination: Optional[TransactionSourceData] = None
-    rampRequestData: Optional[RampQuoteRequest] = None
-    rampResponseData: Optional[RampQuote] = None
+    rampRequestData: Optional[Dict[str, Any]] = None
+    rampResponseData: Optional[Dict[str, Any]] = None
 
 
 # Requests
@@ -551,11 +523,6 @@ class GetTradeQuoteResponse:
 
 
 @dataclass
-class RampQuoteResponse:
-    quotes: Optional[List[RampQuote]] = None
-
-
-@dataclass
 class Fees:
     amount: str
     asset: str
@@ -566,8 +533,9 @@ class QuoteResponseItem:
     quoteId: str
     rate: Optional[str] = None
     fees: Optional[Fees] = None
-    fromAmount: Optional[str] = None
-    toAmount: Optional[str] = None
+    finalFromAmount: Optional[str] = None
+    finalToAmount: Optional[str] = None
+    sourceName: Optional[str] = None
 
 
 @dataclass

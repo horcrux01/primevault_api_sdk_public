@@ -32,8 +32,6 @@ from primevault_python_sdk.types import (
     GetTradeQuoteResponse,
     GetWithdrawAddressesRequest,
     QuoteResponseItem,
-    RampQuoteRequest,
-    RampQuoteResponse,
     ReplaceTransactionRequest,
     SubmitWithdrawalRequest,
     Transaction,
@@ -305,22 +303,6 @@ class APIClient(BaseAPIClient):
             Transaction, self.post("/api/external/transactions/execute/", data=data)
         )
         return self._approve_pending_transaction_change_request(transaction)
-
-    def get_ramp_quote(self, request: RampQuoteRequest) -> RampQuoteResponse:
-        data = {
-            "destination": asdict(request.destination) if request.destination else None,
-            "source": asdict(request.source) if request.source else None,
-            "fromAsset": request.fromAsset,
-            "fromAmount": request.fromAmount,
-            "fromChain": request.fromChain,
-            "toAsset": request.toAsset,
-            "toChain": request.toChain,
-            "category": request.category,
-        }
-        return from_dict(
-            RampQuoteResponse,
-            self.post("/api/external/transactions/quote/", data=data),
-        )
 
     def create_on_ramp_transaction(
         self, request: TransactionExecuteIntentRequest
