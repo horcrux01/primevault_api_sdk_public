@@ -290,8 +290,8 @@ class Transaction:
     amountInUSD: Optional[str] = None
     nonce: Optional[int] = None
     destination: Optional[TransactionSourceData] = None
-    rampRequestData: Optional[Dict[str, Any]] = None
-    rampResponseData: Optional[Dict[str, Any]] = None
+    intent: Optional[Dict[str, Any]] = None
+    quoteResponse: Optional[Dict[str, Any]] = None
     depositInstructions: Optional[DepositInstructions] = None
 
 
@@ -471,19 +471,8 @@ class TradeQuoteFee:
 
 
 @dataclass
-class TradeQuoteDictData:
-    quoteId: Optional[str] = None
-    fromAmount: Optional[str] = None
-    toAmount: Optional[str] = None
-    fromAsset: Optional[str] = None
-    toAsset: Optional[str] = None
-    fees: Optional[TradeQuoteFee] = None
-
-
-@dataclass
 class TradeQuoteResponseData:
     finalToAmount: str
-    quoteResponseDict: Union[str, Dict[str, Any]]
     handler: str
     sourceName: str
     handlerCategory: Optional[str] = None

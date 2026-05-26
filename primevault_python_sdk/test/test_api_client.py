@@ -310,7 +310,7 @@ def test_transaction_parses_deposit_instructions():
             "updatedAt": "2026-05-25T00:00:00Z",
             "isDeleted": False,
             "depositInstructions": deposit_instructions,
-            "rampResponseData": {
+            "quoteResponse": {
                 "quoteId": "quote-id",
                 "finalToAmount": "100",
             },
@@ -328,6 +328,10 @@ def test_transaction_parses_deposit_instructions():
     assert transaction.depositInstructions.type == (
         TransferPartyType.EXTERNAL_BANK_ACCOUNT.value
     )
+    assert transaction.quoteResponse == {
+        "quoteId": "quote-id",
+        "finalToAmount": "100",
+    }
     assert transaction.depositInstructions.currency == "NGN"
     assert transaction.depositInstructions.paymentRail == "WIRE"
     assert transaction.depositInstructions.bankDetails is not None
@@ -405,7 +409,6 @@ def test_legacy_trade_transaction_does_not_auto_approve():
             ),
             tradeResponseData=TradeQuoteResponseData(
                 finalToAmount="0.1",
-                quoteResponseDict={},
                 handler="handler",
                 sourceName="source",
             ),
