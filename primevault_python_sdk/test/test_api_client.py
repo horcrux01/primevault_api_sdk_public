@@ -282,6 +282,61 @@ def test_on_and_off_ramp_transactions_delegate_to_intent_execution():
     ]
 
 
+def test_transaction_parses_deposit_instructions():
+    client = object.__new__(APIClient)
+    deposit_instructions = {
+        "type": TransferPartyType.EXTERNAL_BANK_ACCOUNT.value,
+        "currency": "NGN",
+        "paymentRail": "WIRE",
+        "bankDetails": {
+            "beneficiaryName": "PrimeVault Treasury",
+            "bankName": "PrimeVault National Bank",
+            "accountNumber": "000123456789",
+            "routingNumber": "021000021",
+            "swiftCode": "PNVBUS33",
+        },
+    }
+    client.post = Mock(
+        return_value={
+            "id": "transaction-id",
+            "orgId": "org-id",
+            "vaultId": "vault-id",
+            "amount": "137500",
+            "status": TransactionStatus.APPROVED.value,
+            "transactionType": "OUTGOING",
+            "category": "ON_RAMP",
+            "subCategory": "PROVIDER_DEPOSIT",
+            "createdAt": "2026-05-25T00:00:00Z",
+            "updatedAt": "2026-05-25T00:00:00Z",
+            "isDeleted": False,
+            "depositInstructions": deposit_instructions,
+            "rampResponseData": {
+                "quoteId": "quote-id",
+                "finalToAmount": "100",
+            },
+        }
+    )
+
+    transaction = client.create_transaction_from_intent(
+        TransactionExecuteIntentRequest(
+            intent=TransactionIntentRequest(),
+            quoteId="quote-id",
+        )
+    )
+
+    assert transaction.depositInstructions is not None
+    assert transaction.depositInstructions.type == (
+        TransferPartyType.EXTERNAL_BANK_ACCOUNT.value
+    )
+    assert transaction.depositInstructions.currency == "NGN"
+    assert transaction.depositInstructions.paymentRail == "WIRE"
+    assert transaction.depositInstructions.bankDetails is not None
+    assert transaction.depositInstructions.bankDetails.accountNumber == "000123456789"
+    assert transaction.depositInstructions.bankDetails.bankName == (
+        "PrimeVault National Bank"
+    )
+
+
 def test_legacy_transfer_transaction_does_not_auto_approve():
     client = object.__new__(APIClient)
     transaction_response = {

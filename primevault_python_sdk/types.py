@@ -128,6 +128,18 @@ class BankDetails:
 
 
 @dataclass
+class DepositInstructions:
+    type: Optional[str] = None  # TransferPartyType
+    currency: Optional[str] = None
+    paymentRail: Optional[str] = None
+    bankDetails: Optional[BankDetails] = None
+    asset: Optional[str] = None
+    address: Optional[str] = None
+    blockChain: Optional[str] = None
+    memo: Optional[str] = None
+
+
+@dataclass
 class TransferPartyData:
     type: str  # TransferPartyType
     id: Optional[str] = None
@@ -280,6 +292,7 @@ class Transaction:
     destination: Optional[TransactionSourceData] = None
     rampRequestData: Optional[Dict[str, Any]] = None
     rampResponseData: Optional[Dict[str, Any]] = None
+    depositInstructions: Optional[DepositInstructions] = None
 
 
 # Requests

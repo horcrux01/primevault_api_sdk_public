@@ -46,6 +46,9 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
         )
     )
     print(f"On ramp transaction: {on_ramp_transaction}")
+    deposit_instructions = on_ramp_transaction.depositInstructions
+    if deposit_instructions and deposit_instructions.bankDetails:
+        print(f"On ramp bank details: {deposit_instructions.bankDetails}")
 
     return on_ramp_transaction
 
