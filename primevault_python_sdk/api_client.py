@@ -43,7 +43,6 @@ from primevault_python_sdk.types import (
     UpdateContactResponse,
     Vault,
     VaultListResponse,
-    WithdrawAddress,
     WithdrawAddressesResponse,
 )
 
@@ -480,9 +479,7 @@ class APIClient(BaseAPIClient):
         )
         return from_dict(WithdrawAddressesResponse, response)
 
-    def submit_withdrawal_request(
-        self, request: SubmitWithdrawalRequest
-    ) -> dict:
+    def submit_withdrawal_request(self, request: SubmitWithdrawalRequest) -> dict:
         return self.post(
             "/api/external/vaults/submit_withdrawal_request/",
             data=asdict(request),

@@ -6,5 +6,3 @@ primevault_python_sdk/__pycache__/
 build/
 test/__pycache__/
 **/__pycache__/
-examples/dev_client.py
-examples/prod_client.py
