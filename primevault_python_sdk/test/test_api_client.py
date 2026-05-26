@@ -18,13 +18,13 @@ from primevault_python_sdk.types import (
     EVMContractCallData,
     GetApprovalRequest,
     GetQuoteRequest,
+    TradeQuoteRequestData,
+    TradeQuoteResponseData,
     TransactionCreationGasParams,
     TransactionExecuteIntentRequest,
     TransactionFeeTier,
     TransactionIntentRequest,
     TransactionStatus,
-    TradeQuoteRequestData,
-    TradeQuoteResponseData,
     TransferPartyData,
     TransferPartyType,
     VaultType,
@@ -78,30 +78,32 @@ def test_intent_request_serialization_matches_backend_contract():
         "toChain": None,
         "toPaymentRail": "ACH",
     }
-    assert quote_payload == {"intent": expected_intent}
-    assert execute_payload == {
+    assert quote_payload == {"intent": expected_intent}  # nosec B101
+    assert execute_payload == {  # nosec B101
         "intent": expected_intent,
         "quoteId": "quote-id",
         "externalId": "external-id",
         "memo": "memo",
     }
-    assert "orgId" not in quote_payload["intent"]
-    assert "userId" not in quote_payload["intent"]
-    assert "orgId" not in execute_payload
-    assert "userId" not in execute_payload
+    assert "orgId" not in quote_payload["intent"]  # nosec B101
+    assert "userId" not in quote_payload["intent"]  # nosec B101
+    assert "orgId" not in execute_payload  # nosec B101
+    assert "userId" not in execute_payload  # nosec B101
 
 
 def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
     client = object.__new__(APIClient)
     client.post = Mock(
-        return_value=[
-            {
-                "quoteId": "quote-id",
-                "finalToAmount": "100",
-                "fees": {"amount": "0", "asset": "NGN"},
-                "sourceName": "Busha",
-            }
-        ]
+        return_value={
+            "quotes": [
+                {
+                    "quoteId": "quote-id",
+                    "finalToAmount": "100",
+                    "fees": {"amount": "0", "asset": "NGN"},
+                    "sourceName": "Busha",
+                }
+            ]
+        }
     )
 
     destination = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
@@ -113,16 +115,16 @@ def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
         toChain="ETHEREUM",
     )
 
-    quotes = client.get_quote(GetQuoteRequest(intent=intent))
+    quote_response = client.get_quote(GetQuoteRequest(intent=intent))
 
     client.post.assert_called_once_with(
         "/api/external/transactions/quote/",
         data={"intent": APIClient._transaction_intent_data(intent)},
     )
-    assert quotes[0].quoteId == "quote-id"
-    assert quotes[0].finalToAmount == "100"
-    assert quotes[0].fees.amount == "0"
-    assert quotes[0].sourceName == "Busha"
+    assert quote_response.quotes[0].quoteId == "quote-id"  # nosec B101
+    assert quote_response.quotes[0].finalToAmount == "100"  # nosec B101
+    assert quote_response.quotes[0].fees.amount == "0"  # nosec B101
+    assert quote_response.quotes[0].sourceName == "Busha"  # nosec B101
 
 
 def test_change_approval_helpers_fetch_message_sign_and_submit_action():
@@ -144,8 +146,8 @@ def test_change_approval_helpers_fetch_message_sign_and_submit_action():
     client.signature_service.sign.return_value = bytes.fromhex("deadbeef")
 
     approval_message = client.get_change_approval_message("entity-id")
-    assert approval_message.message == "message-to-sign"
-    assert approval_message.approvalId == "approval-id"
+    assert approval_message.message == "message-to-sign"  # nosec B101
+    assert approval_message.approvalId == "approval-id"  # nosec B101
     client.get.assert_called_once_with(
         "/api/external/change_requests/approvals/approval_message/",
         params={"entityId": "entity-id"},
@@ -162,7 +164,7 @@ def test_change_approval_helpers_fetch_message_sign_and_submit_action():
             "reason": "ok",
         },
     )
-    assert approval_response.success is True
+    assert approval_response.success is True  # nosec B101
 
 
 def test_initiate_change_approval_action_delegates_to_approval_helpers():
@@ -185,7 +187,7 @@ def test_initiate_change_approval_action_delegates_to_approval_helpers():
         )
     )
 
-    assert response.success is True
+    assert response.success is True  # nosec B101
     client.post.assert_called_once_with(
         "/api/external/change_requests/approvals/approval-id/action/",
         data={
@@ -242,19 +244,19 @@ def test_create_transaction_from_intent_approves_pending_transaction():
         )
     )
 
-    assert transaction.id == "transaction-id"
-    assert transaction.status == TransactionStatus.APPROVED.value
-    assert client.post.call_args_list[0][0][0] == (
-        "/api/external/transactions/execute/"
+    assert transaction.id == "transaction-id"  # nosec B101
+    assert transaction.status == TransactionStatus.APPROVED.value  # nosec B101
+    assert client.post.call_args_list[0][0][0] == (  # nosec B101
+        "/api/external/transactions/intent/create/"
     )
-    assert client.get.call_args_list == [
+    assert client.get.call_args_list == [  # nosec B101
         call(
             "/api/external/change_requests/approvals/approval_message/",
             params={"entityId": "transaction-id"},
         ),
         call("/api/external/transactions/transaction-id/"),
     ]
-    assert client.post.call_args_list[1] == call(
+    assert client.post.call_args_list[1] == call(  # nosec B101
         "/api/external/change_requests/approvals/approval-id/action/",
         data={
             "action": ApprovalAction.APPROVE.value,
@@ -274,9 +276,13 @@ def test_on_and_off_ramp_transactions_delegate_to_intent_execution():
         memo="memo",
     )
 
-    assert client.create_on_ramp_transaction(intent_request) == "transaction"
-    assert client.create_off_ramp_transaction(intent_request) == "transaction"
-    assert client.create_transaction_from_intent.call_args_list == [
+    assert (
+        client.create_on_ramp_transaction(intent_request) == "transaction"
+    )  # nosec B101
+    assert (
+        client.create_off_ramp_transaction(intent_request) == "transaction"
+    )  # nosec B101
+    assert client.create_transaction_from_intent.call_args_list == [  # nosec B101
         call(intent_request),
         call(intent_request),
     ]
@@ -324,19 +330,20 @@ def test_transaction_parses_deposit_instructions():
         )
     )
 
-    assert transaction.depositInstructions is not None
-    assert transaction.depositInstructions.type == (
+    assert transaction.depositInstructions is not None  # nosec B101
+    assert transaction.depositInstructions.type == (  # nosec B101
         TransferPartyType.EXTERNAL_BANK_ACCOUNT.value
     )
-    assert transaction.quoteResponse == {
-        "quoteId": "quote-id",
-        "finalToAmount": "100",
-    }
-    assert transaction.depositInstructions.currency == "NGN"
-    assert transaction.depositInstructions.paymentRail == "WIRE"
-    assert transaction.depositInstructions.bankDetails is not None
-    assert transaction.depositInstructions.bankDetails.accountNumber == "000123456789"
-    assert transaction.depositInstructions.bankDetails.bankName == (
+    assert transaction.quoteResponse is not None  # nosec B101
+    assert transaction.quoteResponse.quoteId == "quote-id"  # nosec B101
+    assert transaction.quoteResponse.finalToAmount == "100"  # nosec B101
+    assert transaction.depositInstructions.currency == "NGN"  # nosec B101
+    assert transaction.depositInstructions.paymentRail == "WIRE"  # nosec B101
+    assert transaction.depositInstructions.bankDetails is not None  # nosec B101
+    assert (
+        transaction.depositInstructions.bankDetails.accountNumber == "000123456789"
+    )  # nosec B101
+    assert transaction.depositInstructions.bankDetails.bankName == (  # nosec B101
         "PrimeVault National Bank"
     )
 
@@ -373,7 +380,7 @@ def test_legacy_transfer_transaction_does_not_auto_approve():
         )
     )
 
-    assert transaction.id == "transaction-id"
+    assert transaction.id == "transaction-id"  # nosec B101
     client.post.assert_called_once()
     client.get.assert_not_called()
     client.signature_service.sign.assert_not_called()
@@ -415,7 +422,7 @@ def test_legacy_trade_transaction_does_not_auto_approve():
         )
     )
 
-    assert transaction.id == "transaction-id"
+    assert transaction.id == "transaction-id"  # nosec B101
     client.post.assert_called_once()
     client.get.assert_not_called()
     client.signature_service.sign.assert_not_called()

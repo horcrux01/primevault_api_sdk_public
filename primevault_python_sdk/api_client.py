@@ -31,7 +31,7 @@ from primevault_python_sdk.types import (
     GetQuoteRequest,
     GetTradeQuoteResponse,
     GetWithdrawAddressesRequest,
-    QuoteResponseItem,
+    QuoteResponse,
     ReplaceTransactionRequest,
     SubmitWithdrawalRequest,
     Transaction,
@@ -291,12 +291,12 @@ class APIClient(BaseAPIClient):
             "memo": request.memo,
         }
 
-    def get_quote(self, request: GetQuoteRequest) -> List[QuoteResponseItem]:
+    def get_quote(self, request: GetQuoteRequest) -> QuoteResponse:
         response = self.post(
             "/api/external/transactions/quote/",
             data=self._quote_request_data(request),
         )
-        return [from_dict(QuoteResponseItem, quote) for quote in response]
+        return from_dict(QuoteResponse, response)
 
     def create_transaction_from_intent(
         self, request: TransactionExecuteIntentRequest
