@@ -19,17 +19,22 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
     3. Execute the selected quote with create_transaction_from_intent.
     """
     vault_id = "7ad54443-21d2-4075-abef-83758c9dceb7"
-
+    busha_vault_id = "1eadbf7c-7158-4f9e-ab5d-130c1370d001"
+    source = TransferPartyData(
+        type=TransferPartyType.VAULT.value,
+        id=busha_vault_id,
+    )
     destination = TransferPartyData(
         type=TransferPartyType.VAULT.value,
         id=vault_id,
     )
 
     intent = TransactionIntentRequest(
+        source=source,
         destination=destination,
         fromAsset="NGN",
-        fromAmount="137500",
-        toAsset="USDC",
+        toAmount="5",
+        toAsset="USDT",
         toChain="ETHEREUM",
     )
 
@@ -41,7 +46,7 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
         TransactionExecuteIntentRequest(
             intent=intent,
             quoteId=selected_quote.quoteId,
-            externalId="on-ramp-example-12",
+            externalId="on-ramp-example-17",
             memo="on ramp example",
         )
     )

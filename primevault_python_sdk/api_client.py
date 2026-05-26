@@ -79,15 +79,6 @@ class APIClient(BaseAPIClient):
             Transaction, self.get(f"/api/external/transactions/{transaction_id}/")
         )
 
-    def initiate_change_approval_action(
-        self, request: GetApprovalRequest
-    ) -> CreateApprovalResponse:
-        return self.approve_change_request(
-            entity_id=request.entityId,
-            action=request.action,
-            reason=request.reason,
-        )
-
     def get_change_approval_message(self, entity_id: str) -> GetApprovalResponse:
         data = {
             "entityId": entity_id,
@@ -123,19 +114,18 @@ class APIClient(BaseAPIClient):
 
     def approve_change_request(
         self,
-        entity_id: str,
-        action: str = ApprovalAction.APPROVE.value,
-        reason: Optional[str] = "ok",
+        request: GetApprovalRequest,
     ) -> CreateApprovalResponse:
-        approval_message = self.get_change_approval_message(entity_id)
+        """Approve or reject the pending change request for any supported entity."""
+        approval_message = self.get_change_approval_message(request.entityId)
         signature_hex = self.signature_service.sign(
             approval_message.message.encode("utf-8")
         ).hex()
         return self.submit_change_approval_action(
             approval_id=approval_message.approvalId,
-            action=action,
+            action=request.action,
             signature_hex=signature_hex,
-            reason=reason,
+            reason=request.reason,
         )
 
     def _approve_pending_transaction_change_request(
@@ -144,7 +134,12 @@ class APIClient(BaseAPIClient):
         if transaction.status != TransactionStatus.PENDING.value:
             return transaction
 
-        self.approve_change_request(transaction.id)
+        self.approve_change_request(
+            GetApprovalRequest(
+                entityId=transaction.id,
+                action=ApprovalAction.APPROVE.value,
+            )
+        )
         return self.get_transaction_by_id(transaction.id)
 
     def estimate_fee(self, request: EstimateFeeRequest) -> EstimatedFeeResponse:
@@ -425,11 +420,6 @@ class APIClient(BaseAPIClient):
     def create_bank_account(self, request: CreateBankAccountRequest) -> BankAccount:
         response = self.post("/api/external/bank_accounts/", data=asdict(request))
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
-
-    def submit_bank_account_approval_action(
-        self, request: GetApprovalRequest
-    ) -> CreateApprovalResponse:
-        return self.initiate_change_approval_action(request)
 
     def get_withdraw_addresses(
         self, request: GetWithdrawAddressesRequest

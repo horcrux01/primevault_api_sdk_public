@@ -164,7 +164,12 @@ def test_change_approval_helpers_fetch_message_sign_and_submit_action():
         params={"entityId": "entity-id"},
     )
 
-    approval_response = client.approve_change_request("entity-id")
+    approval_response = client.approve_change_request(
+        GetApprovalRequest(
+            entityId="entity-id",
+            action=ApprovalAction.APPROVE.value,
+        )
+    )
 
     client.signature_service.sign.assert_called_once_with(b"message-to-sign")
     client.post.assert_called_once_with(
@@ -176,37 +181,6 @@ def test_change_approval_helpers_fetch_message_sign_and_submit_action():
         },
     )
     assert approval_response.success is True
-
-
-def test_initiate_change_approval_action_delegates_to_approval_helpers():
-    client = object.__new__(APIClient)
-    client.get = Mock(
-        return_value={
-            "message": "message-to-sign",
-            "approvalId": "approval-id",
-        }
-    )
-    client.post = Mock(return_value={"success": True})
-    client.signature_service = Mock()
-    client.signature_service.sign.return_value = bytes.fromhex("0102")
-
-    response = client.initiate_change_approval_action(
-        GetApprovalRequest(
-            entityId="entity-id",
-            action=ApprovalAction.APPROVE.value,
-            reason="approved by sdk",
-        )
-    )
-
-    assert response.success is True
-    client.post.assert_called_once_with(
-        "/api/external/change_requests/approvals/approval-id/action/",
-        data={
-            "action": ApprovalAction.APPROVE.value,
-            "signature": "0102",
-            "reason": "approved by sdk",
-        },
-    )
 
 
 def test_create_transaction_from_intent_approves_pending_transaction():

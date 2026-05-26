@@ -28,7 +28,7 @@ def create_and_approve_bank_account(api_client: APIClient):
         f"  accountName={bank_account.accountName} bankName={bank_account.bankName} city={bank_account.city}"
     )
 
-    approve_response = api_client.submit_bank_account_approval_action(
+    approve_response = api_client.approve_change_request(
         GetApprovalRequest(
             entityId=bank_account.id,
             action=ApprovalAction.APPROVE.value,
@@ -40,7 +40,7 @@ def create_and_approve_bank_account(api_client: APIClient):
 
 def decline_bank_account(api_client: APIClient, bank_account_id: str):
     """Decline a pending bank account change request."""
-    response = api_client.submit_bank_account_approval_action(
+    response = api_client.approve_change_request(
         GetApprovalRequest(
             entityId=bank_account_id,
             action=ApprovalAction.REJECT.value,
