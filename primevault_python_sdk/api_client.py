@@ -17,8 +17,6 @@ from primevault_python_sdk.types import (
     CreateBankAccountRequest,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
-    CreateTradeQuoteRequest,
-    CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     DepositAddressResponse,
@@ -29,7 +27,6 @@ from primevault_python_sdk.types import (
     GetApprovalRequest,
     GetApprovalResponse,
     GetQuoteRequest,
-    GetTradeQuoteResponse,
     GetWithdrawAddressesRequest,
     QuoteResponseItem,
     ReplaceTransactionRequest,
@@ -221,43 +218,6 @@ class APIClient(BaseAPIClient):
             Transaction, self.post("/api/external/transactions/", data=data)
         )
 
-    def get_trade_quote(
-        self, request: CreateTradeQuoteRequest
-    ) -> GetTradeQuoteResponse:
-        data = {
-            "vaultId": request.vaultId,
-            "fromAsset": request.fromAsset,
-            "toAsset": request.toAsset,
-            "fromAmount": request.fromAmount,
-            "blockChain": request.fromChain,
-            "toBlockchain": request.toChain,
-            "slippage": request.slippage,
-            "expectedToAmount": request.expectedToAmount,
-            "expiryInMinutes": request.expiryInMinutes,
-            "category": request.category,
-            "paymentMethod": request.paymentMethod,
-        }
-        return from_dict(
-            GetTradeQuoteResponse,
-            self.get("/api/external/transactions/trade_quote/", params=data),
-        )
-
-    def create_trade_transaction(
-        self, request: CreateTradeTransactionRequest
-    ) -> Transaction:
-        data = {
-            "vaultId": request.vaultId,
-            "tradeRequestData": asdict(request.tradeRequestData),
-            "tradeResponseData": asdict(request.tradeResponseData),
-            "category": "SWAP",
-            "blockChain": request.tradeRequestData.blockChain,
-            "externalId": request.externalId,
-            "memo": request.memo,
-        }
-        return from_dict(
-            Transaction, self.post("/api/external/transactions/", data=data)
-        )
-
     @staticmethod
     def _transaction_intent_data(request: TransactionIntentRequest) -> dict[str, Any]:
         return {
@@ -294,7 +254,7 @@ class APIClient(BaseAPIClient):
 
     def get_quote(self, request: GetQuoteRequest) -> List[QuoteResponseItem]:
         response = self.post(
-            "/api/external/transactions/quote/",
+            "/api/external/transactions/v2/quote/",
             data=self._quote_request_data(request),
         )
         return [from_dict(QuoteResponseItem, quote) for quote in response]
@@ -305,7 +265,7 @@ class APIClient(BaseAPIClient):
         data = self._transaction_execute_intent_request_data(request)
         transaction = from_dict(
             Transaction,
-            self.post("/api/external/transactions/intent/create/", data=data),
+            self.post("/api/external/transactions/execute/", data=data),
         )
         return self._approve_pending_transaction_change_request(transaction)
 

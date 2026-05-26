@@ -1,4 +1,3 @@
-import datetime
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
@@ -395,21 +394,6 @@ class CreateVaultRequest:
 
 
 @dataclass
-class CreateTradeQuoteRequest:
-    vaultId: str
-    fromAsset: str
-    fromAmount: str
-    toAsset: str
-    category: Optional[str] = None
-    paymentMethod: Optional[str] = None
-    fromChain: Optional[str] = None
-    toChain: Optional[str] = None
-    slippage: Optional[str] = None
-    expectedToAmount: Optional[str] = None
-    expiryInMinutes: Optional[int] = None
-
-
-@dataclass
 class CreateContactRequest:
     name: str
     address: str
@@ -462,66 +446,6 @@ class EstimatedFeeResponse:
     high: FeeData
     medium: FeeData
     low: FeeData
-
-
-@dataclass
-class TradeQuoteFee:
-    amount: Optional[str] = None
-    asset: Optional[str] = None
-
-
-@dataclass
-class TradeQuoteResponseData:
-    finalToAmount: str
-    handler: str
-    sourceName: str
-    handlerCategory: Optional[str] = None
-    unitToAssetAmount: Optional[str] = None
-    approvedFinalToAmount: Optional[str] = None
-    quotesValidTill: Optional[Union[datetime.datetime, str]] = None
-    feeInUSD: Optional[str] = None
-    finalToAmountUSD: Optional[str] = None
-    stepsData: Optional[list] = None
-    sourceLogoURL: Optional[str] = None
-    estCompletionTimeInSec: Optional[int] = None
-    autoSlippage: Optional[str] = None
-    minimumToAmount: Optional[str] = None
-    fees: Optional[TradeQuoteFee] = None
-    quoteId: Optional[str] = None
-    fromAmount: Optional[str] = None
-    paymentMethod: Optional[str] = None
-
-
-@dataclass
-class TradeQuoteRequestData:
-    fromAsset: str
-    fromAmount: str
-    toAsset: str
-    slippage: Optional[str] = None
-    blockChain: Optional[str] = None
-    toBlockchain: Optional[str] = None
-    fromAmountUSD: Optional[str] = None
-    destinationAddress: Optional[str] = None
-    chainId: Optional[str] = None
-    fromAssetLogoURL: Optional[str] = None
-    toAssetLogoURL: Optional[str] = None
-    expectedToAmountUSD: Optional[str] = None
-    expiryInMinutes: Optional[int] = None
-
-
-@dataclass
-class CreateTradeTransactionRequest:
-    vaultId: str
-    tradeRequestData: TradeQuoteRequestData
-    tradeResponseData: TradeQuoteResponseData
-    externalId: Optional[str] = None
-    memo: Optional[str] = None
-
-
-@dataclass
-class GetTradeQuoteResponse:
-    tradeRequestData: TradeQuoteRequestData
-    tradeResponseDataList: List[TradeQuoteResponseData]
 
 
 @dataclass

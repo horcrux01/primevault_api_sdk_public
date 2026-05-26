@@ -1,7 +1,7 @@
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
-    CreateTradeQuoteRequest,
-    GetTradeQuoteResponse,
+    GetQuoteRequest,
+    QuoteResponseItem,
     Transaction,
     TransactionExecuteIntentRequest,
     TransactionIntentRequest,
@@ -13,21 +13,27 @@ from primevault_python_sdk.types import (
 VAULT_ID = "vault_id"
 
 
-# Quote the test trade.
-def get_test_trade_quote(api_client: APIClient) -> GetTradeQuoteResponse:
-    request = CreateTradeQuoteRequest(
-        vaultId=VAULT_ID,
+def _trade_intent() -> TransactionIntentRequest:
+    return TransactionIntentRequest(
+        source=TransferPartyData(
+            type=TransferPartyType.VAULT.value,
+            id=VAULT_ID,
+        ),
         fromAsset="USDT",
         fromAmount="100",
         toAsset="USD",
         fromChain="ETHEREUM",
     )
-    return api_client.get_trade_quote(request)
+
+
+# Quote the test trade.
+def get_test_trade_quote(api_client: APIClient) -> QuoteResponseItem:
+    return api_client.get_quote(GetQuoteRequest(intent=_trade_intent()))[0]
 
 
 # Create the test trade using intent/create with the quoteId.
 def create_test_trade(api_client: APIClient) -> Transaction:
-    quote_response = get_test_trade_quote(api_client).tradeResponseDataList[0]
+    quote_response = get_test_trade_quote(api_client)
     request = TransactionExecuteIntentRequest(
         quoteId=quote_response.quoteId,
         externalId="trade-001",

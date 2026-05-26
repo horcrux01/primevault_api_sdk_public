@@ -11,8 +11,6 @@ from primevault_python_sdk.types import (
     ApprovalAction,
     ContactStatus,
     CreateContractCallTransactionRequest,
-    CreateTradeQuoteRequest,
-    CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     EVMContractCallData,
@@ -23,8 +21,6 @@ from primevault_python_sdk.types import (
     TransactionFeeTier,
     TransactionIntentRequest,
     TransactionStatus,
-    TradeQuoteRequestData,
-    TradeQuoteResponseData,
     TransferPartyData,
     TransferPartyType,
     VaultType,
@@ -91,6 +87,23 @@ def test_intent_request_serialization_matches_backend_contract():
     assert "userId" not in execute_payload
 
 
+def test_transaction_execute_intent_request_serializes_quote_only_execution():
+    execute_payload = APIClient._transaction_execute_intent_request_data(
+        TransactionExecuteIntentRequest(
+            quoteId="quote-id",
+            externalId="external-id",
+            memo="trade from quote",
+        )
+    )
+
+    assert execute_payload == {
+        "intent": None,
+        "quoteId": "quote-id",
+        "externalId": "external-id",
+        "memo": "trade from quote",
+    }
+
+
 def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
     client = object.__new__(APIClient)
     client.post = Mock(
@@ -116,7 +129,7 @@ def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
     quotes = client.get_quote(GetQuoteRequest(intent=intent))
 
     client.post.assert_called_once_with(
-        "/api/external/transactions/quote/",
+        "/api/external/transactions/v2/quote/",
         data={"intent": APIClient._transaction_intent_data(intent)},
     )
     assert quotes[0].quoteId == "quote-id"
@@ -328,10 +341,9 @@ def test_transaction_parses_deposit_instructions():
     assert transaction.depositInstructions.type == (
         TransferPartyType.EXTERNAL_BANK_ACCOUNT.value
     )
-    assert transaction.quoteResponse == {
-        "quoteId": "quote-id",
-        "finalToAmount": "100",
-    }
+    assert transaction.quoteResponse is not None
+    assert transaction.quoteResponse.quoteId == "quote-id"
+    assert transaction.quoteResponse.finalToAmount == "100"
     assert transaction.depositInstructions.currency == "NGN"
     assert transaction.depositInstructions.paymentRail == "WIRE"
     assert transaction.depositInstructions.bankDetails is not None
@@ -370,48 +382,6 @@ def test_legacy_transfer_transaction_does_not_auto_approve():
             amount="1",
             asset="USDC",
             chain="ETHEREUM",
-        )
-    )
-
-    assert transaction.id == "transaction-id"
-    client.post.assert_called_once()
-    client.get.assert_not_called()
-    client.signature_service.sign.assert_not_called()
-
-
-def test_legacy_trade_transaction_does_not_auto_approve():
-    client = object.__new__(APIClient)
-    transaction_response = {
-        "id": "transaction-id",
-        "orgId": "org-id",
-        "vaultId": "vault-id",
-        "amount": "1",
-        "status": TransactionStatus.PENDING.value,
-        "transactionType": "OUTGOING",
-        "category": "SWAP",
-        "subCategory": "MARKET_TRADE",
-        "createdAt": "2026-05-25T00:00:00Z",
-        "updatedAt": "2026-05-25T00:00:00Z",
-        "isDeleted": False,
-    }
-    client.post = Mock(return_value=transaction_response)
-    client.get = Mock()
-    client.signature_service = Mock()
-
-    transaction = client.create_trade_transaction(
-        CreateTradeTransactionRequest(
-            vaultId="vault-id",
-            tradeRequestData=TradeQuoteRequestData(
-                fromAsset="USDC",
-                fromAmount="1",
-                toAsset="ETH",
-                blockChain="ETHEREUM",
-            ),
-            tradeResponseData=TradeQuoteResponseData(
-                finalToAmount="0.1",
-                handler="handler",
-                sourceName="source",
-            ),
         )
     )
 
@@ -670,69 +640,3 @@ class TestApiClient(unittest.TestCase):
             "A record with the same information already exists",
             str(exc_info.value.response_text),
         )
-
-    def test_get_trade_quote(self):
-        source_vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
-        vault_id = source_vaults.results[0].id
-        trade_quote_response = self.api_client.get_trade_quote(
-            CreateTradeQuoteRequest(
-                **{
-                    "vaultId": vault_id,
-                    "fromAsset": "ETH",
-                    "fromAmount": "0.0001",
-                    "fromChain": "ETHEREUM",
-                    "toAsset": "USDC",
-                    "toChain": "ETHEREUM",
-                    "slippage": "0.05",
-                }
-            )
-        )
-
-        request_data = trade_quote_response.tradeRequestData
-        self.assertIsNotNone(request_data)
-        self.assertEqual(request_data.fromAsset, "ETH")
-        self.assertEqual(request_data.fromAmount, "0.0001")
-        self.assertEqual(request_data.blockChain, "ETHEREUM")
-        self.assertEqual(request_data.toAsset, "USDC")
-        self.assertEqual(request_data.toBlockchain, "ETHEREUM")
-
-        response_data_list = trade_quote_response.tradeResponseDataList
-        self.assertIsInstance(response_data_list, list)
-        self.assertEqual(len(response_data_list), 3)
-        response_data = response_data_list[0]
-        self.assertIsNotNone(response_data)
-        self.assertIsNotNone(response_data.finalToAmount)
-        self.assertIsNotNone(response_data.finalToAmountUSD)
-        self.assertIsNotNone(response_data.sourceName)
-
-    def test_create_trade_transaction(self):
-        source_vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
-        vault_id = source_vaults.results[0].id
-        trade_quote_response = self.api_client.get_trade_quote(
-            CreateTradeQuoteRequest(
-                **{
-                    "vaultId": vault_id,
-                    "fromAsset": "ETH",
-                    "fromAmount": "0.0001",
-                    "fromChain": "ETHEREUM",
-                    "toAsset": "USDC",
-                    "toChain": "ETHEREUM",
-                    "slippage": "0.05",
-                }
-            )
-        )
-
-        with pytest.raises(BadRequestError) as exc_info:
-            self.api_client.create_trade_transaction(
-                CreateTradeTransactionRequest(
-                    **{
-                        "vaultId": vault_id,
-                        "tradeRequestData": trade_quote_response.tradeRequestData,
-                        "tradeResponseData": trade_quote_response.tradeResponseDataList[
-                            0
-                        ],
-                        "externalId": "externalId-1",
-                    }
-                )
-            )
-            self.assertIn("400 Client Error:", str(exc_info.value.response_text))
