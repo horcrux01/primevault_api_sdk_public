@@ -20,6 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Create branch and PR on public repo
         env:
@@ -28,7 +29,9 @@ jobs:
           BRANCH_NAME="${{ github.event.inputs.branch_name }}"
           PR_TITLE="${{ github.event.inputs.pr_title }}"
 
-          git remote add public https://x-access-token:${GH_TOKEN}@github.com/horcrux01/primevault_api_sdk_public.git
+          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+
+          git remote add public https://github.com/horcrux01/primevault_api_sdk_public.git
           git checkout -b "$BRANCH_NAME"
           git push public "$BRANCH_NAME"
 
