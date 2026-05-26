@@ -116,7 +116,7 @@ def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
     quotes = client.get_quote(GetQuoteRequest(intent=intent))
 
     client.post.assert_called_once_with(
-        "/api/external/transactions/v2/quote/",
+        "/api/external/transactions/quote/",
         data={"intent": APIClient._transaction_intent_data(intent)},
     )
     assert quotes[0].quoteId == "quote-id"

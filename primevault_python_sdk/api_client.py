@@ -282,7 +282,11 @@ class APIClient(BaseAPIClient):
         request: TransactionExecuteIntentRequest,
     ) -> dict[str, Any]:
         return {
-            "intent": APIClient._transaction_intent_data(request.intent),
+            "intent": (
+                APIClient._transaction_intent_data(request.intent)
+                if request.intent
+                else None
+            ),
             "quoteId": request.quoteId,
             "externalId": request.externalId,
             "memo": request.memo,
@@ -290,7 +294,7 @@ class APIClient(BaseAPIClient):
 
     def get_quote(self, request: GetQuoteRequest) -> List[QuoteResponseItem]:
         response = self.post(
-            "/api/external/transactions/v2/quote/",
+            "/api/external/transactions/quote/",
             data=self._quote_request_data(request),
         )
         return [from_dict(QuoteResponseItem, quote) for quote in response]
@@ -300,9 +304,19 @@ class APIClient(BaseAPIClient):
     ) -> Transaction:
         data = self._transaction_execute_intent_request_data(request)
         transaction = from_dict(
-            Transaction, self.post("/api/external/transactions/execute/", data=data)
+            Transaction,
+            self.post("/api/external/transactions/intent/create/", data=data),
         )
         return self._approve_pending_transaction_change_request(transaction)
+
+    def mark_deposit_done(self, transactionId: str) -> Transaction:
+        return from_dict(
+            Transaction,
+            self.post(
+                "/api/external/transactions/mark_deposit_done/",
+                data={"transactionId": transactionId},
+            ),
+        )
 
     def create_on_ramp_transaction(
         self, request: TransactionExecuteIntentRequest

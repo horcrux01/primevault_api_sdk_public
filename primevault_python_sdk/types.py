@@ -290,8 +290,8 @@ class Transaction:
     amountInUSD: Optional[str] = None
     nonce: Optional[int] = None
     destination: Optional[TransactionSourceData] = None
-    intent: Optional[Dict[str, Any]] = None
-    quoteResponse: Optional[Dict[str, Any]] = None
+    intent: Optional[TransactionIntentRequest] = None
+    quoteResponse: Optional["QuoteResponseItem"] = None
     depositInstructions: Optional[DepositInstructions] = None
 
 
