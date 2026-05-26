@@ -532,6 +532,14 @@ class CreateAssetTransferRequest:
     category: str = TransactionCategory.TRANSFER.value
     externalId: Optional[str] = None
     memo: Optional[str] = None
+    source: Optional[TransferPartyData] = None
+    destination: Optional[TransferPartyData] = None
+    toAsset: Optional[str] = None
+    toAmount: Optional[str] = None
+    fromChain: Optional[str] = None
+    toChain: Optional[str] = None
+    fromPaymentRail: Optional[str] = None
+    toPaymentRail: Optional[str] = None
 
 
 @dataclass

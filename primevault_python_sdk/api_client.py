@@ -37,6 +37,7 @@ from primevault_python_sdk.types import (
     Transaction,
     TransactionCategory,
     TransactionListResponse,
+    TransactionSubCategory,
     UpdateContactRequest,
     UpdateContactResponse,
     Vault,
@@ -220,7 +221,11 @@ class APIClient(BaseAPIClient):
     def create_trade_transaction(
         self, request: CreateTradeTransactionRequest
     ) -> Transaction:
-        category = request.category or "SWAP"
+        category = (
+            request.category.value
+            if isinstance(request.category, TransactionCategory)
+            else request.category or "SWAP"
+        )
         payload: dict[str, Any]
         if request.quoteId:
             payload = {
@@ -230,6 +235,8 @@ class APIClient(BaseAPIClient):
                 "operationMessage": request.operationMessage,
                 "memo": request.memo,
             }
+            if category == TransactionCategory.TRADE.value:
+                return self.create_intent_transaction(payload)
         else:
             if not request.tradeRequestData or not request.tradeResponseData:
                 raise ValueError(
@@ -250,25 +257,75 @@ class APIClient(BaseAPIClient):
             Transaction, self.post("/api/external/transactions/", data=payload)
         )
 
+    def create_intent_transaction(self, payload: dict[str, Any]) -> Transaction:
+        return from_dict(
+            Transaction,
+            self.post("/api/external/transactions/intent/create/", data=payload),
+        )
+
+    def mark_transaction_as_deposit_complete(self, transaction_id: str) -> Transaction:
+        return from_dict(
+            Transaction,
+            self.post(
+                "/api/external/transactions/mark_transaction_as_deposit_complete/",
+                data={"transactionId": transaction_id},
+            ),
+        )
+
     def create_asset_transfer(self, request: CreateAssetTransferRequest) -> Transaction:
-        counterparty = None
-        if request.counterparty:
-            counterparty = {
-                k: v for k, v in asdict(request.counterparty).items() if v is not None
-            }
+        vault_party = {"type": "VAULT", "id": request.vaultId}
+        source = self._party_to_dict(request.source)
+        destination = self._party_to_dict(request.destination)
+        counterparty = self._party_to_dict(request.counterparty)
+        sub_category = (
+            request.subCategory.value
+            if isinstance(request.subCategory, TransactionSubCategory)
+            else request.subCategory
+        )
+
+        if source is None and destination is None:
+            if sub_category == TransactionSubCategory.DEPOSIT.value:
+                source = counterparty
+                destination = vault_party
+            elif sub_category == TransactionSubCategory.WITHDRAW.value:
+                source = vault_party
+                destination = counterparty
+
         data = {
-            "vaultId": request.vaultId,
+            "quoteId": None,
             "category": request.category,
-            "subCategory": request.subCategory,
-            "asset": request.asset,
-            "amount": request.amount,
-            "counterparty": counterparty,
+            "intent": {
+                "source": source,
+                "destination": destination,
+                "fromAsset": request.asset,
+                "fromAmount": request.amount,
+                "toAsset": request.toAsset,
+                "toAmount": request.toAmount,
+                "fromChain": request.fromChain,
+                "toChain": request.toChain,
+                "fromPaymentRail": request.fromPaymentRail,
+                "toPaymentRail": request.toPaymentRail,
+            },
             "externalId": request.externalId,
             "memo": request.memo,
         }
-        return from_dict(
-            Transaction, self.post("/api/external/transactions/", data=data)
-        )
+        return self.create_intent_transaction(data)
+
+    @classmethod
+    def _party_to_dict(cls, party: Any) -> Optional[dict[str, Any]]:
+        if party is None:
+            return None
+        return cls._compact_dict(asdict(party))
+
+    @classmethod
+    def _compact_dict(cls, value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                key: cls._compact_dict(child_value)
+                for key, child_value in value.items()
+                if child_value is not None
+            }
+        return value
 
     def get_ramp_quote(self, request: RampQuoteRequest) -> RampQuoteResponse:
         data = {
