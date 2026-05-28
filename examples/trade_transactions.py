@@ -28,7 +28,8 @@ def _trade_intent() -> TransactionIntentRequest:
 
 # Quote the test trade.
 def get_test_trade_quote(api_client: APIClient) -> QuoteResponseItem:
-    return api_client.get_quote(GetQuoteRequest(intent=_trade_intent()))[0]
+    quote_response = api_client.get_quote(GetQuoteRequest(intent=_trade_intent()))
+    return quote_response.quotes[0]
 
 
 # Create the test trade using intent/create with the quoteId.

@@ -107,14 +107,16 @@ def test_transaction_execute_intent_request_serializes_quote_only_execution():
 def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
     client = object.__new__(APIClient)
     client.post = Mock(
-        return_value=[
-            {
-                "quoteId": "quote-id",
-                "finalToAmount": "100",
-                "fees": {"amount": "0", "asset": "NGN"},
-                "sourceName": "Busha",
-            }
-        ]
+        return_value={
+            "quotes": [
+                {
+                    "quoteId": "quote-id",
+                    "finalToAmount": "100",
+                    "fees": {"amount": "0", "asset": "NGN"},
+                    "sourceName": "Busha",
+                }
+            ]
+        }
     )
 
     destination = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
@@ -126,16 +128,16 @@ def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
         toChain="ETHEREUM",
     )
 
-    quotes = client.get_quote(GetQuoteRequest(intent=intent))
+    quote_response = client.get_quote(GetQuoteRequest(intent=intent))
 
     client.post.assert_called_once_with(
-        "/api/external/transactions/v2/quote/",
+        "/api/external/transactions/quote/",
         data={"intent": APIClient._transaction_intent_data(intent)},
     )
-    assert quotes[0].quoteId == "quote-id"
-    assert quotes[0].finalToAmount == "100"
-    assert quotes[0].fees.amount == "0"
-    assert quotes[0].sourceName == "Busha"
+    assert quote_response.quotes[0].quoteId == "quote-id"
+    assert quote_response.quotes[0].finalToAmount == "100"
+    assert quote_response.quotes[0].fees.amount == "0"
+    assert quote_response.quotes[0].sourceName == "Busha"
 
 
 def test_change_approval_helpers_fetch_message_sign_and_submit_action():
@@ -232,7 +234,7 @@ def test_create_transaction_from_intent_approves_pending_transaction():
     assert transaction.id == "transaction-id"
     assert transaction.status == TransactionStatus.APPROVED.value
     assert client.post.call_args_list[0][0][0] == (
-        "/api/external/transactions/execute/"
+        "/api/external/transactions/intent/create/"
     )
     assert client.get.call_args_list == [
         call(

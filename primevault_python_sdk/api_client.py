@@ -28,7 +28,7 @@ from primevault_python_sdk.types import (
     GetApprovalResponse,
     GetQuoteRequest,
     GetWithdrawAddressesRequest,
-    QuoteResponseItem,
+    QuoteResponse,
     ReplaceTransactionRequest,
     SubmitWithdrawalRequest,
     Transaction,
@@ -247,12 +247,12 @@ class APIClient(BaseAPIClient):
             "memo": request.memo,
         }
 
-    def get_quote(self, request: GetQuoteRequest) -> List[QuoteResponseItem]:
+    def get_quote(self, request: GetQuoteRequest) -> QuoteResponse:
         response = self.post(
-            "/api/external/transactions/v2/quote/",
+            "/api/external/transactions/quote/",
             data=self._quote_request_data(request),
         )
-        return [from_dict(QuoteResponseItem, quote) for quote in response]
+        return from_dict(QuoteResponse, response)
 
     def create_transaction_from_intent(
         self, request: TransactionExecuteIntentRequest
@@ -260,7 +260,7 @@ class APIClient(BaseAPIClient):
         data = self._transaction_execute_intent_request_data(request)
         transaction = from_dict(
             Transaction,
-            self.post("/api/external/transactions/execute/", data=data),
+            self.post("/api/external/transactions/intent/create/", data=data),
         )
         return self._approve_pending_transaction_change_request(transaction)
 

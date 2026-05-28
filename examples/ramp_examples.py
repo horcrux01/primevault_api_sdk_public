@@ -38,9 +38,9 @@ def create_on_ramp_transaction(api_client: APIClient) -> Transaction:
         toChain="ETHEREUM",
     )
 
-    quotes = api_client.get_quote(GetQuoteRequest(intent=intent))
-    print(f"Quotes: {quotes}")
-    selected_quote = quotes[0]
+    quote_response = api_client.get_quote(GetQuoteRequest(intent=intent))
+    print(f"Quotes: {quote_response.quotes}")
+    selected_quote = quote_response.quotes[0]
 
     on_ramp_transaction = api_client.create_transaction_from_intent(
         TransactionExecuteIntentRequest(
@@ -89,9 +89,9 @@ def create_off_ramp_transaction(api_client: APIClient) -> Transaction:
         toAsset="USD",
     )
 
-    quotes = api_client.get_quote(GetQuoteRequest(intent=intent))
-    print(f"Quotes: {quotes}")
-    selected_quote = quotes[0]
+    quote_response = api_client.get_quote(GetQuoteRequest(intent=intent))
+    print(f"Quotes: {quote_response.quotes}")
+    selected_quote = quote_response.quotes[0]
 
     off_ramp_transaction = api_client.create_transaction_from_intent(
         TransactionExecuteIntentRequest(
