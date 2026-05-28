@@ -9,7 +9,6 @@ from primevault_python_sdk.types import (
     TransferPartyType,
 )
 
-
 # Vault ID that PrimeVault will provide based on the provider you are
 # onboarded for. Replace with the value shared by your PrimeVault contact.
 VAULT_ID = "vault_id"
