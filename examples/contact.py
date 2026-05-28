@@ -31,8 +31,11 @@ def create_and_approve_contact(api_client: APIClient):
     )
 
     # Step 2: Approve the contact using its ID as the entityId
-    approval = api_client.initiate_change_approval_action(
-        GetApprovalRequest(entityId=contact.id, action=ApprovalAction.APPROVE.value)
+    approval = api_client.approve_change_request(
+        GetApprovalRequest(
+            entityId=contact.id,
+            action=ApprovalAction.APPROVE.value,
+        )
     )
     print(f"Approval result: success={approval.success}")
 
@@ -45,8 +48,11 @@ def create_and_approve_contact(api_client: APIClient):
 
 def decline_contact(api_client: APIClient, contact_id: str):
     """Decline a pending contact change request."""
-    return api_client.initiate_change_approval_action(
-        GetApprovalRequest(entityId=contact_id, action=ApprovalAction.REJECT.value)
+    return api_client.approve_change_request(
+        GetApprovalRequest(
+            entityId=contact_id,
+            action=ApprovalAction.REJECT.value,
+        )
     )
 
 
@@ -91,8 +97,11 @@ def update_contact_asset_list(
     print(f"Contact {updated.id} asset list update requested: {updated.assetList}")
 
     # Step 2: Approve the update
-    approval = api_client.initiate_change_approval_action(
-        GetApprovalRequest(entityId=updated.id, action=ApprovalAction.APPROVE.value)
+    approval = api_client.approve_change_request(
+        GetApprovalRequest(
+            entityId=updated.id,
+            action=ApprovalAction.APPROVE.value,
+        )
     )
     print(f"Update approval result: success={approval.success}")
 

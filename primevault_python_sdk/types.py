@@ -1,4 +1,3 @@
-import datetime
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
@@ -128,6 +127,18 @@ class BankDetails:
 
 
 @dataclass
+class DepositInstructions:
+    type: Optional[str] = None  # TransferPartyType
+    currency: Optional[str] = None
+    paymentRail: Optional[str] = None
+    bankDetails: Optional[BankDetails] = None
+    asset: Optional[str] = None
+    address: Optional[str] = None
+    blockChain: Optional[str] = None
+    memo: Optional[str] = None
+
+
+@dataclass
 class TransferPartyData:
     type: str  # TransferPartyType
     id: Optional[str] = None
@@ -217,31 +228,30 @@ class TransactionSourceData:
 
 
 @dataclass
-class RampQuoteFee:
-    amount: Optional[str] = None
-    asset: Optional[str] = None
-
-
-@dataclass
-class RampQuote:
-    quoteId: Optional[str] = None
-    finalToAmount: Optional[str] = None
-    sourceName: Optional[str] = None
-    fees: Optional[RampQuoteFee] = None
-    rate: Optional[str] = None
-    quoteResponseDict: Optional[Dict] = None
-
-
-@dataclass
-class RampQuoteRequest:
-    destination: Optional[TransferPartyData] = None
+class TransactionIntentRequest:
     source: Optional[TransferPartyData] = None
+    destination: Optional[TransferPartyData] = None
     fromAsset: Optional[str] = None
     fromAmount: Optional[str] = None
     fromChain: Optional[str] = None
+    fromPaymentRail: Optional[str] = None
     toAsset: Optional[str] = None
+    toAmount: Optional[str] = None
     toChain: Optional[str] = None
-    category: Optional[str] = None
+    toPaymentRail: Optional[str] = None
+
+
+@dataclass
+class GetQuoteRequest:
+    intent: TransactionIntentRequest
+
+
+@dataclass
+class TransactionExecuteIntentRequest:
+    intent: Optional[TransactionIntentRequest] = None
+    quoteId: Optional[str] = None
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
 
 
 @dataclass
@@ -279,8 +289,9 @@ class Transaction:
     amountInUSD: Optional[str] = None
     nonce: Optional[int] = None
     destination: Optional[TransactionSourceData] = None
-    rampRequestData: Optional[RampQuoteRequest] = None
-    rampResponseData: Optional[RampQuote] = None
+    intent: Optional[TransactionIntentRequest] = None
+    quoteResponse: Optional["QuoteResponseItem"] = None
+    depositInstructions: Optional[DepositInstructions] = None
 
 
 # Requests
@@ -297,6 +308,7 @@ class GetApprovalRequest:
     entityId: str
     # approve/reject
     action: str
+    reason: Optional[str] = "ok"
 
 
 @dataclass
@@ -382,21 +394,6 @@ class CreateVaultRequest:
 
 
 @dataclass
-class CreateTradeQuoteRequest:
-    vaultId: str
-    fromAsset: str
-    fromAmount: str
-    toAsset: str
-    category: Optional[str] = None
-    paymentMethod: Optional[str] = None
-    fromChain: Optional[str] = None
-    toChain: Optional[str] = None
-    slippage: Optional[str] = None
-    expectedToAmount: Optional[str] = None
-    expiryInMinutes: Optional[int] = None
-
-
-@dataclass
 class CreateContactRequest:
     name: str
     address: str
@@ -452,92 +449,24 @@ class EstimatedFeeResponse:
 
 
 @dataclass
-class TradeQuoteFee:
-    amount: Optional[str] = None
-    asset: Optional[str] = None
+class Fees:
+    amount: str
+    asset: str
 
 
 @dataclass
-class TradeQuoteDictData:
-    quoteId: Optional[str] = None
-    fromAmount: Optional[str] = None
-    toAmount: Optional[str] = None
-    fromAsset: Optional[str] = None
-    toAsset: Optional[str] = None
-    fees: Optional[TradeQuoteFee] = None
+class QuoteResponseItem:
+    quoteId: str
+    rate: Optional[str] = None
+    fees: Optional[Fees] = None
+    finalFromAmount: Optional[str] = None
+    finalToAmount: Optional[str] = None
+    sourceName: Optional[str] = None
 
 
 @dataclass
-class TradeQuoteResponseData:
-    finalToAmount: str
-    quoteResponseDict: Union[str, Dict[str, Any]]
-    handler: str
-    sourceName: str
-    handlerCategory: Optional[str] = None
-    unitToAssetAmount: Optional[str] = None
-    approvedFinalToAmount: Optional[str] = None
-    quotesValidTill: Optional[Union[datetime.datetime, str]] = None
-    feeInUSD: Optional[str] = None
-    finalToAmountUSD: Optional[str] = None
-    stepsData: Optional[list] = None
-    sourceLogoURL: Optional[str] = None
-    estCompletionTimeInSec: Optional[int] = None
-    autoSlippage: Optional[str] = None
-    minimumToAmount: Optional[str] = None
-    fees: Optional[TradeQuoteFee] = None
-    quoteId: Optional[str] = None
-    fromAmount: Optional[str] = None
-    paymentMethod: Optional[str] = None
-
-
-@dataclass
-class TradeQuoteRequestData:
-    fromAsset: str
-    fromAmount: str
-    toAsset: str
-    slippage: Optional[str] = None
-    blockChain: Optional[str] = None
-    toBlockchain: Optional[str] = None
-    fromAmountUSD: Optional[str] = None
-    destinationAddress: Optional[str] = None
-    chainId: Optional[str] = None
-    fromAssetLogoURL: Optional[str] = None
-    toAssetLogoURL: Optional[str] = None
-    expectedToAmountUSD: Optional[str] = None
-    expiryInMinutes: Optional[int] = None
-
-
-@dataclass
-class CreateTradeTransactionRequest:
-    vaultId: str
-    tradeRequestData: TradeQuoteRequestData
-    tradeResponseData: TradeQuoteResponseData
-    externalId: Optional[str] = None
-    memo: Optional[str] = None
-
-
-@dataclass
-class CreateRampTransactionRequest:
-    vaultId: str
-    tradeRequestData: TradeQuoteRequestData
-    tradeResponseData: TradeQuoteResponseData
-    category: str = TransactionCategory.ON_RAMP.value
-    externalId: Optional[str] = None
-    operationMessage: Optional[str] = None
-    memo: Optional[str] = None
-    paymentMethod: Optional[str] = None
-    toBlockChain: Optional[str] = None
-
-
-@dataclass
-class GetTradeQuoteResponse:
-    tradeRequestData: TradeQuoteRequestData
-    tradeResponseDataList: List[TradeQuoteResponseData]
-
-
-@dataclass
-class RampQuoteResponse:
-    quotes: Optional[List[RampQuote]] = None
+class QuoteResponse:
+    quotes: List[QuoteResponseItem]
 
 
 @dataclass
@@ -607,23 +536,6 @@ class BankAccountListResponse:
 
 
 @dataclass
-class CreateOnRampTransactionRequest:
-    destination: TransferPartyData
-    quoteId: str
-    externalId: Optional[str] = None
-    memo: Optional[str] = None
-
-
-@dataclass
-class CreateOffRampTransactionRequest:
-    source: TransferPartyData
-    destination: TransferPartyData
-    quoteId: str
-    externalId: Optional[str] = None
-    memo: Optional[str] = None
-
-
-@dataclass
 class CreateBankAccountRequest:
     accountNumber: Optional[str] = None
     accountName: Optional[str] = None
@@ -679,3 +591,32 @@ DetailedBalanceResponse = List[DetailedBalance]
     }
 ]
 """
+
+
+@dataclass
+class WithdrawAddress:
+    id: Optional[int] = None
+    address: Optional[str] = None
+    token: Optional[str] = None
+    network: Optional[str] = None
+    network_name: Optional[str] = None
+    label: Optional[str] = None
+
+
+@dataclass
+class WithdrawAddressesResponse:
+    addresses: List[WithdrawAddress]
+
+
+@dataclass
+class GetWithdrawAddressesRequest:
+    source: TransferPartyData
+    currency: Optional[str] = None
+
+
+@dataclass
+class SubmitWithdrawalRequest:
+    source: TransferPartyData
+    destination: TransferPartyData
+    asset: str
+    amount: str

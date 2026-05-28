@@ -1,10 +1,11 @@
 from dataclasses import asdict
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from dacite import Config, from_dict
 
 from primevault_python_sdk.base_api_client import BaseAPIClient
 from primevault_python_sdk.types import (
+    ApprovalAction,
     Asset,
     BalanceResponse,
     BankAccount,
@@ -16,11 +17,6 @@ from primevault_python_sdk.types import (
     CreateBankAccountRequest,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
-    CreateOffRampTransactionRequest,
-    CreateOnRampTransactionRequest,
-    CreateRampTransactionRequest,
-    CreateTradeQuoteRequest,
-    CreateTradeTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     DepositAddressResponse,
@@ -30,17 +26,22 @@ from primevault_python_sdk.types import (
     EstimateFeeRequest,
     GetApprovalRequest,
     GetApprovalResponse,
-    GetTradeQuoteResponse,
-    RampQuoteRequest,
-    RampQuoteResponse,
+    GetQuoteRequest,
+    GetWithdrawAddressesRequest,
+    QuoteResponse,
     ReplaceTransactionRequest,
+    SubmitWithdrawalRequest,
     Transaction,
-    TransactionCategory,
+    TransactionExecuteIntentRequest,
+    TransactionIntentRequest,
     TransactionListResponse,
+    TransactionStatus,
     UpdateContactRequest,
     UpdateContactResponse,
     Vault,
     VaultListResponse,
+    WithdrawAddress,
+    WithdrawAddressesResponse,
 )
 
 
@@ -78,37 +79,68 @@ class APIClient(BaseAPIClient):
             Transaction, self.get(f"/api/external/transactions/{transaction_id}/")
         )
 
-    def initiate_change_approval_action(
-        self, request: GetApprovalRequest
-    ) -> CreateApprovalResponse:
+    def get_change_approval_message(self, entity_id: str) -> GetApprovalResponse:
         data = {
-            "entityId": request.entityId,
+            "entityId": entity_id,
         }
-        # This will fetch the approval message for the change request entity and user
-        response = from_dict(
+        return from_dict(
             GetApprovalResponse,
             self.get(
                 "/api/external/change_requests/approvals/approval_message/", params=data
             ),
         )
-        # This will sign the  message and take the action given by user on change request
-        # reason is optional field if someone wants to set the field
-        entity_approval_request = {
-            "entityId": request.entityId,
-            "message": response.message,
-            "signature": self.signature_service.sign(
-                response.message.encode("utf-8")
-            ).hex(),
-            "action": request.action,
-            "reason": "ok",
+
+    def submit_change_approval_action(
+        self,
+        approval_id: str,
+        action: str,
+        signature_hex: str,
+        reason: Optional[str] = "ok",
+    ) -> CreateApprovalResponse:
+        approval_request = {
+            "action": action,
+            "signature": signature_hex,
         }
+        if reason is not None:
+            approval_request["reason"] = reason
+
         return from_dict(
             CreateApprovalResponse,
             self.post(
-                f"/api/external/change_requests/approvals/{response.approvalId}/action/",
-                data=entity_approval_request,
+                f"/api/external/change_requests/approvals/{approval_id}/action/",
+                data=approval_request,
             ),
         )
+
+    def approve_change_request(
+        self,
+        request: GetApprovalRequest,
+    ) -> CreateApprovalResponse:
+        """Approve or reject the pending change request for any supported entity."""
+        approval_message = self.get_change_approval_message(request.entityId)
+        signature_hex = self.signature_service.sign(
+            approval_message.message.encode("utf-8")
+        ).hex()
+        return self.submit_change_approval_action(
+            approval_id=approval_message.approvalId,
+            action=request.action,
+            signature_hex=signature_hex,
+            reason=request.reason,
+        )
+
+    def _approve_pending_transaction_change_request(
+        self, transaction: Transaction
+    ) -> Transaction:
+        if transaction.status != TransactionStatus.PENDING.value:
+            return transaction
+
+        self.approve_change_request(
+            GetApprovalRequest(
+                entityId=transaction.id,
+                action=ApprovalAction.APPROVE.value,
+            )
+        )
+        return self.get_transaction_by_id(transaction.id)
 
     def estimate_fee(self, request: EstimateFeeRequest) -> EstimatedFeeResponse:
         data = {
@@ -181,105 +213,75 @@ class APIClient(BaseAPIClient):
             Transaction, self.post("/api/external/transactions/", data=data)
         )
 
-    def get_trade_quote(
-        self, request: CreateTradeQuoteRequest
-    ) -> GetTradeQuoteResponse:
-        data = {
-            "vaultId": request.vaultId,
+    @staticmethod
+    def _transaction_intent_data(request: TransactionIntentRequest) -> dict[str, Any]:
+        return {
+            "source": asdict(request.source) if request.source else None,
+            "destination": asdict(request.destination) if request.destination else None,
             "fromAsset": request.fromAsset,
             "toAsset": request.toAsset,
-            "fromAmount": request.fromAmount,
-            "blockChain": request.fromChain,
-            "toBlockchain": request.toChain,
-            "slippage": request.slippage,
-            "expectedToAmount": request.expectedToAmount,
-            "expiryInMinutes": request.expiryInMinutes,
-            "category": request.category,
-            "paymentMethod": request.paymentMethod,
-        }
-        return from_dict(
-            GetTradeQuoteResponse,
-            self.get("/api/external/transactions/trade_quote/", params=data),
-        )
-
-    def create_trade_transaction(
-        self, request: CreateTradeTransactionRequest
-    ) -> Transaction:
-        data = {
-            "vaultId": request.vaultId,
-            "tradeRequestData": asdict(request.tradeRequestData),
-            "tradeResponseData": asdict(request.tradeResponseData),
-            "category": "SWAP",
-            "blockChain": request.tradeRequestData.blockChain,
-            "externalId": request.externalId,
-            "memo": request.memo,
-        }
-        return from_dict(
-            Transaction, self.post("/api/external/transactions/", data=data)
-        )
-
-    def create_ramp_transaction(
-        self, request: CreateRampTransactionRequest
-    ) -> Transaction:
-        data = {
-            "vaultId": request.vaultId,
-            "category": request.category,
-            "tradeRequestData": asdict(request.tradeRequestData),
-            "tradeResponseData": asdict(request.tradeResponseData),
-            "externalId": request.externalId,
-            "operationMessage": request.operationMessage,
-            "memo": request.memo,
-            "paymentMethod": request.paymentMethod,
-            "toBlockChain": request.toBlockChain,
-        }
-        return from_dict(
-            Transaction, self.post("/api/external/transactions/", data=data)
-        )
-
-    def get_ramp_quote(self, request: RampQuoteRequest) -> RampQuoteResponse:
-        data = {
-            "destination": asdict(request.destination) if request.destination else None,
-            "source": asdict(request.source) if request.source else None,
-            "fromAsset": request.fromAsset,
             "fromAmount": request.fromAmount,
             "fromChain": request.fromChain,
-            "toAsset": request.toAsset,
+            "fromPaymentRail": request.fromPaymentRail,
+            "toAmount": request.toAmount,
             "toChain": request.toChain,
-            "category": request.category,
+            "toPaymentRail": request.toPaymentRail,
         }
+
+    @staticmethod
+    def _quote_request_data(request: GetQuoteRequest) -> dict[str, Any]:
+        return {"intent": APIClient._transaction_intent_data(request.intent)}
+
+    @staticmethod
+    def _transaction_execute_intent_request_data(
+        request: TransactionExecuteIntentRequest,
+    ) -> dict[str, Any]:
+        return {
+            "intent": (
+                APIClient._transaction_intent_data(request.intent)
+                if request.intent
+                else None
+            ),
+            "quoteId": request.quoteId,
+            "externalId": request.externalId,
+            "memo": request.memo,
+        }
+
+    def get_quote(self, request: GetQuoteRequest) -> QuoteResponse:
+        response = self.post(
+            "/api/external/transactions/quote/",
+            data=self._quote_request_data(request),
+        )
+        return from_dict(QuoteResponse, response)
+
+    def create_transaction_from_intent(
+        self, request: TransactionExecuteIntentRequest
+    ) -> Transaction:
+        data = self._transaction_execute_intent_request_data(request)
+        transaction = from_dict(
+            Transaction,
+            self.post("/api/external/transactions/intent/create/", data=data),
+        )
+        return self._approve_pending_transaction_change_request(transaction)
+
+    def mark_deposit_done(self, transactionId: str) -> Transaction:
         return from_dict(
-            RampQuoteResponse,
-            self.post("/api/external/transactions/quote/", data=data),
+            Transaction,
+            self.post(
+                "/api/external/transactions/mark_deposit_done/",
+                data={"transactionId": transactionId},
+            ),
         )
 
     def create_on_ramp_transaction(
-        self, request: CreateOnRampTransactionRequest
+        self, request: TransactionExecuteIntentRequest
     ) -> Transaction:
-        data = {
-            "destination": asdict(request.destination),
-            "quoteId": request.quoteId,
-            "category": TransactionCategory.ON_RAMP.value,
-            "externalId": request.externalId,
-            "memo": request.memo,
-        }
-        return from_dict(
-            Transaction, self.post("/api/external/transactions/", data=data)
-        )
+        return self.create_transaction_from_intent(request)
 
     def create_off_ramp_transaction(
-        self, request: CreateOffRampTransactionRequest
+        self, request: TransactionExecuteIntentRequest
     ) -> Transaction:
-        data = {
-            "source": asdict(request.source),
-            "destination": asdict(request.destination),
-            "quoteId": request.quoteId,
-            "category": TransactionCategory.OFF_RAMP.value,
-            "externalId": request.externalId,
-            "memo": request.memo,
-        }
-        return from_dict(
-            Transaction, self.post("/api/external/transactions/", data=data)
-        )
+        return self.create_transaction_from_intent(request)
 
     def get_vaults(
         self,
@@ -419,7 +421,19 @@ class APIClient(BaseAPIClient):
         response = self.post("/api/external/bank_accounts/", data=asdict(request))
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
 
-    def submit_bank_account_approval_action(
-        self, request: GetApprovalRequest
-    ) -> CreateApprovalResponse:
-        return self.initiate_change_approval_action(request)
+    def get_withdraw_addresses(
+        self, request: GetWithdrawAddressesRequest
+    ) -> WithdrawAddressesResponse:
+        response = self.post(
+            "/api/external/vaults/get_withdraw_addresses/",
+            data=asdict(request),
+        )
+        return from_dict(WithdrawAddressesResponse, response)
+
+    def submit_withdrawal_request(
+        self, request: SubmitWithdrawalRequest
+    ) -> dict:
+        return self.post(
+            "/api/external/vaults/submit_withdrawal_request/",
+            data=asdict(request),
+        )
