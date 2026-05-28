@@ -10,6 +10,8 @@ from primevault_python_sdk.types import (
 )
 
 
+# Vault ID that PrimeVault will provide based on the provider you are
+# onboarded for. Replace with the value shared by your PrimeVault contact.
 VAULT_ID = "vault_id"
 
 
@@ -19,10 +21,13 @@ def _trade_intent() -> TransactionIntentRequest:
             type=TransferPartyType.VAULT.value,
             id=VAULT_ID,
         ),
+        destination=TransferPartyData(
+            type=TransferPartyType.VAULT.value,
+            id=VAULT_ID,
+        ),
         fromAsset="USDT",
         fromAmount="100",
         toAsset="USD",
-        fromChain="ETHEREUM",
     )
 
 
@@ -44,6 +49,33 @@ def create_test_trade(api_client: APIClient) -> Transaction:
 
 
 # Create a deposit using intent/create with a direct intent object.
+#
+# The returned Transaction carries `depositInstructions` -- read these to
+# know where to actually send the funds, then call `mark_deposit_done`
+# with the transaction id once the transfer is on its way.
+#
+# Crypto deposit instructions look like:
+#   transaction.depositInstructions = DepositInstructions(
+#       type="EXTERNAL_ADDRESS",
+#       asset="USDT",
+#       blockChain="ETHEREUM",
+#       address="0xRecipientAddressFromPrimeVault",
+#       memo=None,
+#   )
+#
+# Fiat (bank) deposit instructions look like:
+#   transaction.depositInstructions = DepositInstructions(
+#       type="BANK_ACCOUNT",
+#       currency="USD",
+#       paymentRail="ACH",
+#       bankDetails=BankDetails(
+#           bankName="Chase",
+#           accountName="Treasury Account",
+#           accountNumber="123456789",
+#           routingNumber="021000021",
+#           paymentRail="ACH",
+#       ),
+#   )
 def create_deposit(api_client: APIClient) -> Transaction:
     intent = TransactionIntentRequest(
         source=TransferPartyData(
