@@ -145,8 +145,8 @@ class TransferPartyData:
     value: Optional[str] = None
     name: Optional[str] = None
     address: Optional[str] = None
-    exchange: Optional[str] = None
-    bank: Optional[BankDetails] = None
+    provider: Optional[str] = None
+    bankDetails: Optional[BankDetails] = None
 
 
 @dataclass
@@ -223,8 +223,8 @@ class TransactionSourceData:
     id: Optional[str] = None
     name: Optional[str] = None
     address: Optional[str] = None
-    exchange: Optional[str] = None
-    bank: Optional[BankDetails] = None
+    provider: Optional[str] = None
+    bankDetails: Optional[BankDetails] = None
 
 
 @dataclass

@@ -144,8 +144,8 @@ class APIClient(BaseAPIClient):
 
     def estimate_fee(self, request: EstimateFeeRequest) -> EstimatedFeeResponse:
         data = {
-            "source": request.source.__dict__,
-            "destination": request.destination.__dict__,
+            "source": asdict(request.source),
+            "destination": asdict(request.destination),
             "amount": request.amount,
             "asset": request.asset,
             "blockChain": request.chain,
@@ -164,8 +164,8 @@ class APIClient(BaseAPIClient):
             gas_params = request.gasParams.__dict__
 
         data = {
-            "source": request.source.__dict__,
-            "destination": request.destination.__dict__,
+            "source": asdict(request.source),
+            "destination": asdict(request.destination),
             "amount": request.amount,
             "asset": request.asset,
             "blockChain": request.chain,

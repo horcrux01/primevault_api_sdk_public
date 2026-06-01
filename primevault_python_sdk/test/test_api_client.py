@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import os
 import unittest
 from unittest.mock import Mock, call
@@ -9,6 +10,7 @@ from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.base_api_client import BadRequestError
 from primevault_python_sdk.types import (
     ApprovalAction,
+    BankDetails,
     ContactStatus,
     CreateContractCallTransactionRequest,
     CreateTransferTransactionRequest,
@@ -35,10 +37,18 @@ def api_client():
 
 
 def test_intent_request_serialization_matches_backend_contract():
-    source = TransferPartyData(type=TransferPartyType.VAULT.value, id="source-vault")
+    source = TransferPartyData(
+        type=TransferPartyType.VAULT.value,
+        id="source-vault",
+        provider=None,
+    )
     destination = TransferPartyData(
         type=TransferPartyType.BANK_ACCOUNT.value,
         id="destination-bank-account",
+        bankDetails=BankDetails(
+            bankAccountId="destination-bank-account",
+            bankName="Example Bank",
+        ),
     )
     intent = TransactionIntentRequest(
         source=source,
@@ -63,8 +73,8 @@ def test_intent_request_serialization_matches_backend_contract():
     )
 
     expected_intent = {
-        "source": source.__dict__,
-        "destination": destination.__dict__,
+        "source": asdict(source),
+        "destination": asdict(destination),
         "fromAsset": "USDC",
         "toAsset": "USD",
         "fromAmount": "100",
@@ -85,6 +95,24 @@ def test_intent_request_serialization_matches_backend_contract():
     assert "userId" not in quote_payload["intent"]
     assert "orgId" not in execute_payload
     assert "userId" not in execute_payload
+    assert quote_payload["intent"]["source"]["provider"] is None
+    assert "exchange" not in quote_payload["intent"]["source"]
+    assert quote_payload["intent"]["destination"]["bankDetails"] == {
+        "bankAccountId": "destination-bank-account",
+        "bankName": "Example Bank",
+        "beneficiaryName": None,
+        "accountName": None,
+        "accountNumber": None,
+        "routingNumber": None,
+        "paymentRail": None,
+        "bankAddress": None,
+        "swiftCode": None,
+        "swiftBic": None,
+        "iban": None,
+        "currency": None,
+        "country": None,
+    }
+    assert "bank" not in quote_payload["intent"]["destination"]
 
 
 def test_transaction_execute_intent_request_serializes_quote_only_execution():
@@ -113,7 +141,7 @@ def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
                     "quoteId": "quote-id",
                     "finalToAmount": "100",
                     "fees": {"amount": "0", "asset": "NGN"},
-                    "sourceName": "Busha",
+                    "sourceName": None,
                 }
             ]
         }
@@ -137,7 +165,7 @@ def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
     assert quote_response.quotes[0].quoteId == "quote-id"
     assert quote_response.quotes[0].finalToAmount == "100"
     assert quote_response.quotes[0].fees.amount == "0"
-    assert quote_response.quotes[0].sourceName == "Busha"
+    assert quote_response.quotes[0].sourceName is None
 
 
 def test_change_approval_helpers_fetch_message_sign_and_submit_action():
@@ -279,7 +307,7 @@ def test_transaction_parses_deposit_instructions():
         "paymentRail": "WIRE",
         "bankDetails": {
             "beneficiaryName": "PrimeVault Treasury",
-            "bankName": "PrimeVault National Bank",
+            "bankName": "Example Bank",
             "accountNumber": "000123456789",
             "routingNumber": "021000021",
             "swiftCode": "PNVBUS33",
@@ -298,6 +326,19 @@ def test_transaction_parses_deposit_instructions():
             "createdAt": "2026-05-25T00:00:00Z",
             "updatedAt": "2026-05-25T00:00:00Z",
             "isDeleted": False,
+            "source": {
+                "type": TransferPartyType.VAULT.value,
+                "id": "vault-id",
+                "provider": None,
+            },
+            "destination": {
+                "type": TransferPartyType.BANK_ACCOUNT.value,
+                "id": "destination-bank-account",
+                "bankDetails": {
+                    "bankName": "Example Bank",
+                    "accountNumber": "000123456789",
+                },
+            },
             "depositInstructions": deposit_instructions,
             "quoteResponse": {
                 "quoteId": "quote-id",
@@ -320,12 +361,17 @@ def test_transaction_parses_deposit_instructions():
     assert transaction.quoteResponse is not None
     assert transaction.quoteResponse.quoteId == "quote-id"
     assert transaction.quoteResponse.finalToAmount == "100"
+    assert transaction.source is not None
+    assert transaction.source.provider is None
+    assert transaction.destination is not None
+    assert transaction.destination.bankDetails is not None
+    assert transaction.destination.bankDetails.bankName == "Example Bank"
     assert transaction.depositInstructions.currency == "NGN"
     assert transaction.depositInstructions.paymentRail == "WIRE"
     assert transaction.depositInstructions.bankDetails is not None
     assert transaction.depositInstructions.bankDetails.accountNumber == "000123456789"
     assert transaction.depositInstructions.bankDetails.bankName == (
-        "PrimeVault National Bank"
+        "Example Bank"
     )
 
 

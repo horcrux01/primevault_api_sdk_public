@@ -95,7 +95,7 @@ def create_deposit(api_client: APIClient) -> Transaction:
             intent=intent,
             quoteId=None,
             externalId="deposit-001",
-            memo="USDT deposit from Circle",
+            memo="USDT deposit from external account",
         )
     )
 
