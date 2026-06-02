@@ -41,8 +41,8 @@ def create_transfer_transaction(api_client: APIClient):
         type=TransferPartyType.CONTACT.value, id=destination_contacts.results[0].id
     )
     """
-    To send the transaction to an external whitelisted address, change the type and set the value
-    const destination: TransferPartyData = TransferPartyData(type=TransferPartyType.EXTERNAL_ADDRESS.value, value='0x123456789..');
+    To send the transaction to an external whitelisted address, change the type and set the address
+    const destination: TransferPartyData = TransferPartyData(type=TransferPartyType.EXTERNAL_ADDRESS.value, address='0x123456789..');
 
     Optional fee estimate API which returns the expected fee for different tiers, HIGH, MEDIUM, LOW.
     Default is HIGH. The feeTier is passed in gasParams argument while creating the transfer transaction.

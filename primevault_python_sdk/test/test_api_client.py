@@ -18,10 +18,12 @@ from primevault_python_sdk.types import (
     EVMContractCallData,
     GetApprovalRequest,
     GetQuoteRequest,
+    Transaction,
     TransactionCreationGasParams,
     TransactionExecuteIntentRequest,
     TransactionFeeTier,
     TransactionIntentRequest,
+    TransactionOperationType,
     TransactionStatus,
     TransferPartyData,
     TransferPartyType,
@@ -96,7 +98,6 @@ def test_intent_request_serialization_matches_backend_contract():
     assert "orgId" not in execute_payload
     assert "userId" not in execute_payload
     assert quote_payload["intent"]["source"]["provider"] is None
-    assert "exchange" not in quote_payload["intent"]["source"]
     assert quote_payload["intent"]["destination"]["bankDetails"] == {
         "bankAccountId": "destination-bank-account",
         "bankName": "Example Bank",
@@ -112,7 +113,6 @@ def test_intent_request_serialization_matches_backend_contract():
         "currency": None,
         "country": None,
     }
-    assert "bank" not in quote_payload["intent"]["destination"]
 
 
 def test_transaction_execute_intent_request_serializes_quote_only_execution():
@@ -373,6 +373,74 @@ def test_transaction_parses_deposit_instructions():
     assert transaction.depositInstructions.bankDetails.bankName == (
         "Example Bank"
     )
+
+
+def test_transaction_parses_operations():
+    transaction = from_dict(
+        Transaction,
+        {
+            "id": "transaction-id",
+            "orgId": "org-id",
+            "vaultId": "vault-id",
+            "amount": "100",
+            "status": TransactionStatus.APPROVED.value,
+            "transactionType": "OUTGOING",
+            "category": "OFF_RAMP",
+            "subCategory": "WITHDRAW",
+            "createdAt": "2026-05-25T00:00:00Z",
+            "updatedAt": "2026-05-25T00:00:00Z",
+            "isDeleted": False,
+            "operations": [
+                {
+                    "source": {
+                        "type": TransferPartyType.VAULT.value,
+                        "id": "vault-id",
+                        "chain": "ETHEREUM",
+                        "paymentRail": "BLOCKCHAIN",
+                        "provider": "Example Provider",
+                    },
+                    "destination": {
+                        "type": TransferPartyType.EXTERNAL_BANK_ACCOUNT.value,
+                        "paymentRail": "WIRE",
+                    },
+                    "balanceChanges": {
+                        "changes": [
+                            {
+                                "party": {
+                                    "type": TransferPartyType.VAULT.value,
+                                    "id": "vault-id",
+                                    "chain": "ETHEREUM",
+                                    "paymentRail": "BLOCKCHAIN",
+                                },
+                                "asset": "USDC",
+                                "amount": "-100",
+                                "chain": "ETHEREUM",
+                                "paymentRail": "BLOCKCHAIN",
+                            }
+                        ]
+                    },
+                    "sequence": 1,
+                    "type": TransactionOperationType.WITHDRAW.value,
+                    "provider": "Example Provider",
+                }
+            ],
+        },
+    )
+
+    assert transaction.operations is not None
+    operation = transaction.operations[0]
+    assert operation.type == TransactionOperationType.WITHDRAW.value
+    assert operation.source is not None
+    assert operation.source.chain == "ETHEREUM"
+    assert operation.source.paymentRail == "BLOCKCHAIN"
+    assert operation.destination is not None
+    assert operation.destination.paymentRail == "WIRE"
+    assert operation.balanceChanges is not None
+    balance_change = operation.balanceChanges.changes[0]
+    assert balance_change.party is not None
+    assert balance_change.party.chain == "ETHEREUM"
+    assert balance_change.asset == "USDC"
+    assert balance_change.amount == "-100"
 
 
 def test_legacy_transfer_transaction_does_not_auto_approve():

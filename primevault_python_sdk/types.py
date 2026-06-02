@@ -77,6 +77,13 @@ class TransactionFeeTier(str, Enum):
     LOW = "LOW"
 
 
+class TransactionOperationType(str, Enum):
+    DEPOSIT = "DEPOSIT"
+    TRADE = "TRADE"
+    TRANSFER = "TRANSFER"
+    WITHDRAW = "WITHDRAW"
+
+
 @dataclass
 class TransactionCreationGasParams:
     feeTier: Optional[str] = None  # TransactionFeeTier
@@ -142,11 +149,12 @@ class DepositInstructions:
 class TransferPartyData:
     type: str  # TransferPartyType
     id: Optional[str] = None
-    value: Optional[str] = None
     name: Optional[str] = None
     address: Optional[str] = None
     provider: Optional[str] = None
     bankDetails: Optional[BankDetails] = None
+    chain: Optional[str] = None
+    paymentRail: Optional[str] = None
 
 
 @dataclass
@@ -225,6 +233,32 @@ class TransactionSourceData:
     address: Optional[str] = None
     provider: Optional[str] = None
     bankDetails: Optional[BankDetails] = None
+    chain: Optional[str] = None
+    paymentRail: Optional[str] = None
+
+
+@dataclass
+class TransactionOperationBalanceChange:
+    party: Optional[TransferPartyData]
+    asset: str
+    amount: str
+    chain: Optional[str] = None
+    paymentRail: Optional[str] = None
+
+
+@dataclass
+class TransactionOperationBalanceChanges:
+    changes: List[TransactionOperationBalanceChange]
+
+
+@dataclass
+class TransactionOperation:
+    source: Optional[TransferPartyData]
+    destination: Optional[TransferPartyData]
+    balanceChanges: Optional[TransactionOperationBalanceChanges]
+    sequence: int
+    type: str  # TransactionOperationType
+    provider: Optional[str] = None
 
 
 @dataclass
@@ -292,6 +326,7 @@ class Transaction:
     intent: Optional[TransactionIntentRequest] = None
     quoteResponse: Optional["QuoteResponseItem"] = None
     depositInstructions: Optional[DepositInstructions] = None
+    operations: Optional[List[TransactionOperation]] = None
 
 
 # Requests
