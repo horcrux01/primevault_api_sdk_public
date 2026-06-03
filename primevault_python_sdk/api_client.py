@@ -229,10 +229,6 @@ class APIClient(BaseAPIClient):
         }
 
     @staticmethod
-    def _quote_request_data(request: GetQuoteRequest) -> dict[str, Any]:
-        return {"intent": APIClient._transaction_intent_data(request.intent)}
-
-    @staticmethod
     def _transaction_execute_intent_request_data(
         request: TransactionExecuteIntentRequest,
     ) -> dict[str, Any]:
@@ -248,9 +244,15 @@ class APIClient(BaseAPIClient):
         }
 
     def get_quote(self, request: GetQuoteRequest) -> QuoteResponse:
+        intent_data = self._transaction_intent_data(request.intent)
+        if request.intent.routeAccounts is not None:
+            intent_data["routeAccounts"] = [
+                asdict(route_account) for route_account in request.intent.routeAccounts
+            ]
+
         response = self.post(
             "/api/external/transactions/quote/",
-            data=self._quote_request_data(request),
+            data={"intent": intent_data},
         )
         return from_dict(QuoteResponse, response)
 

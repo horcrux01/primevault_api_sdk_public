@@ -262,9 +262,16 @@ class TransactionOperation:
 
 
 @dataclass
+class RouteAccountData:
+    provider: str
+    id: str
+
+
+@dataclass
 class TransactionIntentRequest:
     source: Optional[TransferPartyData] = None
     destination: Optional[TransferPartyData] = None
+    routeAccounts: Optional[List[RouteAccountData]] = None
     fromAsset: Optional[str] = None
     fromAmount: Optional[str] = None
     fromChain: Optional[str] = None

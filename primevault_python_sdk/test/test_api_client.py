@@ -18,6 +18,7 @@ from primevault_python_sdk.types import (
     EVMContractCallData,
     GetApprovalRequest,
     GetQuoteRequest,
+    RouteAccountData,
     Transaction,
     TransactionCreationGasParams,
     TransactionExecuteIntentRequest,
@@ -39,6 +40,17 @@ def api_client():
 
 
 def test_intent_request_serialization_matches_backend_contract():
+    client = object.__new__(APIClient)
+    client.post = Mock(
+        return_value={
+            "quotes": [
+                {
+                    "quoteId": "quote-id",
+                }
+            ]
+        }
+    )
+
     source = TransferPartyData(
         type=TransferPartyType.VAULT.value,
         id="source-vault",
@@ -55,6 +67,9 @@ def test_intent_request_serialization_matches_backend_contract():
     intent = TransactionIntentRequest(
         source=source,
         destination=destination,
+        routeAccounts=[
+            RouteAccountData(provider="provider-key", id="provider-linked-vault-id")
+        ],
         fromAsset="USDC",
         toAsset="USD",
         fromAmount="100",
@@ -64,7 +79,8 @@ def test_intent_request_serialization_matches_backend_contract():
         toPaymentRail="ACH",
     )
 
-    quote_payload = APIClient._quote_request_data(GetQuoteRequest(intent=intent))
+    quote_response = client.get_quote(GetQuoteRequest(intent=intent))
+    quote_payload = client.post.call_args.kwargs["data"]
     execute_payload = APIClient._transaction_execute_intent_request_data(
         TransactionExecuteIntentRequest(
             intent=intent,
@@ -86,13 +102,21 @@ def test_intent_request_serialization_matches_backend_contract():
         "toChain": None,
         "toPaymentRail": "ACH",
     }
-    assert quote_payload == {"intent": expected_intent}
+    expected_quote_intent = {
+        **expected_intent,
+        "routeAccounts": [
+            {"provider": "provider-key", "id": "provider-linked-vault-id"}
+        ],
+    }
+    assert quote_payload == {"intent": expected_quote_intent}
+    assert quote_response.quotes[0].quoteId == "quote-id"
     assert execute_payload == {
         "intent": expected_intent,
         "quoteId": "quote-id",
         "externalId": "external-id",
         "memo": "memo",
     }
+    assert "routeAccounts" not in execute_payload["intent"]
     assert "orgId" not in quote_payload["intent"]
     assert "userId" not in quote_payload["intent"]
     assert "orgId" not in execute_payload
