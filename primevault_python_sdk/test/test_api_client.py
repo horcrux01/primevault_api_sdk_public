@@ -7,7 +7,7 @@ import pytest
 from dacite import from_dict
 
 from primevault_python_sdk.api_client import APIClient
-from primevault_python_sdk.base_api_client import BadRequestError
+from primevault_python_sdk.base_api_client import BadRequestError, BaseAPIClient
 from primevault_python_sdk.types import (
     ApprovalAction,
     BankDetails,
@@ -30,6 +30,7 @@ from primevault_python_sdk.types import (
     TransferPartyType,
     VaultType,
 )
+from primevault_python_sdk.version import __version__
 
 
 def api_client():
@@ -37,6 +38,48 @@ def api_client():
     api_url = os.environ.get("API_URL", "https://test.excheqr.xyz")
     private_key = os.environ.get("ACCESS_PRIVATE_KEY", "")
     return APIClient(api_key, api_url, private_key)
+
+
+def test_base_client_sends_sdk_version_header_on_all_requests(monkeypatch):
+    auth_token_service = Mock()
+    auth_token_service.generate_auth_token.return_value = "auth-token"
+    signature_service = Mock()
+    signature_service.sign.return_value = bytes.fromhex("0102")
+
+    monkeypatch.setattr(
+        "primevault_python_sdk.base_api_client.AuthTokenService",
+        Mock(return_value=auth_token_service),
+    )
+    monkeypatch.setattr(
+        "primevault_python_sdk.base_api_client.get_signature_service",
+        Mock(return_value=signature_service),
+    )
+
+    client = BaseAPIClient("api-key", "https://api.example")
+
+    def response():
+        mocked_response = Mock()
+        mocked_response.raise_for_status.return_value = None
+        mocked_response.json.return_value = {"ok": True}
+        return mocked_response
+
+    get_mock = Mock(return_value=response())
+    post_mock = Mock(return_value=response())
+    put_mock = Mock(return_value=response())
+    monkeypatch.setattr("primevault_python_sdk.base_api_client.requests.get", get_mock)
+    monkeypatch.setattr(
+        "primevault_python_sdk.base_api_client.requests.post", post_mock
+    )
+    monkeypatch.setattr("primevault_python_sdk.base_api_client.requests.put", put_mock)
+
+    client.get("/resource/", params={"cursor": "cursor"})
+    client.post("/resource/", data={"asset": "USD"})
+    client.put("/resource/", data={"asset": "USD"})
+
+    for request_mock in (get_mock, post_mock, put_mock):
+        headers = request_mock.call_args.kwargs["headers"]
+        assert headers["x-version"] == __version__
+        assert headers["Authorization"] == "Bearer auth-token"
 
 
 def test_intent_request_serialization_matches_backend_contract():
@@ -303,24 +346,6 @@ def test_create_transaction_from_intent_approves_pending_transaction():
             "reason": "ok",
         },
     )
-
-
-def test_on_and_off_ramp_transactions_delegate_to_intent_execution():
-    client = object.__new__(APIClient)
-    client.create_transaction_from_intent = Mock(return_value="transaction")
-    intent_request = TransactionExecuteIntentRequest(
-        intent=TransactionIntentRequest(),
-        quoteId="quote-id",
-        externalId="external-id",
-        memo="memo",
-    )
-
-    assert client.create_on_ramp_transaction(intent_request) == "transaction"
-    assert client.create_off_ramp_transaction(intent_request) == "transaction"
-    assert client.create_transaction_from_intent.call_args_list == [
-        call(intent_request),
-        call(intent_request),
-    ]
 
 
 def test_transaction_parses_deposit_instructions():

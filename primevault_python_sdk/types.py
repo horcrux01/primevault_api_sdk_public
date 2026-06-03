@@ -512,21 +512,6 @@ class QuoteResponse:
 
 
 @dataclass
-class DepositAddress:
-    address: Optional[str] = None
-    id: Optional[Union[int, str]] = None
-    label: Optional[str] = None
-    chain: Optional[str] = None
-    chainName: Optional[str] = None
-    asset: Optional[str] = None
-
-
-@dataclass
-class DepositAddressResponse:
-    addresses: List[DepositAddress]
-
-
-@dataclass
 class VaultListResponse:
     results: List[Vault]
     nextCursor: Optional[str] = None
@@ -633,27 +618,6 @@ DetailedBalanceResponse = List[DetailedBalance]
     }
 ]
 """
-
-
-@dataclass
-class WithdrawAddress:
-    id: Optional[int] = None
-    address: Optional[str] = None
-    token: Optional[str] = None
-    network: Optional[str] = None
-    network_name: Optional[str] = None
-    label: Optional[str] = None
-
-
-@dataclass
-class WithdrawAddressesResponse:
-    addresses: List[WithdrawAddress]
-
-
-@dataclass
-class GetWithdrawAddressesRequest:
-    source: TransferPartyData
-    currency: Optional[str] = None
 
 
 @dataclass

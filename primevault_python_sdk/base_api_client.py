@@ -7,6 +7,7 @@ import requests  # type: ignore
 from primevault_python_sdk.auth_token_service import AuthTokenService
 from primevault_python_sdk.signature_service import get_signature_service
 from primevault_python_sdk.utils import json_dumps
+from primevault_python_sdk.version import __version__
 
 
 class BaseAPIClient(object):
@@ -23,6 +24,7 @@ class BaseAPIClient(object):
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Api-Key": self.api_key,
+            "x-version": __version__,
         }
         self.auth_token_service = AuthTokenService(
             self.api_key, private_key_hex, key_id
