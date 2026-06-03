@@ -339,7 +339,7 @@ class Transaction:
 
 
 @dataclass
-class GetApprovalResponse:
+class GetApprovalMessageResponse:
     message: str
     approvalId: str
 
@@ -617,11 +617,3 @@ DetailedBalanceResponse = List[DetailedBalance]
     }
 ]
 """
-
-
-@dataclass
-class SubmitWithdrawalRequest:
-    source: TransferPartyData
-    destination: TransferPartyData
-    asset: str
-    amount: str

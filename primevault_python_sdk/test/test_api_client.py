@@ -16,6 +16,7 @@ from primevault_python_sdk.types import (
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     EVMContractCallData,
+    GetApprovalMessageResponse,
     GetApprovalRequest,
     GetQuoteRequest,
     RouteAccountData,
@@ -254,6 +255,7 @@ def test_change_approval_helpers_fetch_message_sign_and_submit_action():
     client.signature_service.sign.return_value = bytes.fromhex("deadbeef")
 
     approval_message = client.get_change_approval_message("entity-id")
+    assert isinstance(approval_message, GetApprovalMessageResponse)
     assert approval_message.message == "message-to-sign"
     assert approval_message.approvalId == "approval-id"
     client.get.assert_called_once_with(

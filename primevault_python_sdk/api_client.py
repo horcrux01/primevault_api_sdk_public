@@ -24,11 +24,10 @@ from primevault_python_sdk.types import (
     EstimatedFeeResponse,
     EstimateFeeRequest,
     GetApprovalRequest,
-    GetApprovalResponse,
+    GetApprovalMessageResponse,
     GetQuoteRequest,
     QuoteResponse,
     ReplaceTransactionRequest,
-    SubmitWithdrawalRequest,
     Transaction,
     TransactionExecuteIntentRequest,
     TransactionIntentRequest,
@@ -75,12 +74,12 @@ class APIClient(BaseAPIClient):
             Transaction, self.get(f"/api/external/transactions/{transaction_id}/")
         )
 
-    def get_change_approval_message(self, entity_id: str) -> GetApprovalResponse:
+    def get_change_approval_message(self, entity_id: str) -> GetApprovalMessageResponse:
         data = {
             "entityId": entity_id,
         }
         return from_dict(
-            GetApprovalResponse,
+            GetApprovalMessageResponse,
             self.get(
                 "/api/external/change_requests/approvals/approval_message/", params=data
             ),
@@ -396,11 +395,3 @@ class APIClient(BaseAPIClient):
     def create_bank_account(self, request: CreateBankAccountRequest) -> BankAccount:
         response = self.post("/api/external/bank_accounts/", data=asdict(request))
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
-
-    def submit_withdrawal_request(
-        self, request: SubmitWithdrawalRequest
-    ) -> dict:
-        return self.post(
-            "/api/external/vaults/submit_withdrawal_request/",
-            data=asdict(request),
-        )
