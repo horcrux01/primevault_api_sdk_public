@@ -58,9 +58,8 @@ def create_test_trade(api_client: APIClient) -> Transaction:
 #   transaction.depositInstructions = DepositInstructions(
 #       type="EXTERNAL_ADDRESS",
 #       asset="USDT",
-#       blockChain="ETHEREUM",
+#       chain="ETHEREUM",
 #       address="0xRecipientAddressFromPrimeVault",
-#       memo=None,
 #   )
 #
 # Fiat (bank) deposit instructions look like:

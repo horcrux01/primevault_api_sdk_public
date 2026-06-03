@@ -78,7 +78,7 @@ def test_base_client_sends_sdk_version_header_on_all_requests(monkeypatch):
 
     for request_mock in (get_mock, post_mock, put_mock):
         headers = request_mock.call_args.kwargs["headers"]
-        assert headers["x-version"] == __version__
+        assert headers["version"] == __version__
         assert headers["Authorization"] == "Bearer auth-token"
 
 
@@ -351,16 +351,10 @@ def test_create_transaction_from_intent_approves_pending_transaction():
 def test_transaction_parses_deposit_instructions():
     client = object.__new__(APIClient)
     deposit_instructions = {
-        "type": TransferPartyType.EXTERNAL_BANK_ACCOUNT.value,
-        "currency": "NGN",
-        "paymentRail": "WIRE",
-        "bankDetails": {
-            "beneficiaryName": "PrimeVault Treasury",
-            "bankName": "Example Bank",
-            "accountNumber": "000123456789",
-            "routingNumber": "021000021",
-            "swiftCode": "PNVBUS33",
-        },
+        "type": TransferPartyType.EXTERNAL_ADDRESS.value,
+        "asset": "USDT",
+        "chain": "ETHEREUM",
+        "address": "0xRecipientAddressFromPrimeVault",
     }
     client.post = Mock(
         return_value={
@@ -405,7 +399,7 @@ def test_transaction_parses_deposit_instructions():
 
     assert transaction.depositInstructions is not None
     assert transaction.depositInstructions.type == (
-        TransferPartyType.EXTERNAL_BANK_ACCOUNT.value
+        TransferPartyType.EXTERNAL_ADDRESS.value
     )
     assert transaction.quoteResponse is not None
     assert transaction.quoteResponse.quoteId == "quote-id"
@@ -415,13 +409,10 @@ def test_transaction_parses_deposit_instructions():
     assert transaction.destination is not None
     assert transaction.destination.bankDetails is not None
     assert transaction.destination.bankDetails.bankName == "Example Bank"
-    assert transaction.depositInstructions.currency == "NGN"
-    assert transaction.depositInstructions.paymentRail == "WIRE"
-    assert transaction.depositInstructions.bankDetails is not None
-    assert transaction.depositInstructions.bankDetails.accountNumber == "000123456789"
-    assert transaction.depositInstructions.bankDetails.bankName == (
-        "Example Bank"
-    )
+    assert transaction.depositInstructions.asset == "USDT"
+    assert transaction.depositInstructions.chain == "ETHEREUM"
+    assert transaction.depositInstructions.address == "0xRecipientAddressFromPrimeVault"
+    assert transaction.depositInstructions.bankDetails is None
 
 
 def test_transaction_parses_operations():

@@ -141,8 +141,7 @@ class DepositInstructions:
     bankDetails: Optional[BankDetails] = None
     asset: Optional[str] = None
     address: Optional[str] = None
-    blockChain: Optional[str] = None
-    memo: Optional[str] = None
+    chain: Optional[str] = None
 
 
 @dataclass
@@ -354,7 +353,7 @@ class GetApprovalRequest:
 
 
 @dataclass
-class CreateApprovalResponse:
+class ApprovalActionResponse:
     success: bool
 
 

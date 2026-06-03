@@ -13,7 +13,7 @@ from primevault_python_sdk.types import (
     ChainData,
     Contact,
     ContactListResponse,
-    CreateApprovalResponse,
+    ApprovalActionResponse,
     CreateBankAccountRequest,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
@@ -92,7 +92,7 @@ class APIClient(BaseAPIClient):
         action: str,
         signature_hex: str,
         reason: Optional[str] = "ok",
-    ) -> CreateApprovalResponse:
+    ) -> ApprovalActionResponse:
         approval_request = {
             "action": action,
             "signature": signature_hex,
@@ -101,7 +101,7 @@ class APIClient(BaseAPIClient):
             approval_request["reason"] = reason
 
         return from_dict(
-            CreateApprovalResponse,
+            ApprovalActionResponse,
             self.post(
                 f"/api/external/change_requests/approvals/{approval_id}/action/",
                 data=approval_request,
@@ -111,7 +111,7 @@ class APIClient(BaseAPIClient):
     def approve_change_request(
         self,
         request: GetApprovalRequest,
-    ) -> CreateApprovalResponse:
+    ) -> ApprovalActionResponse:
         """Approve or reject the pending change request for any supported entity."""
         approval_message = self.get_change_approval_message(request.entityId)
         signature_hex = self.signature_service.sign(

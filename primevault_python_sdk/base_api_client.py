@@ -24,7 +24,7 @@ class BaseAPIClient(object):
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Api-Key": self.api_key,
-            "x-version": __version__,
+            "version": __version__,
         }
         self.auth_token_service = AuthTokenService(
             self.api_key, private_key_hex, key_id
