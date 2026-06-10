@@ -84,6 +84,11 @@ class TransactionOperationType(str, Enum):
     WITHDRAW = "WITHDRAW"
 
 
+class WebhookEventType(str, Enum):
+    TRANSACTION_STATUS_CHANGED = "TRANSACTION_STATUS_CHANGED"
+    TRANSACTION_OPERATION_STATUS_CHANGED = "TRANSACTION_OPERATION_STATUS_CHANGED"
+
+
 @dataclass
 class TransactionCreationGasParams:
     feeTier: Optional[str] = None  # TransactionFeeTier
@@ -308,31 +313,30 @@ class Transaction:
     updatedAt: str
     isDeleted: bool
     # Optional fields
-    blockChain: Optional[str] = None
-    toAddress: Optional[str] = None
-    asset: Optional[str] = None
-    toAddressName: Optional[str] = None
-    createdById: Optional[str] = None
     txHash: Optional[str] = None
     error: Optional[str] = None
-    toVaultId: Optional[str] = None
     externalId: Optional[str] = None
-    gasParams: Optional[Dict[str, Any]] = None
+    createdById: Optional[str] = None
+    fees: Optional["Fees"] = None
     memo: Optional[str] = None
-    source: Optional[TransactionSourceData] = None
-    sourceAddress: Optional[str] = None
     txnSignature: Optional[str] = None
     txnSignatureData: Optional[dict] = None
     output: Optional[TransactionOutput] = None
-    dAppId: Optional[str] = None
-    operationId: Optional[str] = None
     amountInUSD: Optional[str] = None
     nonce: Optional[int] = None
+    dAppId: Optional[str] = None
+    source: Optional[TransactionSourceData] = None
     destination: Optional[TransactionSourceData] = None
     intent: Optional[TransactionIntentRequest] = None
     quoteResponse: Optional["QuoteResponseItem"] = None
     depositInstructions: Optional[DepositInstructions] = None
     operations: Optional[List[TransactionOperation]] = None
+    blockChain: Optional[str] = None
+    toAddress: Optional[str] = None  # deprecated, use destination.address instead
+    asset: Optional[str] = None
+    toAddressName: Optional[str] = None  # deprecated, use destination.name instead
+    toVaultId: Optional[str] = None  # deprecated, use destination.id instead
+    sourceAddress: Optional[str] = None  # deprecated, use source.address instead
 
 
 # Requests
@@ -493,6 +497,7 @@ class EstimatedFeeResponse:
 class Fees:
     amount: str
     asset: str
+    amountInFiat: Optional[str] = None
 
 
 @dataclass
@@ -617,3 +622,20 @@ DetailedBalanceResponse = List[DetailedBalance]
     }
 ]
 """
+
+
+# Webhooks
+
+
+@dataclass
+class WebhookEventData:
+    transaction: Optional[Transaction] = None
+    transactionOperation: Optional[TransactionOperation] = None
+
+
+@dataclass
+class WebhookEvent:
+    event: str  # WebhookEventType
+    version: str  # "2.0.0"
+    eventId: str
+    data: WebhookEventData

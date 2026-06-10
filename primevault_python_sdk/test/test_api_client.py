@@ -16,6 +16,7 @@ from primevault_python_sdk.types import (
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     EVMContractCallData,
+    Fees,
     GetApprovalMessageResponse,
     GetApprovalRequest,
     GetQuoteRequest,
@@ -742,11 +743,10 @@ class TestApiClient(unittest.TestCase):
             "0x1feDDa0D98c5B4FDEbde9342d3db6Eff284B0d18",
         )
         self.assertIsNone(transaction.memo)
-        self.assertIsInstance(transaction.gasParams, dict)
-        self.assertEqual(
-            transaction.gasParams.get("expectedGasFeeInToken"), "0.00055509"
-        )
-        self.assertEqual(transaction.gasParams.get("gasFeeToken"), "ETH")
+        self.assertIsNotNone(transaction.fees)
+        self.assertIsInstance(transaction.fees, Fees)
+        self.assertEqual(transaction.fees.amount, "0.00055509")
+        self.assertEqual(transaction.fees.asset, "ETH")
 
     def test_create_contract_call_transaction(self):
         vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
