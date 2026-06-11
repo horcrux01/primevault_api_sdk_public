@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from dacite import Config, from_dict
 
@@ -295,6 +295,19 @@ class APIClient(BaseAPIClient):
             Vault, self.post("/api/external/vaults/", data=request.__dict__)
         )
 
+    def create_vault_approval(self, vault: Vault) -> Vault:
+        self.approve_change_request(
+            GetApprovalRequest(
+                entityId=vault.id,
+                action=ApprovalAction.APPROVE.value,
+            )
+        )
+        return self.get_vault_by_id(vault.id)
+
+    def create_vault_with_approval(self, request: CreateVaultRequest) -> Vault:
+        vault = self.create_vault(request)
+        return self.create_vault_approval(vault)
+
     def get_balances(self, vault_id: str) -> BalanceResponse:
         return self.get(f"/api/external/vaults/{vault_id}/balances/")
 
@@ -354,16 +367,37 @@ class APIClient(BaseAPIClient):
             "tags": request.tags,
             "externalId": request.externalId,
             "assetList": request.assetList if request.assetList else [],
+            "contactGroupIds": request.contactGroupIds,
         }
         response = self.post("/api/external/contacts/", data=data)
         return from_dict(Contact, response)
 
+    def create_contact_approval(
+        self, contact: Union[Contact, UpdateContactResponse]
+    ) -> Contact:
+        self.approve_change_request(
+            GetApprovalRequest(
+                entityId=contact.id,
+                action=ApprovalAction.APPROVE.value,
+            )
+        )
+        return self.get_contact_by_id(contact.id)
+
+    def create_contact_with_approval(self, request: CreateContactRequest) -> Contact:
+        contact = self.create_contact(request)
+        return self.create_contact_approval(contact)
+
     def update_contact(self, request: UpdateContactRequest) -> UpdateContactResponse:
         data = {
             "assetList": request.assetList if request.assetList else [],
+            "contactGroupIds": request.contactGroupIds,
         }
         response = self.put(f"/api/external/contacts/{request.id}/", data=data)
         return from_dict(UpdateContactResponse, response)
+
+    def update_contact_with_approval(self, request: UpdateContactRequest) -> Contact:
+        updated = self.update_contact(request)
+        return self.create_contact_approval(updated)
 
     # Bank Account Methods
 
@@ -395,3 +429,18 @@ class APIClient(BaseAPIClient):
     def create_bank_account(self, request: CreateBankAccountRequest) -> BankAccount:
         response = self.post("/api/external/bank_accounts/", data=asdict(request))
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
+
+    def create_bank_account_approval(self, bank_account: BankAccount) -> BankAccount:
+        self.approve_change_request(
+            GetApprovalRequest(
+                entityId=bank_account.id,
+                action=ApprovalAction.APPROVE.value,
+            )
+        )
+        return self.get_bank_account_by_id(bank_account.id)
+
+    def create_bank_account_with_approval(
+        self, request: CreateBankAccountRequest
+    ) -> BankAccount:
+        bank_account = self.create_bank_account(request)
+        return self.create_bank_account_approval(bank_account)

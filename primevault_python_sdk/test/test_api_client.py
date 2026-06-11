@@ -12,6 +12,8 @@ from primevault_python_sdk.types import (
     ApprovalAction,
     BankDetails,
     ContactStatus,
+    CreateBankAccountRequest,
+    CreateContactRequest,
     CreateContractCallTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
@@ -30,6 +32,7 @@ from primevault_python_sdk.types import (
     TransactionStatus,
     TransferPartyData,
     TransferPartyType,
+    UpdateContactRequest,
     VaultType,
 )
 from primevault_python_sdk.version import __version__
@@ -340,6 +343,274 @@ def test_create_transaction_from_intent_approves_pending_transaction():
             params={"entityId": "transaction-id"},
         ),
         call("/api/external/transactions/transaction-id/"),
+    ]
+    assert client.post.call_args_list[1] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_create_vault_with_approval():
+    client = object.__new__(APIClient)
+    vault_response = {
+        "id": "vault-id",
+        "orgId": "org-id",
+        "vaultName": "Treasury",
+        "vaultType": VaultType.DEFAULT.value,
+        "signers": [],
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+        "walletsGenerated": False,
+    }
+    client.post = Mock(
+        side_effect=[
+            vault_response,
+            {"success": True},
+        ]
+    )
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            {**vault_response, "walletsGenerated": True},
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    vault = client.create_vault_with_approval(
+        CreateVaultRequest(
+            vaultName="Treasury",
+            vaultGroupIds=["group-1", "group-2"],
+        )
+    )
+
+    assert vault.id == "vault-id"
+    assert vault.walletsGenerated is True
+    assert client.post.call_args_list[0] == call(
+        "/api/external/vaults/",
+        data={
+            "vaultName": "Treasury",
+            "templateId": None,
+            "chains": None,
+            "testNetVault": None,
+            "vaultGroupIds": ["group-1", "group-2"],
+        },
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "vault-id"},
+        ),
+        call("/api/external/vaults/vault-id/"),
+    ]
+    assert client.post.call_args_list[1] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_create_contact_with_approval():
+    client = object.__new__(APIClient)
+    contact_response = {
+        "id": "contact-id",
+        "orgId": "org-id",
+        "name": "USDT/USDC Contact",
+        "blockChain": "ETHEREUM",
+        "address": "0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+        "status": ContactStatus.PENDING.value,
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+        "assetList": ["USDT", "USDC"],
+    }
+    client.post = Mock(
+        side_effect=[
+            contact_response,
+            {"success": True},
+        ]
+    )
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            {**contact_response, "status": ContactStatus.APPROVED.value},
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    contact = client.create_contact_with_approval(
+        CreateContactRequest(
+            name="USDT/USDC Contact",
+            address="0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+            chain="ETHEREUM",
+            assetList=["USDT", "USDC"],
+            contactGroupIds=["contact-group-1"],
+        )
+    )
+
+    assert contact.id == "contact-id"
+    assert contact.status == ContactStatus.APPROVED.value
+    assert client.post.call_args_list[0] == call(
+        "/api/external/contacts/",
+        data={
+            "name": "USDT/USDC Contact",
+            "address": "0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+            "blockChain": "ETHEREUM",
+            "tags": None,
+            "externalId": None,
+            "assetList": ["USDT", "USDC"],
+            "contactGroupIds": ["contact-group-1"],
+        },
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "contact-id"},
+        ),
+        call("/api/external/contacts/contact-id/"),
+    ]
+    assert client.post.call_args_list[1] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_update_contact_with_approval():
+    client = object.__new__(APIClient)
+    update_response = {
+        "id": "contact-id",
+        "name": "USDT/USDC Contact",
+        "address": "0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+        "blockChain": "ETHEREUM",
+        "assetList": ["USDT"],
+    }
+    refetched_contact = {
+        "id": "contact-id",
+        "orgId": "org-id",
+        "name": "USDT/USDC Contact",
+        "blockChain": "ETHEREUM",
+        "address": "0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+        "status": ContactStatus.APPROVED.value,
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+        "assetList": ["USDT"],
+    }
+    client.put = Mock(return_value=update_response)
+    client.post = Mock(return_value={"success": True})
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            refetched_contact,
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    updated = client.update_contact_with_approval(
+        UpdateContactRequest(
+            id="contact-id",
+            assetList=["USDT"],
+            contactGroupIds=[],
+        )
+    )
+
+    assert updated.id == "contact-id"
+    assert updated.status == ContactStatus.APPROVED.value
+    assert updated.assetList == ["USDT"]
+    assert client.put.call_args_list[0] == call(
+        "/api/external/contacts/contact-id/",
+        data={"assetList": ["USDT"], "contactGroupIds": []},
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "contact-id"},
+        ),
+        call("/api/external/contacts/contact-id/"),
+    ]
+    assert client.post.call_args_list[0] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_create_bank_account_with_approval():
+    client = object.__new__(APIClient)
+    bank_account_response = {
+        "id": "bank-account-id",
+        "orgId": "org-id",
+        "orgEntityId": "org-entity-id",
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+        "status": "PENDING",
+        "accountName": "Treasury Account",
+        "bankName": "Chase",
+    }
+    client.post = Mock(
+        side_effect=[
+            bank_account_response,
+            {"success": True},
+        ]
+    )
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            {**bank_account_response, "status": "APPROVED"},
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    request = CreateBankAccountRequest(
+        accountNumber="123456789",
+        accountName="Treasury Account",
+        bankName="Chase",
+    )
+    bank_account = client.create_bank_account_with_approval(request)
+
+    assert bank_account.id == "bank-account-id"
+    assert bank_account.status == "APPROVED"
+    assert client.post.call_args_list[0] == call(
+        "/api/external/bank_accounts/",
+        data=asdict(request),
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "bank-account-id"},
+        ),
+        call("/api/external/bank_accounts/bank-account-id/"),
     ]
     assert client.post.call_args_list[1] == call(
         "/api/external/change_requests/approvals/approval-id/action/",

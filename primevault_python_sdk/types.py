@@ -183,10 +183,10 @@ class Vault:
     orgId: str
     vaultName: str
     vaultType: str  # VaultType
-    signers: List[User]
     createdAt: str
     updatedAt: str
     isDeleted: bool
+    signers: Optional[List[User]] = None
     walletsGenerated: Optional[bool] = None
     wallets: Optional[List[Wallet]] = None
     viewers: Optional[List[User]] = None
@@ -436,6 +436,7 @@ class CreateVaultRequest:
     templateId: Optional[str] = None
     chains: Optional[List[str]] = None
     testNetVault: Optional[bool] = None
+    vaultGroupIds: Optional[List[str]] = None
 
 
 @dataclass
@@ -446,12 +447,14 @@ class CreateContactRequest:
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
     assetList: Optional[List[str]] = None
+    contactGroupIds: Optional[List[str]] = None
 
 
 @dataclass
 class UpdateContactRequest:
     id: str
     assetList: Optional[List[str]] = None
+    contactGroupIds: Optional[List[str]] = None
 
 
 @dataclass
