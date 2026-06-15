@@ -84,6 +84,16 @@ class TransactionOperationType(str, Enum):
     WITHDRAW = "WITHDRAW"
 
 
+class TransactionOperationStatus(str, Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+    CANCELLED = "CANCELLED"
+    REVERSED = "REVERSED"
+
+
 class WebhookEventType(str, Enum):
     TRANSACTION_STATUS_CHANGED = "TRANSACTION_STATUS_CHANGED"
     TRANSACTION_OPERATION_STATUS_CHANGED = "TRANSACTION_OPERATION_STATUS_CHANGED"
@@ -262,6 +272,7 @@ class TransactionOperation:
     balanceChanges: Optional[TransactionOperationBalanceChanges]
     sequence: int
     type: str  # TransactionOperationType
+    status: Optional[str] = None  # TransactionOperationStatus
     provider: Optional[str] = None
 
 

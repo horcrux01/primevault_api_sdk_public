@@ -28,6 +28,7 @@ from primevault_python_sdk.types import (
     TransactionExecuteIntentRequest,
     TransactionFeeTier,
     TransactionIntentRequest,
+    TransactionOperationStatus,
     TransactionOperationType,
     TransactionStatus,
     TransferPartyData,
@@ -735,6 +736,7 @@ def test_transaction_parses_operations():
                     },
                     "sequence": 1,
                     "type": TransactionOperationType.WITHDRAW.value,
+                    "status": TransactionOperationStatus.COMPLETED.value,
                     "provider": "Example Provider",
                 }
             ],
@@ -744,6 +746,7 @@ def test_transaction_parses_operations():
     assert transaction.operations is not None
     operation = transaction.operations[0]
     assert operation.type == TransactionOperationType.WITHDRAW.value
+    assert operation.status == TransactionOperationStatus.COMPLETED.value
     assert operation.source is not None
     assert operation.source.chain == "ETHEREUM"
     assert operation.source.paymentRail == "BLOCKCHAIN"
