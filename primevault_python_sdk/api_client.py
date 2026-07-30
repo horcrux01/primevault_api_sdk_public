@@ -6,6 +6,7 @@ from dacite import Config, from_dict
 from primevault_python_sdk.base_api_client import BaseAPIClient
 from primevault_python_sdk.types import (
     ApprovalAction,
+    ApprovalActionResponse,
     Asset,
     BalanceResponse,
     BankAccount,
@@ -13,7 +14,6 @@ from primevault_python_sdk.types import (
     ChainData,
     Contact,
     ContactListResponse,
-    ApprovalActionResponse,
     CreateBankAccountRequest,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
@@ -23,8 +23,8 @@ from primevault_python_sdk.types import (
     DetailedBalanceResponse,
     EstimatedFeeResponse,
     EstimateFeeRequest,
-    GetApprovalRequest,
     GetApprovalMessageResponse,
+    GetApprovalRequest,
     GetQuoteRequest,
     QuoteResponse,
     ReplaceTransactionRequest,
@@ -227,7 +227,7 @@ class APIClient(BaseAPIClient):
     def _transaction_execute_intent_request_data(
         request: TransactionExecuteIntentRequest,
     ) -> dict[str, Any]:
-        return {
+        data = {
             "intent": (
                 APIClient._transaction_intent_data(request.intent)
                 if request.intent
@@ -237,6 +237,9 @@ class APIClient(BaseAPIClient):
             "externalId": request.externalId,
             "memo": request.memo,
         }
+        if request.subOrgId is not None:
+            data["subOrgId"] = request.subOrgId
+        return data
 
     def get_quote(self, request: GetQuoteRequest) -> QuoteResponse:
         intent_data = self._transaction_intent_data(request.intent)
@@ -245,9 +248,12 @@ class APIClient(BaseAPIClient):
                 asdict(route_account) for route_account in request.intent.routeAccounts
             ]
 
+        data: dict[str, Any] = {"intent": intent_data}
+        if request.subOrgId is not None:
+            data["subOrgId"] = request.subOrgId
         response = self.post(
             "/api/external/transactions/quote/",
-            data={"intent": intent_data},
+            data=data,
         )
         return from_dict(QuoteResponse, response)
 

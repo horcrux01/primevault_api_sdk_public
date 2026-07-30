@@ -1,6 +1,6 @@
-from dataclasses import asdict
 import os
 import unittest
+from dataclasses import asdict
 from unittest.mock import Mock, call
 
 import pytest
@@ -95,6 +95,7 @@ def test_intent_request_serialization_matches_backend_contract():
             "quotes": [
                 {
                     "quoteId": "quote-id",
+                    "subOrgId": "sub-org-id",
                 }
             ]
         }
@@ -128,7 +129,9 @@ def test_intent_request_serialization_matches_backend_contract():
         toPaymentRail="ACH",
     )
 
-    quote_response = client.get_quote(GetQuoteRequest(intent=intent))
+    quote_response = client.get_quote(
+        GetQuoteRequest(intent=intent, subOrgId="sub-org-id")
+    )
     quote_payload = client.post.call_args.kwargs["data"]
     execute_payload = APIClient._transaction_execute_intent_request_data(
         TransactionExecuteIntentRequest(
@@ -136,6 +139,7 @@ def test_intent_request_serialization_matches_backend_contract():
             quoteId="quote-id",
             externalId="external-id",
             memo="memo",
+            subOrgId="sub-org-id",
         )
     )
 
@@ -157,13 +161,18 @@ def test_intent_request_serialization_matches_backend_contract():
             {"provider": "provider-key", "id": "provider-linked-vault-id"}
         ],
     }
-    assert quote_payload == {"intent": expected_quote_intent}
+    assert quote_payload == {
+        "intent": expected_quote_intent,
+        "subOrgId": "sub-org-id",
+    }
     assert quote_response.quotes[0].quoteId == "quote-id"
+    assert quote_response.quotes[0].subOrgId == "sub-org-id"
     assert execute_payload == {
         "intent": expected_intent,
         "quoteId": "quote-id",
         "externalId": "external-id",
         "memo": "memo",
+        "subOrgId": "sub-org-id",
     }
     assert "routeAccounts" not in execute_payload["intent"]
     assert "orgId" not in quote_payload["intent"]
@@ -194,6 +203,7 @@ def test_transaction_execute_intent_request_serializes_quote_only_execution():
             quoteId="quote-id",
             externalId="external-id",
             memo="trade from quote",
+            subOrgId="sub-org-id",
         )
     )
 
@@ -202,6 +212,7 @@ def test_transaction_execute_intent_request_serializes_quote_only_execution():
         "quoteId": "quote-id",
         "externalId": "external-id",
         "memo": "trade from quote",
+        "subOrgId": "sub-org-id",
     }
 
 
@@ -239,6 +250,76 @@ def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
     assert quote_response.quotes[0].finalToAmount == "100"
     assert quote_response.quotes[0].fees.amount == "0"
     assert quote_response.quotes[0].sourceName is None
+
+
+def test_vault_list_and_retrieve_parse_sub_org_id():
+    client = object.__new__(APIClient)
+    vault_data = {
+        "id": "vault-id",
+        "orgId": "org-id",
+        "vaultName": "Treasury",
+        "vaultType": VaultType.DEFAULT.value,
+        "createdAt": "2026-07-30T00:00:00Z",
+        "updatedAt": "2026-07-30T00:00:00Z",
+        "isDeleted": False,
+        "subOrgId": "sub-org-id",
+    }
+    client.get = Mock(
+        side_effect=[
+            {
+                "results": [vault_data],
+                "nextCursor": None,
+                "hasNext": False,
+            },
+            vault_data,
+        ]
+    )
+
+    vault_list = client.get_vaults()
+    vault = client.get_vault_by_id("vault-id")
+
+    assert vault_list.results[0].subOrgId == "sub-org-id"
+    assert vault.subOrgId == "sub-org-id"
+    assert client.get.call_args_list == [
+        call("/api/external/vaults/?limit=20&cursor="),
+        call("/api/external/vaults/vault-id/"),
+    ]
+
+
+def test_contact_list_and_retrieve_parse_sub_org_id():
+    client = object.__new__(APIClient)
+    contact_data = {
+        "id": "contact-id",
+        "orgId": "org-id",
+        "name": "Vendor",
+        "blockChain": "ETHEREUM",
+        "address": "0x1234",
+        "status": ContactStatus.APPROVED.value,
+        "createdAt": "2026-07-30T00:00:00Z",
+        "updatedAt": "2026-07-30T00:00:00Z",
+        "isDeleted": False,
+        "subOrgId": "sub-org-id",
+    }
+    client.get = Mock(
+        side_effect=[
+            {
+                "results": [contact_data],
+                "nextCursor": None,
+                "hasNext": False,
+            },
+            contact_data,
+        ]
+    )
+
+    contact_list = client.get_contacts()
+    contact = client.get_contact_by_id("contact-id")
+
+    assert contact_list.results[0].subOrgId == "sub-org-id"
+    assert contact.subOrgId == "sub-org-id"
+    assert client.get.call_args_list == [
+        call("/api/external/contacts/?limit=20&cursor="),
+        call("/api/external/contacts/contact-id/"),
+    ]
 
 
 def test_change_approval_helpers_fetch_message_sign_and_submit_action():
@@ -338,6 +419,7 @@ def test_create_transaction_from_intent_approves_pending_transaction():
     assert client.post.call_args_list[0][0][0] == (
         "/api/external/transactions/intent/create/"
     )
+    assert "subOrgId" not in client.post.call_args_list[0].kwargs["data"]
     assert client.get.call_args_list == [
         call(
             "/api/external/change_requests/approvals/approval_message/",

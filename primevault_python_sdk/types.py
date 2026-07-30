@@ -196,6 +196,7 @@ class Vault:
     createdAt: str
     updatedAt: str
     isDeleted: bool
+    subOrgId: Optional[str] = None
     signers: Optional[List[User]] = None
     walletsGenerated: Optional[bool] = None
     wallets: Optional[List[Wallet]] = None
@@ -215,6 +216,7 @@ class Contact:
     createdAt: str
     updatedAt: str
     isDeleted: bool
+    subOrgId: Optional[str] = None
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
     operationId: Optional[str] = None
@@ -300,6 +302,7 @@ class TransactionIntentRequest:
 @dataclass
 class GetQuoteRequest:
     intent: TransactionIntentRequest
+    subOrgId: Optional[str] = None
 
 
 @dataclass
@@ -308,6 +311,7 @@ class TransactionExecuteIntentRequest:
     quoteId: Optional[str] = None
     externalId: Optional[str] = None
     memo: Optional[str] = None
+    subOrgId: Optional[str] = None
 
 
 @dataclass
@@ -517,6 +521,7 @@ class Fees:
 @dataclass
 class QuoteResponseItem:
     quoteId: str
+    subOrgId: Optional[str] = None
     rate: Optional[str] = None
     fees: Optional[Fees] = None
     finalFromAmount: Optional[str] = None
