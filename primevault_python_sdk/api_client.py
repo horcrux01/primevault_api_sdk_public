@@ -1,10 +1,12 @@
 from dataclasses import asdict
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+from urllib.parse import urlencode
 
 from dacite import Config, from_dict
 
 from primevault_python_sdk.base_api_client import BaseAPIClient
 from primevault_python_sdk.types import (
+    ActivityEventListResponse,
     ApprovalAction,
     ApprovalActionResponse,
     Asset,
@@ -66,6 +68,23 @@ class APIClient(BaseAPIClient):
 
         return from_dict(
             TransactionListResponse,
+            self.get(url),
+        )
+
+    def get_activity_events(
+        self,
+        params: Optional[dict] = None,
+        limit: Optional[int] = 20,
+        cursor: Optional[str] = None,
+    ) -> ActivityEventListResponse:
+        query: Dict[str, str] = {"limit": str(limit), "cursor": cursor or ""}
+        if params:
+            query.update(params)
+
+        url = f"/api/external/activity/events/?{urlencode(query)}"
+
+        return from_dict(
+            ActivityEventListResponse,
             self.get(url),
         )
 

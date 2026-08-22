@@ -549,6 +549,35 @@ class TransactionListResponse:
 
 
 @dataclass
+class ActivityEventMetaData:
+    platform: Optional[str] = None
+    sourceIp: Optional[str] = None
+    userAgent: Optional[str] = None
+
+
+@dataclass
+class ActivityEvent:
+    id: str
+    action: str
+    outcome: Optional[str] = None
+    activityLabel: Optional[str] = None
+    createdAt: Optional[str] = None
+    entityType: Optional[str] = None
+    entityId: Optional[str] = None
+    entityName: Optional[str] = None
+    actorId: Optional[str] = None
+    metaData: Optional[ActivityEventMetaData] = None
+    schemaVersion: Optional[str] = None
+
+
+@dataclass
+class ActivityEventListResponse:
+    results: List[ActivityEvent]
+    nextCursor: Optional[str] = None
+    hasNext: Optional[bool] = None
+
+
+@dataclass
 class ContactListResponse:
     results: List[Contact]
     nextCursor: Optional[str] = None
