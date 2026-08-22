@@ -880,6 +880,121 @@ def test_legacy_transfer_transaction_does_not_auto_approve():
     client.signature_service.sign.assert_not_called()
 
 
+def _transfer_transaction_request() -> CreateTransferTransactionRequest:
+    return CreateTransferTransactionRequest(
+        source=TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id"),
+        destination=TransferPartyData(
+            type=TransferPartyType.CONTACT.value,
+            id="contact-id",
+        ),
+        amount="1",
+        asset="USDC",
+        chain="ETHEREUM",
+    )
+
+
+def test_create_transaction_with_approval():
+    client = object.__new__(APIClient)
+    transaction_response = {
+        "id": "transaction-id",
+        "orgId": "org-id",
+        "vaultId": "vault-id",
+        "amount": "1",
+        "status": TransactionStatus.PENDING.value,
+        "transactionType": "OUTGOING",
+        "category": "TRANSFER",
+        "subCategory": "EXTERNAL_TRANSFER",
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+    }
+    client.post = Mock(
+        side_effect=[
+            transaction_response,
+            {"success": True},
+        ]
+    )
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            {**transaction_response, "status": TransactionStatus.APPROVED.value},
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    request = _transfer_transaction_request()
+    transaction = client.create_transaction_with_approval(request)
+
+    assert transaction.id == "transaction-id"
+    assert transaction.status == TransactionStatus.APPROVED.value
+    assert client.post.call_args_list[0] == call(
+        "/api/external/transactions/",
+        data={
+            "source": asdict(request.source),
+            "destination": asdict(request.destination),
+            "amount": "1",
+            "asset": "USDC",
+            "blockChain": "ETHEREUM",
+            "category": "TRANSFER",
+            "gasParams": {},
+            "externalId": None,
+            "isAutomation": None,
+            "executeAt": None,
+            "memo": None,
+            "feePayer": None,
+        },
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "transaction-id"},
+        ),
+        call("/api/external/transactions/transaction-id/"),
+    ]
+    assert client.post.call_args_list[1] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_create_transaction_with_approval_skips_already_approved_transaction():
+    client = object.__new__(APIClient)
+    client.post = Mock(
+        return_value={
+            "id": "transaction-id",
+            "orgId": "org-id",
+            "vaultId": "vault-id",
+            "amount": "1",
+            "status": TransactionStatus.APPROVED.value,
+            "transactionType": "OUTGOING",
+            "category": "TRANSFER",
+            "subCategory": "EXTERNAL_TRANSFER",
+            "createdAt": "2026-05-25T00:00:00Z",
+            "updatedAt": "2026-05-25T00:00:00Z",
+            "isDeleted": False,
+        }
+    )
+    client.get = Mock()
+    client.signature_service = Mock()
+
+    transaction = client.create_transaction_with_approval(
+        _transfer_transaction_request()
+    )
+
+    assert transaction.status == TransactionStatus.APPROVED.value
+    client.post.assert_called_once()
+    client.get.assert_not_called()
+    client.signature_service.sign.assert_not_called()
+
+
 class TestApiClient(unittest.TestCase):
     def setUp(self):
         super().setUp()

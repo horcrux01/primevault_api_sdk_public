@@ -194,6 +194,18 @@ class APIClient(BaseAPIClient):
         response = self.post("/api/external/transactions/", data=data)
         return from_dict(Transaction, response)
 
+    def create_transaction_with_approval(
+        self, request: CreateTransferTransactionRequest
+    ) -> Transaction:
+        """Create a transfer transaction and approve it in one call.
+
+        The transaction is only signed for approval when it lands in PENDING,
+        so orgs whose policy approves on create get the created transaction back
+        untouched.
+        """
+        transaction = self.create_transfer_transaction(request)
+        return self._approve_pending_transaction_change_request(transaction)
+
     def replace_transaction(self, request: ReplaceTransactionRequest) -> Transaction:
         return from_dict(
             Transaction,
