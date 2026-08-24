@@ -1,30 +1,46 @@
 import os
 import unittest
+from dataclasses import asdict
 from unittest.mock import Mock, call
 
 import pytest
 from dacite import from_dict
 
 from primevault_python_sdk.api_client import APIClient
-from primevault_python_sdk.base_api_client import BadRequestError
+from primevault_python_sdk.base_api_client import BadRequestError, BaseAPIClient
 from primevault_python_sdk.types import (
     ApprovalAction,
+    BankDetails,
     ContactStatus,
+    CreateBankAccountRequest,
+    CreateContactRequest,
     CreateContractCallTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
+    DelegateResourceRequest,
     EVMContractCallData,
+    Fees,
+    GetApprovalMessageResponse,
     GetApprovalRequest,
     GetQuoteRequest,
+    ResourceType,
+    RouteAccountData,
+    StakeResourceRequest,
+    Transaction,
+    TransactionCategory,
     TransactionCreationGasParams,
     TransactionExecuteIntentRequest,
     TransactionFeeTier,
     TransactionIntentRequest,
+    TransactionOperationStatus,
+    TransactionOperationType,
     TransactionStatus,
     TransferPartyData,
     TransferPartyType,
+    UpdateContactRequest,
     VaultType,
 )
+from primevault_python_sdk.version import __version__
 
 
 def api_client():
@@ -34,15 +50,80 @@ def api_client():
     return APIClient(api_key, api_url, private_key)
 
 
+def test_base_client_sends_sdk_version_header_on_all_requests(monkeypatch):
+    auth_token_service = Mock()
+    auth_token_service.generate_auth_token.return_value = "auth-token"
+    signature_service = Mock()
+    signature_service.sign.return_value = bytes.fromhex("0102")
+
+    monkeypatch.setattr(
+        "primevault_python_sdk.base_api_client.AuthTokenService",
+        Mock(return_value=auth_token_service),
+    )
+    monkeypatch.setattr(
+        "primevault_python_sdk.base_api_client.get_signature_service",
+        Mock(return_value=signature_service),
+    )
+
+    client = BaseAPIClient("api-key", "https://api.example")
+
+    def response():
+        mocked_response = Mock()
+        mocked_response.raise_for_status.return_value = None
+        mocked_response.json.return_value = {"ok": True}
+        return mocked_response
+
+    get_mock = Mock(return_value=response())
+    post_mock = Mock(return_value=response())
+    put_mock = Mock(return_value=response())
+    monkeypatch.setattr("primevault_python_sdk.base_api_client.requests.get", get_mock)
+    monkeypatch.setattr(
+        "primevault_python_sdk.base_api_client.requests.post", post_mock
+    )
+    monkeypatch.setattr("primevault_python_sdk.base_api_client.requests.put", put_mock)
+
+    client.get("/resource/", params={"cursor": "cursor"})
+    client.post("/resource/", data={"asset": "USD"})
+    client.put("/resource/", data={"asset": "USD"})
+
+    for request_mock in (get_mock, post_mock, put_mock):
+        headers = request_mock.call_args.kwargs["headers"]
+        assert headers["version"] == __version__
+        assert headers["Authorization"] == "Bearer auth-token"
+
+
 def test_intent_request_serialization_matches_backend_contract():
-    source = TransferPartyData(type=TransferPartyType.VAULT.value, id="source-vault")
+    client = object.__new__(APIClient)
+    client.post = Mock(
+        return_value={
+            "quotes": [
+                {
+                    "quoteId": "quote-id",
+                    "subOrgId": "sub-org-id",
+                }
+            ]
+        }
+    )
+
+    source = TransferPartyData(
+        type=TransferPartyType.VAULT.value,
+        id="source-vault",
+        provider=None,
+    )
     destination = TransferPartyData(
         type=TransferPartyType.BANK_ACCOUNT.value,
         id="destination-bank-account",
+        bankDetails=BankDetails(
+            bankAccountId="destination-bank-account",
+            bankName="Example Bank",
+        ),
     )
     intent = TransactionIntentRequest(
         source=source,
         destination=destination,
+        routeAccounts=[
+            RouteAccountData(provider="provider-key", id="provider-linked-vault-id")
+        ],
         fromAsset="USDC",
         toAsset="USD",
         fromAmount="100",
@@ -52,19 +133,23 @@ def test_intent_request_serialization_matches_backend_contract():
         toPaymentRail="ACH",
     )
 
-    quote_payload = APIClient._quote_request_data(GetQuoteRequest(intent=intent))
+    quote_response = client.get_quote(
+        GetQuoteRequest(intent=intent, subOrgId="sub-org-id")
+    )
+    quote_payload = client.post.call_args.kwargs["data"]
     execute_payload = APIClient._transaction_execute_intent_request_data(
         TransactionExecuteIntentRequest(
             intent=intent,
             quoteId="quote-id",
             externalId="external-id",
             memo="memo",
+            subOrgId="sub-org-id",
         )
     )
 
     expected_intent = {
-        "source": source.__dict__,
-        "destination": destination.__dict__,
+        "source": asdict(source),
+        "destination": asdict(destination),
         "fromAsset": "USDC",
         "toAsset": "USD",
         "fromAmount": "100",
@@ -74,17 +159,46 @@ def test_intent_request_serialization_matches_backend_contract():
         "toChain": None,
         "toPaymentRail": "ACH",
     }
-    assert quote_payload == {"intent": expected_intent}
+    expected_quote_intent = {
+        **expected_intent,
+        "routeAccounts": [
+            {"provider": "provider-key", "id": "provider-linked-vault-id"}
+        ],
+    }
+    assert quote_payload == {
+        "intent": expected_quote_intent,
+        "subOrgId": "sub-org-id",
+    }
+    assert quote_response.quotes[0].quoteId == "quote-id"
+    assert quote_response.quotes[0].subOrgId == "sub-org-id"
     assert execute_payload == {
         "intent": expected_intent,
         "quoteId": "quote-id",
         "externalId": "external-id",
         "memo": "memo",
+        "subOrgId": "sub-org-id",
     }
+    assert "routeAccounts" not in execute_payload["intent"]
     assert "orgId" not in quote_payload["intent"]
     assert "userId" not in quote_payload["intent"]
     assert "orgId" not in execute_payload
     assert "userId" not in execute_payload
+    assert quote_payload["intent"]["source"]["provider"] is None
+    assert quote_payload["intent"]["destination"]["bankDetails"] == {
+        "bankAccountId": "destination-bank-account",
+        "bankName": "Example Bank",
+        "beneficiaryName": None,
+        "accountName": None,
+        "accountNumber": None,
+        "accountNumberMasked": None,
+        "routingNumber": None,
+        "paymentRail": None,
+        "bankAddress": None,
+        "swiftCode": None,
+        "swiftBic": None,
+        "iban": None,
+        "country": None,
+    }
 
 
 def test_transaction_execute_intent_request_serializes_quote_only_execution():
@@ -93,6 +207,7 @@ def test_transaction_execute_intent_request_serializes_quote_only_execution():
             quoteId="quote-id",
             externalId="external-id",
             memo="trade from quote",
+            subOrgId="sub-org-id",
         )
     )
 
@@ -101,6 +216,7 @@ def test_transaction_execute_intent_request_serializes_quote_only_execution():
         "quoteId": "quote-id",
         "externalId": "external-id",
         "memo": "trade from quote",
+        "subOrgId": "sub-org-id",
     }
 
 
@@ -113,7 +229,7 @@ def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
                     "quoteId": "quote-id",
                     "finalToAmount": "100",
                     "fees": {"amount": "0", "asset": "NGN"},
-                    "sourceName": "Busha",
+                    "sourceName": None,
                 }
             ]
         }
@@ -137,7 +253,77 @@ def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
     assert quote_response.quotes[0].quoteId == "quote-id"
     assert quote_response.quotes[0].finalToAmount == "100"
     assert quote_response.quotes[0].fees.amount == "0"
-    assert quote_response.quotes[0].sourceName == "Busha"
+    assert quote_response.quotes[0].sourceName is None
+
+
+def test_vault_list_and_retrieve_parse_sub_org_id():
+    client = object.__new__(APIClient)
+    vault_data = {
+        "id": "vault-id",
+        "orgId": "org-id",
+        "vaultName": "Treasury",
+        "vaultType": VaultType.DEFAULT.value,
+        "createdAt": "2026-07-30T00:00:00Z",
+        "updatedAt": "2026-07-30T00:00:00Z",
+        "isDeleted": False,
+        "subOrgId": "sub-org-id",
+    }
+    client.get = Mock(
+        side_effect=[
+            {
+                "results": [vault_data],
+                "nextCursor": None,
+                "hasNext": False,
+            },
+            vault_data,
+        ]
+    )
+
+    vault_list = client.get_vaults()
+    vault = client.get_vault_by_id("vault-id")
+
+    assert vault_list.results[0].subOrgId == "sub-org-id"
+    assert vault.subOrgId == "sub-org-id"
+    assert client.get.call_args_list == [
+        call("/api/external/vaults/?limit=20&cursor="),
+        call("/api/external/vaults/vault-id/"),
+    ]
+
+
+def test_contact_list_and_retrieve_parse_sub_org_id():
+    client = object.__new__(APIClient)
+    contact_data = {
+        "id": "contact-id",
+        "orgId": "org-id",
+        "name": "Vendor",
+        "blockChain": "ETHEREUM",
+        "address": "0x1234",
+        "status": ContactStatus.APPROVED.value,
+        "createdAt": "2026-07-30T00:00:00Z",
+        "updatedAt": "2026-07-30T00:00:00Z",
+        "isDeleted": False,
+        "subOrgId": "sub-org-id",
+    }
+    client.get = Mock(
+        side_effect=[
+            {
+                "results": [contact_data],
+                "nextCursor": None,
+                "hasNext": False,
+            },
+            contact_data,
+        ]
+    )
+
+    contact_list = client.get_contacts()
+    contact = client.get_contact_by_id("contact-id")
+
+    assert contact_list.results[0].subOrgId == "sub-org-id"
+    assert contact.subOrgId == "sub-org-id"
+    assert client.get.call_args_list == [
+        call("/api/external/contacts/?limit=20&cursor="),
+        call("/api/external/contacts/contact-id/"),
+    ]
 
 
 def test_change_approval_helpers_fetch_message_sign_and_submit_action():
@@ -159,6 +345,7 @@ def test_change_approval_helpers_fetch_message_sign_and_submit_action():
     client.signature_service.sign.return_value = bytes.fromhex("deadbeef")
 
     approval_message = client.get_change_approval_message("entity-id")
+    assert isinstance(approval_message, GetApprovalMessageResponse)
     assert approval_message.message == "message-to-sign"
     assert approval_message.approvalId == "approval-id"
     client.get.assert_called_once_with(
@@ -236,6 +423,7 @@ def test_create_transaction_from_intent_approves_pending_transaction():
     assert client.post.call_args_list[0][0][0] == (
         "/api/external/transactions/intent/create/"
     )
+    assert "subOrgId" not in client.post.call_args_list[0].kwargs["data"]
     assert client.get.call_args_list == [
         call(
             "/api/external/change_requests/approvals/approval_message/",
@@ -253,37 +441,283 @@ def test_create_transaction_from_intent_approves_pending_transaction():
     )
 
 
-def test_on_and_off_ramp_transactions_delegate_to_intent_execution():
+def test_create_vault_with_approval():
     client = object.__new__(APIClient)
-    client.create_transaction_from_intent = Mock(return_value="transaction")
-    intent_request = TransactionExecuteIntentRequest(
-        intent=TransactionIntentRequest(),
-        quoteId="quote-id",
-        externalId="external-id",
-        memo="memo",
+    vault_response = {
+        "id": "vault-id",
+        "orgId": "org-id",
+        "vaultName": "Treasury",
+        "vaultType": VaultType.DEFAULT.value,
+        "signers": [],
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+        "walletsGenerated": False,
+    }
+    client.post = Mock(
+        side_effect=[
+            vault_response,
+            {"success": True},
+        ]
+    )
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            {**vault_response, "walletsGenerated": True},
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    vault = client.create_vault_with_approval(
+        CreateVaultRequest(
+            vaultName="Treasury",
+            vaultGroupIds=["group-1", "group-2"],
+        )
     )
 
-    assert client.create_on_ramp_transaction(intent_request) == "transaction"
-    assert client.create_off_ramp_transaction(intent_request) == "transaction"
-    assert client.create_transaction_from_intent.call_args_list == [
-        call(intent_request),
-        call(intent_request),
+    assert vault.id == "vault-id"
+    assert vault.walletsGenerated is True
+    assert client.post.call_args_list[0] == call(
+        "/api/external/vaults/",
+        data={
+            "vaultName": "Treasury",
+            "subOrgId": None,
+            "templateId": None,
+            "chains": None,
+            "testNetVault": None,
+            "vaultGroupIds": ["group-1", "group-2"],
+        },
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "vault-id"},
+        ),
+        call("/api/external/vaults/vault-id/"),
     ]
+    assert client.post.call_args_list[1] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_create_contact_with_approval():
+    client = object.__new__(APIClient)
+    contact_response = {
+        "id": "contact-id",
+        "orgId": "org-id",
+        "name": "USDT/USDC Contact",
+        "blockChain": "ETHEREUM",
+        "address": "0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+        "status": ContactStatus.PENDING.value,
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+        "assetList": ["USDT", "USDC"],
+    }
+    client.post = Mock(
+        side_effect=[
+            contact_response,
+            {"success": True},
+        ]
+    )
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            {**contact_response, "status": ContactStatus.APPROVED.value},
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    contact = client.create_contact_with_approval(
+        CreateContactRequest(
+            name="USDT/USDC Contact",
+            address="0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+            chain="ETHEREUM",
+            assetList=["USDT", "USDC"],
+            contactGroupIds=["contact-group-1"],
+        )
+    )
+
+    assert contact.id == "contact-id"
+    assert contact.status == ContactStatus.APPROVED.value
+    assert client.post.call_args_list[0] == call(
+        "/api/external/contacts/",
+        data={
+            "name": "USDT/USDC Contact",
+            "subOrgId": None,
+            "address": "0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+            "blockChain": "ETHEREUM",
+            "tags": None,
+            "externalId": None,
+            "assetList": ["USDT", "USDC"],
+            "contactGroupIds": ["contact-group-1"],
+        },
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "contact-id"},
+        ),
+        call("/api/external/contacts/contact-id/"),
+    ]
+    assert client.post.call_args_list[1] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_update_contact_with_approval():
+    client = object.__new__(APIClient)
+    update_response = {
+        "id": "contact-id",
+        "name": "USDT/USDC Contact",
+        "address": "0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+        "blockChain": "ETHEREUM",
+        "assetList": ["USDT"],
+    }
+    refetched_contact = {
+        "id": "contact-id",
+        "orgId": "org-id",
+        "name": "USDT/USDC Contact",
+        "blockChain": "ETHEREUM",
+        "address": "0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
+        "status": ContactStatus.APPROVED.value,
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+        "assetList": ["USDT"],
+    }
+    client.put = Mock(return_value=update_response)
+    client.post = Mock(return_value={"success": True})
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            refetched_contact,
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    updated = client.update_contact_with_approval(
+        UpdateContactRequest(
+            id="contact-id",
+            assetList=["USDT"],
+            contactGroupIds=[],
+        )
+    )
+
+    assert updated.id == "contact-id"
+    assert updated.status == ContactStatus.APPROVED.value
+    assert updated.assetList == ["USDT"]
+    assert client.put.call_args_list[0] == call(
+        "/api/external/contacts/contact-id/",
+        data={"assetList": ["USDT"], "contactGroupIds": []},
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "contact-id"},
+        ),
+        call("/api/external/contacts/contact-id/"),
+    ]
+    assert client.post.call_args_list[0] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_create_bank_account_with_approval():
+    client = object.__new__(APIClient)
+    bank_account_response = {
+        "id": "bank-account-id",
+        "orgId": "org-id",
+        "orgEntityId": "org-entity-id",
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+        "status": "PENDING",
+        "accountName": "Treasury Account",
+        "bankName": "Chase",
+    }
+    client.post = Mock(
+        side_effect=[
+            bank_account_response,
+            {"success": True},
+        ]
+    )
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            {**bank_account_response, "status": "APPROVED"},
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    request = CreateBankAccountRequest(
+        accountNumber="123456789",
+        accountName="Treasury Account",
+        bankName="Chase",
+    )
+    bank_account = client.create_bank_account_with_approval(request)
+
+    assert bank_account.id == "bank-account-id"
+    assert bank_account.status == "APPROVED"
+    assert client.post.call_args_list[0] == call(
+        "/api/external/bank_accounts/",
+        data=asdict(request),
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "bank-account-id"},
+        ),
+        call("/api/external/bank_accounts/bank-account-id/"),
+    ]
+    assert client.post.call_args_list[1] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
 
 
 def test_transaction_parses_deposit_instructions():
     client = object.__new__(APIClient)
     deposit_instructions = {
-        "type": TransferPartyType.EXTERNAL_BANK_ACCOUNT.value,
-        "currency": "NGN",
-        "paymentRail": "WIRE",
-        "bankDetails": {
-            "beneficiaryName": "PrimeVault Treasury",
-            "bankName": "PrimeVault National Bank",
-            "accountNumber": "000123456789",
-            "routingNumber": "021000021",
-            "swiftCode": "PNVBUS33",
-        },
+        "type": TransferPartyType.EXTERNAL_ADDRESS.value,
+        "asset": "USDT",
+        "chain": "ETHEREUM",
+        "address": "0xRecipientAddressFromPrimeVault",
     }
     client.post = Mock(
         return_value={
@@ -298,6 +732,19 @@ def test_transaction_parses_deposit_instructions():
             "createdAt": "2026-05-25T00:00:00Z",
             "updatedAt": "2026-05-25T00:00:00Z",
             "isDeleted": False,
+            "source": {
+                "type": TransferPartyType.VAULT.value,
+                "id": "vault-id",
+                "provider": None,
+            },
+            "destination": {
+                "type": TransferPartyType.BANK_ACCOUNT.value,
+                "id": "destination-bank-account",
+                "bankDetails": {
+                    "bankName": "Example Bank",
+                    "accountNumber": "000123456789",
+                },
+            },
             "depositInstructions": deposit_instructions,
             "quoteResponse": {
                 "quoteId": "quote-id",
@@ -315,18 +762,90 @@ def test_transaction_parses_deposit_instructions():
 
     assert transaction.depositInstructions is not None
     assert transaction.depositInstructions.type == (
-        TransferPartyType.EXTERNAL_BANK_ACCOUNT.value
+        TransferPartyType.EXTERNAL_ADDRESS.value
     )
     assert transaction.quoteResponse is not None
     assert transaction.quoteResponse.quoteId == "quote-id"
     assert transaction.quoteResponse.finalToAmount == "100"
-    assert transaction.depositInstructions.currency == "NGN"
-    assert transaction.depositInstructions.paymentRail == "WIRE"
-    assert transaction.depositInstructions.bankDetails is not None
-    assert transaction.depositInstructions.bankDetails.accountNumber == "000123456789"
-    assert transaction.depositInstructions.bankDetails.bankName == (
-        "PrimeVault National Bank"
+    assert transaction.source is not None
+    assert transaction.source.provider is None
+    assert transaction.destination is not None
+    assert transaction.destination.bankDetails is not None
+    assert transaction.destination.bankDetails.bankName == "Example Bank"
+    assert transaction.depositInstructions.asset == "USDT"
+    assert transaction.depositInstructions.chain == "ETHEREUM"
+    assert transaction.depositInstructions.address == "0xRecipientAddressFromPrimeVault"
+    assert transaction.depositInstructions.bankDetails is None
+
+
+def test_transaction_parses_operations():
+    transaction = from_dict(
+        Transaction,
+        {
+            "id": "transaction-id",
+            "orgId": "org-id",
+            "vaultId": "vault-id",
+            "amount": "100",
+            "status": TransactionStatus.APPROVED.value,
+            "transactionType": "OUTGOING",
+            "category": "OFF_RAMP",
+            "subCategory": "WITHDRAW",
+            "createdAt": "2026-05-25T00:00:00Z",
+            "updatedAt": "2026-05-25T00:00:00Z",
+            "isDeleted": False,
+            "operations": [
+                {
+                    "source": {
+                        "type": TransferPartyType.VAULT.value,
+                        "id": "vault-id",
+                        "chain": "ETHEREUM",
+                        "paymentRail": "BLOCKCHAIN",
+                        "provider": "Example Provider",
+                    },
+                    "destination": {
+                        "type": TransferPartyType.EXTERNAL_BANK_ACCOUNT.value,
+                        "paymentRail": "WIRE",
+                    },
+                    "balanceChanges": {
+                        "changes": [
+                            {
+                                "party": {
+                                    "type": TransferPartyType.VAULT.value,
+                                    "id": "vault-id",
+                                    "chain": "ETHEREUM",
+                                    "paymentRail": "BLOCKCHAIN",
+                                },
+                                "asset": "USDC",
+                                "amount": "-100",
+                                "chain": "ETHEREUM",
+                                "paymentRail": "BLOCKCHAIN",
+                            }
+                        ]
+                    },
+                    "sequence": 1,
+                    "type": TransactionOperationType.WITHDRAW.value,
+                    "status": TransactionOperationStatus.COMPLETED.value,
+                    "provider": "Example Provider",
+                }
+            ],
+        },
     )
+
+    assert transaction.operations is not None
+    operation = transaction.operations[0]
+    assert operation.type == TransactionOperationType.WITHDRAW.value
+    assert operation.status == TransactionOperationStatus.COMPLETED.value
+    assert operation.source is not None
+    assert operation.source.chain == "ETHEREUM"
+    assert operation.source.paymentRail == "BLOCKCHAIN"
+    assert operation.destination is not None
+    assert operation.destination.paymentRail == "WIRE"
+    assert operation.balanceChanges is not None
+    balance_change = operation.balanceChanges.changes[0]
+    assert balance_change.party is not None
+    assert balance_change.party.chain == "ETHEREUM"
+    assert balance_change.asset == "USDC"
+    assert balance_change.amount == "-100"
 
 
 def test_legacy_transfer_transaction_does_not_auto_approve():
@@ -365,6 +884,211 @@ def test_legacy_transfer_transaction_does_not_auto_approve():
     client.post.assert_called_once()
     client.get.assert_not_called()
     client.signature_service.sign.assert_not_called()
+
+
+def _transfer_transaction_request() -> CreateTransferTransactionRequest:
+    return CreateTransferTransactionRequest(
+        source=TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id"),
+        destination=TransferPartyData(
+            type=TransferPartyType.CONTACT.value,
+            id="contact-id",
+        ),
+        amount="1",
+        asset="USDC",
+        chain="ETHEREUM",
+    )
+
+
+def test_create_transaction_with_approval():
+    client = object.__new__(APIClient)
+    transaction_response = {
+        "id": "transaction-id",
+        "orgId": "org-id",
+        "vaultId": "vault-id",
+        "amount": "1",
+        "status": TransactionStatus.PENDING.value,
+        "transactionType": "OUTGOING",
+        "category": "TRANSFER",
+        "subCategory": "EXTERNAL_TRANSFER",
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+    }
+    client.post = Mock(
+        side_effect=[
+            transaction_response,
+            {"success": True},
+        ]
+    )
+    client.get = Mock(
+        side_effect=[
+            {
+                "message": "approval-message",
+                "approvalId": "approval-id",
+            },
+            {**transaction_response, "status": TransactionStatus.APPROVED.value},
+        ]
+    )
+    client.signature_service = Mock()
+    client.signature_service.sign.return_value = bytes.fromhex("0a0b")
+
+    request = _transfer_transaction_request()
+    transaction = client.create_transaction_with_approval(request)
+
+    assert transaction.id == "transaction-id"
+    assert transaction.status == TransactionStatus.APPROVED.value
+    assert client.post.call_args_list[0] == call(
+        "/api/external/transactions/",
+        data={
+            "source": asdict(request.source),
+            "destination": asdict(request.destination),
+            "amount": "1",
+            "asset": "USDC",
+            "blockChain": "ETHEREUM",
+            "category": "TRANSFER",
+            "gasParams": {},
+            "externalId": None,
+            "memo": None,
+            "feePayer": None,
+        },
+    )
+    assert client.get.call_args_list == [
+        call(
+            "/api/external/change_requests/approvals/approval_message/",
+            params={"entityId": "transaction-id"},
+        ),
+        call("/api/external/transactions/transaction-id/"),
+    ]
+    assert client.post.call_args_list[1] == call(
+        "/api/external/change_requests/approvals/approval-id/action/",
+        data={
+            "action": ApprovalAction.APPROVE.value,
+            "signature": "0a0b",
+            "reason": "ok",
+        },
+    )
+
+
+def test_create_transaction_with_approval_skips_already_approved_transaction():
+    client = object.__new__(APIClient)
+    client.post = Mock(
+        return_value={
+            "id": "transaction-id",
+            "orgId": "org-id",
+            "vaultId": "vault-id",
+            "amount": "1",
+            "status": TransactionStatus.APPROVED.value,
+            "transactionType": "OUTGOING",
+            "category": "TRANSFER",
+            "subCategory": "EXTERNAL_TRANSFER",
+            "createdAt": "2026-05-25T00:00:00Z",
+            "updatedAt": "2026-05-25T00:00:00Z",
+            "isDeleted": False,
+        }
+    )
+    client.get = Mock()
+    client.signature_service = Mock()
+
+    transaction = client.create_transaction_with_approval(
+        _transfer_transaction_request()
+    )
+
+    assert transaction.status == TransactionStatus.APPROVED.value
+    client.post.assert_called_once()
+    client.get.assert_not_called()
+    client.signature_service.sign.assert_not_called()
+
+
+def _resource_transaction_response(category: str) -> dict:
+    return {
+        "id": "transaction-id",
+        "orgId": "org-id",
+        "vaultId": "vault-id",
+        "amount": "1000",
+        "status": TransactionStatus.PENDING.value,
+        "transactionType": "OUTGOING",
+        "category": category,
+        "subCategory": "EXTERNAL_TRANSFER",
+        "createdAt": "2026-05-25T00:00:00Z",
+        "updatedAt": "2026-05-25T00:00:00Z",
+        "isDeleted": False,
+    }
+
+
+def test_delegate_resource_posts_delegate_resource_category():
+    client = object.__new__(APIClient)
+    client.post = Mock(
+        return_value=_resource_transaction_response(
+            TransactionCategory.DELEGATE_RESOURCE.value
+        )
+    )
+
+    source = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
+    destination = TransferPartyData(
+        type=TransferPartyType.EXTERNAL_ADDRESS.value,
+        address="TXYZ",
+    )
+    transaction = client.delegate_resource(
+        DelegateResourceRequest(
+            source=source,
+            destination=destination,
+            asset="TRX",
+            chain="TRON",
+            amount="1000",
+            resourceType=ResourceType.TRON_ENERGY.value,
+            externalId="external-id",
+            memo="delegate energy",
+        )
+    )
+
+    assert transaction.id == "transaction-id"
+    assert client.post.call_args == call(
+        "/api/external/transactions/",
+        data={
+            "source": asdict(source),
+            "destination": asdict(destination),
+            "asset": "TRX",
+            "blockChain": "TRON",
+            "amount": "1000",
+            "resourceType": ResourceType.TRON_ENERGY.value,
+            "externalId": "external-id",
+            "memo": "delegate energy",
+            "category": TransactionCategory.DELEGATE_RESOURCE.value,
+        },
+    )
+
+
+def test_stake_resource_posts_stake_category_without_destination():
+    client = object.__new__(APIClient)
+    client.post = Mock(
+        return_value=_resource_transaction_response(TransactionCategory.STAKE.value)
+    )
+
+    source = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
+    transaction = client.stake_resource(
+        StakeResourceRequest(
+            source=source,
+            asset="TRX",
+            chain="TRON",
+            amount="1000",
+        )
+    )
+
+    assert transaction.id == "transaction-id"
+    assert client.post.call_args == call(
+        "/api/external/transactions/",
+        data={
+            "source": asdict(source),
+            "asset": "TRX",
+            "blockChain": "TRON",
+            "amount": "1000",
+            "resourceType": None,
+            "category": TransactionCategory.STAKE.value,
+            "externalId": None,
+            "memo": None,
+        },
+    )
+    assert "destination" not in client.post.call_args.kwargs["data"]
 
 
 class TestApiClient(unittest.TestCase):
@@ -586,11 +1310,10 @@ class TestApiClient(unittest.TestCase):
             "0x1feDDa0D98c5B4FDEbde9342d3db6Eff284B0d18",
         )
         self.assertIsNone(transaction.memo)
-        self.assertIsInstance(transaction.gasParams, dict)
-        self.assertEqual(
-            transaction.gasParams.get("expectedGasFeeInToken"), "0.00055509"
-        )
-        self.assertEqual(transaction.gasParams.get("gasFeeToken"), "ETH")
+        self.assertIsNotNone(transaction.fees)
+        self.assertIsInstance(transaction.fees, Fees)
+        self.assertEqual(transaction.fees.amount, "0.00055509")
+        self.assertEqual(transaction.fees.asset, "ETH")
 
     def test_create_contract_call_transaction(self):
         vaults = self.api_client.get_vaults({"vaultName": "core-vault-1"})
