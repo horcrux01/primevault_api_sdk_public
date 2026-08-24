@@ -3,6 +3,7 @@ from primevault_python_sdk.types import (
     ApprovalAction,
     CreateBankAccountRequest,
     GetApprovalRequest,
+    PaymentMethod,
 )
 
 
@@ -12,9 +13,8 @@ def create_and_approve_bank_account(api_client: APIClient):
         accountNumber="123456789",
         accountName="Treasury Account",
         routingNumber="021000021",
-        paymentMethod="ACH",
+        paymentMethod=PaymentMethod.US_ACH.value,
         bankName="Chase",
-        currency="USD",
         streetLine="123 Main St",
         city="New York",
         state="NY",
@@ -22,20 +22,12 @@ def create_and_approve_bank_account(api_client: APIClient):
         country="US",
     )
 
-    bank_account = api_client.create_bank_account(request)
-    print(f"Created: {bank_account.id} status={bank_account.status}")
+    bank_account = api_client.create_bank_account_with_approval(request)
+    print(f"Created and approved: {bank_account.id} status={bank_account.status}")
     print(
         f"  accountName={bank_account.accountName} bankName={bank_account.bankName} city={bank_account.city}"
     )
-
-    approve_response = api_client.approve_change_request(
-        GetApprovalRequest(
-            entityId=bank_account.id,
-            action=ApprovalAction.APPROVE.value,
-        )
-    )
-    print(f"Approval response: {approve_response}")
-    return approve_response
+    return bank_account
 
 
 def decline_bank_account(api_client: APIClient, bank_account_id: str):
