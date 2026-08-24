@@ -9,7 +9,10 @@ from primevault_python_sdk.base_api_client import (
 )
 from primevault_python_sdk.types import (
     CreateTransferTransactionRequest,
+    DelegateResourceRequest,
     EstimateFeeRequest,
+    ResourceType,
+    StakeResourceRequest,
     Transaction,
     TransactionCreationGasParams,
     TransactionFeeTier,
@@ -19,7 +22,7 @@ from primevault_python_sdk.types import (
 )
 
 
-def create_transfer_transaction(api_client: APIClient):
+def create_transfer(api_client: APIClient):
     assets = api_client.get_assets_data()
     ethereum_asset = next(
         asset
@@ -27,26 +30,21 @@ def create_transfer_transaction(api_client: APIClient):
         if asset.blockChain == "ETHEREUM" and asset.symbol == "ETH"
     )
 
-    # Fetch source and destination vaults
+    # Source and destination can each be a Core Vault or an Exchange Vault. The
+    # destination can also be a whitelisted external address:
+    # TransferPartyData(type=TransferPartyType.EXTERNAL_ADDRESS.value, address="0x123456789..")
     source_vaults = api_client.get_vaults({"vaultName": "core-vault-1"})
     destination_contacts = api_client.get_contacts({"name": "Lynn Bell"})
 
-    # Source Vault, this could be Core or Exchange Vault.
     source = TransferPartyData(
         type=TransferPartyType.VAULT.value, id=source_vaults.results[0].id
     )
-
-    # Destination. This could be Core or Exchange Vault or External address.
     destination = TransferPartyData(
         type=TransferPartyType.CONTACT.value, id=destination_contacts.results[0].id
     )
-    """
-    To send the transaction to an external whitelisted address, change the type and set the value
-    const destination: TransferPartyData = TransferPartyData(type=TransferPartyType.EXTERNAL_ADDRESS.value, value='0x123456789..');
 
-    Optional fee estimate API which returns the expected fee for different tiers, HIGH, MEDIUM, LOW.
-    Default is HIGH. The feeTier is passed in gasParams argument while creating the transfer transaction.
-    """
+    # Optional. Returns the expected fee for the HIGH, MEDIUM and LOW tiers. The
+    # tier is passed as gasParams below and defaults to HIGH.
     fee_estimates = api_client.estimate_fee(
         EstimateFeeRequest(
             source=source,
@@ -59,8 +57,8 @@ def create_transfer_transaction(api_client: APIClient):
     print(fee_estimates)
 
     try:
-        # Create transaction
-        transaction: Transaction = api_client.create_transfer_transaction(
+        # Creates the transfer and approves it as the API user in one call.
+        transaction: Transaction = api_client.create_transaction_with_approval(
             CreateTransferTransactionRequest(
                 source=source,
                 destination=destination,
@@ -86,6 +84,8 @@ def create_transfer_transaction(api_client: APIClient):
 
     print(transaction)
 
+    # Instead of polling, set up a webhook to get notified when the transaction
+    # is completed or failed.
     while True:
         txn_response = api_client.get_transaction_by_id(transaction.id)
         if txn_response.status in [
@@ -96,6 +96,57 @@ def create_transfer_transaction(api_client: APIClient):
         time.sleep(3)
 
     print(txn_response)
+
+
+def delegate_resource(api_client: APIClient):
+    source = TransferPartyData(
+        type=TransferPartyType.VAULT.value, id="7ad54443-21d2-4075-abef-83758c9dceb7"
+    )
+    destination = TransferPartyData(
+        type=TransferPartyType.VAULT.value, id="ee177fd8-d00e-4c55-9966-36fcbfdce123"
+    )
+
+    transaction = api_client.delegate_resource(
+        DelegateResourceRequest(
+            source=source,
+            destination=destination,
+            asset="TRX",
+            chain="TRON",
+            amount="100",
+            resourceType=ResourceType.TRON_ENERGY.value,
+        )
+    )
+    print(transaction)
+    return _wait_for_transaction(api_client, transaction.id)
+
+
+def stake_resource(api_client: APIClient):
+    source = TransferPartyData(
+        type=TransferPartyType.VAULT.value, id="7ad54443-21d2-4075-abef-83758c9dceb7"
+    )
+
+    transaction = api_client.stake_resource(
+        StakeResourceRequest(
+            source=source,
+            asset="TRX",
+            chain="TRON",
+            amount="100",
+            resourceType=ResourceType.TRON_ENERGY.value,
+        )
+    )
+    print(transaction)
+    return _wait_for_transaction(api_client, transaction.id)
+
+
+def _wait_for_transaction(api_client: APIClient, transaction_id: str) -> Transaction:
+    while True:
+        response = api_client.get_transaction_by_id(transaction_id)
+        if response.status in [
+            TransactionStatus.COMPLETED.value,
+            TransactionStatus.FAILED.value,
+        ]:
+            return response
+        time.sleep(3)
 
 
 def get_transactions(api_client: APIClient):

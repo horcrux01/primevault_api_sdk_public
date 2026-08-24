@@ -11,39 +11,25 @@ def create_and_approve_contact(api_client: APIClient):
     """
     Create a contact with an asset whitelist and approve it.
 
-    Flow:
-      1. Create a contact on a given chain with a restricted assetList.
-      2. Approve the pending contact change request.
-      3. Verify the contact status after approval.
+    `create_contact_with_approval` creates the contact and approves the pending
+    contact change request, so the returned contact is already approved. Use
+    `create_contact` / `create_contact_approval` to run the steps separately.
     """
-    # Step 1: Create a contact with an asset whitelist
-    contact = api_client.create_contact(
+    contact = api_client.create_contact_with_approval(
         CreateContactRequest(
             name="USDT/USDC Contact",
             address="0xCa1Dc85B6a8F4Ee45C5C66D887d512355b7D0609",
             chain="ETHEREUM",
             assetList=["USDT", "USDC"],
+            contactGroupIds=[],  # Optional: contact group IDs from the UI
         )
     )
-    print(f"Contact created: {contact.id} ({contact.status})")
+    print(f"Contact created and approved: {contact.id} ({contact.status})")
     print(
         f"  name={contact.name}, chain={contact.blockChain}, assetList={contact.assetList}"
     )
 
-    # Step 2: Approve the contact using its ID as the entityId
-    approval = api_client.approve_change_request(
-        GetApprovalRequest(
-            entityId=contact.id,
-            action=ApprovalAction.APPROVE.value,
-        )
-    )
-    print(f"Approval result: success={approval.success}")
-
-    # Step 3: Fetch the contact again to verify it's approved
-    verified = api_client.get_contact_by_id(contact.id)
-    print(f"Contact status after approval: {verified.status}")
-
-    return verified
+    return contact
 
 
 def decline_contact(api_client: APIClient, contact_id: str):
@@ -88,21 +74,12 @@ def update_contact_asset_list(
     Update a contact's asset whitelist and approve the change.
 
     Replaces the list of assets the contact is allowed to receive.
-    The update creates a pending change request that must be approved.
+    `update_contact_with_approval` updates the contact and approves the pending
+    change request. Use `update_contact` if you want to approve separately.
     """
-    # Step 1: Update the asset list
-    updated = api_client.update_contact(
+    updated = api_client.update_contact_with_approval(
         UpdateContactRequest(id=contact_id, assetList=asset_list)
     )
-    print(f"Contact {updated.id} asset list update requested: {updated.assetList}")
-
-    # Step 2: Approve the update
-    approval = api_client.approve_change_request(
-        GetApprovalRequest(
-            entityId=updated.id,
-            action=ApprovalAction.APPROVE.value,
-        )
-    )
-    print(f"Update approval result: success={approval.success}")
+    print(f"Contact {updated.id} asset list updated and approved: {updated.assetList}")
 
     return updated

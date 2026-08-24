@@ -5,11 +5,19 @@ from primevault_python_sdk.types import BalanceResponse, CreateVaultRequest
 
 
 def create_vault(api_client: APIClient):
-    template_id = ""  # Template ID from UI
+    """
+    Create a vault and wait for its wallets to be generated.
+
+    `vaultGroupIds` is an optional list of vault group IDs the vault should be
+    assigned to. `create_vault_with_approval` creates the vault and approves the
+    pending change request, then the vault begins generating addresses. Use
+    `create_vault` / `create_vault_approval` if you need the two steps separately.
+    """
     data = CreateVaultRequest(
-        vaultName="vault_from_template", templateId=str(template_id)
+        vaultName="vault_from_template",
+        vaultGroupIds=[],  # Optional: vault group IDs from the UI
     )
-    vault = api_client.create_vault(data)
+    vault = api_client.create_vault_with_approval(data)
     while True:
         vault = api_client.get_vault_by_id(vault.id)
         if vault.walletsGenerated:

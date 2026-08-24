@@ -20,6 +20,17 @@ class AuthTokenService(object):
         self.signature_service = get_signature_service(private_key_hex, key_id)
 
     def generate_auth_token(self, url_path: str, body: Optional[dict] = None):
+        """Generate a signed JWT auth token bound to the request being made.
+
+        Args:
+            url_path: URL path of the request without the API host
+                (e.g. "/api/external/transactions/"); must match the path
+                the token is sent with.
+            body: JSON body dict of the request as it will be sent; pass it
+                for POST/PUT requests and leave as None for GET requests.
+                Its hash is embedded in the token, so any mismatch with the
+                actual request body invalidates the token.
+        """
         timestamp = int(time.time())
         body = body or {}
         body_hash = sha256(json_dumps(body).encode("utf-8")).hexdigest()

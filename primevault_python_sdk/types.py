@@ -32,6 +32,8 @@ class TransactionType(str, Enum):
 class ApprovalAction(str, Enum):
     APPROVE = "approve"
     REJECT = "reject"
+    # Alias of REJECT, kept so callers can mirror the JS SDK spelling.
+    DECLINE = "reject"
 
 
 class TransactionCategory(str, Enum):
@@ -44,6 +46,7 @@ class TransactionCategory(str, Enum):
     CONTRACT_CALL = "CONTRACT_CALL"
     STAKE = "STAKE"
     REVOKE_TOKEN_ALLOWANCE = "REVOKE_TOKEN_ALLOWANCE"  # nosec B105
+    DELEGATE_RESOURCE = "DELEGATE_RESOURCE"
 
 
 class TransactionSubCategory(str, Enum):
@@ -58,6 +61,8 @@ class TransactionSubCategory(str, Enum):
     STAKE = "STAKE"
     UNSTAKE = "UNSTAKE"
     CLAIM = "CLAIM"
+    ON_RAMP = "ON_RAMP"
+    OFF_RAMP = "OFF_RAMP"
 
 
 class TransactionStatus(str, Enum):
@@ -68,6 +73,7 @@ class TransactionStatus(str, Enum):
     FAILED = "FAILED"
     DECLINED = "DECLINED"
     SUBMITTED = "SUBMITTED"
+    SIGNED = "SIGNED"
     WAITING_CONFIRMATION = "WAITING_CONFIRMATION"
 
 
@@ -75,6 +81,47 @@ class TransactionFeeTier(str, Enum):
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
+
+
+class TransactionOperationType(str, Enum):
+    DEPOSIT = "DEPOSIT"
+    TRADE = "TRADE"
+    TRANSFER = "TRANSFER"
+    WITHDRAW = "WITHDRAW"
+
+
+class TransactionOperationStatus(str, Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+    CANCELLED = "CANCELLED"
+    REVERSED = "REVERSED"
+
+
+class PaymentMethod(str, Enum):
+    US_ACH = "US_ACH"
+    US_WIRE = "US_WIRE"
+    SEPA = "SEPA"
+    SWIFT = "SWIFT"
+    BANK_TRANSFER = "BANK_TRANSFER"
+
+
+class ResourceType(str, Enum):
+    TRON_ENERGY = "TRON_ENERGY"
+    TRON_BANDWIDTH = "TRON_BANDWIDTH"
+
+
+class BankAccountStatus(str, Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    DECLINED = "DECLINED"
+
+
+class WebhookEventType(str, Enum):
+    TRANSACTION_STATUS_CHANGED = "TRANSACTION_STATUS_CHANGED"
+    TRANSACTION_OPERATION_STATUS_CHANGED = "TRANSACTION_OPERATION_STATUS_CHANGED"
 
 
 @dataclass
@@ -98,15 +145,12 @@ class Asset:
     symbol: str
     blockChain: str
     details: Any
-    logoURL: Optional[str] = None
-    tokenAddress: Optional[str] = None
 
 
 @dataclass
 class ChainData:
     value: str
     label: str
-    logo: str
 
 
 @dataclass
@@ -116,37 +160,37 @@ class BankDetails:
     beneficiaryName: Optional[str] = None
     accountName: Optional[str] = None
     accountNumber: Optional[str] = None
+    accountNumberMasked: Optional[str] = None
     routingNumber: Optional[str] = None
     paymentRail: Optional[str] = None
     bankAddress: Optional[str] = None
     swiftCode: Optional[str] = None
     swiftBic: Optional[str] = None
     iban: Optional[str] = None
-    currency: Optional[str] = None
     country: Optional[str] = None
 
 
 @dataclass
 class DepositInstructions:
     type: Optional[str] = None  # TransferPartyType
-    currency: Optional[str] = None
     paymentRail: Optional[str] = None
     bankDetails: Optional[BankDetails] = None
     asset: Optional[str] = None
     address: Optional[str] = None
-    blockChain: Optional[str] = None
-    memo: Optional[str] = None
+    chain: Optional[str] = None
 
 
 @dataclass
 class TransferPartyData:
     type: str  # TransferPartyType
     id: Optional[str] = None
-    value: Optional[str] = None
+    subOrgId: Optional[str] = None
     name: Optional[str] = None
     address: Optional[str] = None
-    exchange: Optional[str] = None
-    bank: Optional[BankDetails] = None
+    provider: Optional[str] = None
+    bankDetails: Optional[BankDetails] = None
+    chain: Optional[str] = None
+    paymentRail: Optional[str] = None
 
 
 @dataclass
@@ -171,15 +215,14 @@ class Vault:
     orgId: str
     vaultName: str
     vaultType: str  # VaultType
-    signers: List[User]
     createdAt: str
     updatedAt: str
     isDeleted: bool
+    subOrgId: Optional[str] = None
+    signers: Optional[List[User]] = None
     walletsGenerated: Optional[bool] = None
     wallets: Optional[List[Wallet]] = None
     viewers: Optional[List[User]] = None
-    templateId: Optional[str] = None
-    totalBalanceInCurrency: Optional[str] = None
 
 
 @dataclass
@@ -193,9 +236,9 @@ class Contact:
     createdAt: str
     updatedAt: str
     isDeleted: bool
+    subOrgId: Optional[str] = None
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
-    operationId: Optional[str] = None
     isSmartContractAddress: Optional[bool] = None
     isSanctioned: Optional[bool] = None
     createdById: Optional[str] = None
@@ -221,16 +264,51 @@ TransactionOutput = Union[EVMOutput, ICPOutput]
 class TransactionSourceData:
     type: Optional[str] = None
     id: Optional[str] = None
+    subOrgId: Optional[str] = None
     name: Optional[str] = None
     address: Optional[str] = None
-    exchange: Optional[str] = None
-    bank: Optional[BankDetails] = None
+    provider: Optional[str] = None
+    bankDetails: Optional[BankDetails] = None
+    chain: Optional[str] = None
+    paymentRail: Optional[str] = None
+
+
+@dataclass
+class TransactionOperationBalanceChange:
+    party: Optional[TransferPartyData]
+    asset: str
+    amount: str
+    chain: Optional[str] = None
+    paymentRail: Optional[str] = None
+
+
+@dataclass
+class TransactionOperationBalanceChanges:
+    changes: List[TransactionOperationBalanceChange]
+
+
+@dataclass
+class TransactionOperation:
+    source: Optional[TransferPartyData]
+    destination: Optional[TransferPartyData]
+    balanceChanges: Optional[TransactionOperationBalanceChanges]
+    sequence: int
+    type: str  # TransactionOperationType
+    status: Optional[str] = None  # TransactionOperationStatus
+    provider: Optional[str] = None
+
+
+@dataclass
+class RouteAccountData:
+    provider: str
+    id: str
 
 
 @dataclass
 class TransactionIntentRequest:
     source: Optional[TransferPartyData] = None
     destination: Optional[TransferPartyData] = None
+    routeAccounts: Optional[List[RouteAccountData]] = None
     fromAsset: Optional[str] = None
     fromAmount: Optional[str] = None
     fromChain: Optional[str] = None
@@ -244,6 +322,7 @@ class TransactionIntentRequest:
 @dataclass
 class GetQuoteRequest:
     intent: TransactionIntentRequest
+    subOrgId: Optional[str] = None
 
 
 @dataclass
@@ -252,6 +331,7 @@ class TransactionExecuteIntentRequest:
     quoteId: Optional[str] = None
     externalId: Optional[str] = None
     memo: Optional[str] = None
+    subOrgId: Optional[str] = None
 
 
 @dataclass
@@ -268,39 +348,42 @@ class Transaction:
     updatedAt: str
     isDeleted: bool
     # Optional fields
-    blockChain: Optional[str] = None
-    toAddress: Optional[str] = None
-    asset: Optional[str] = None
-    toAddressName: Optional[str] = None
-    createdById: Optional[str] = None
     txHash: Optional[str] = None
     error: Optional[str] = None
-    toVaultId: Optional[str] = None
     externalId: Optional[str] = None
-    gasParams: Optional[Dict[str, Any]] = None
+    createdById: Optional[str] = None
+    fees: Optional["Fees"] = None
     memo: Optional[str] = None
-    source: Optional[TransactionSourceData] = None
-    sourceAddress: Optional[str] = None
     txnSignature: Optional[str] = None
     txnSignatureData: Optional[dict] = None
     output: Optional[TransactionOutput] = None
-    dAppId: Optional[str] = None
-    operationId: Optional[str] = None
     amountInUSD: Optional[str] = None
     nonce: Optional[int] = None
+    dAppId: Optional[str] = None
+    source: Optional[TransactionSourceData] = None
     destination: Optional[TransactionSourceData] = None
     intent: Optional[TransactionIntentRequest] = None
     quoteResponse: Optional["QuoteResponseItem"] = None
     depositInstructions: Optional[DepositInstructions] = None
+    operations: Optional[List[TransactionOperation]] = None
+    balanceChanges: Optional[TransactionOperationBalanceChanges] = None
+    blockChain: Optional[str] = None
+    toAddress: Optional[str] = None  # deprecated, use destination.address instead
+    asset: Optional[str] = None
+    toAddressName: Optional[str] = None  # deprecated, use destination.name instead
+    toVaultId: Optional[str] = None  # deprecated, use destination.id instead
+    sourceAddress: Optional[str] = None  # deprecated, use source.address instead
 
 
 # Requests
 
 
 @dataclass
-class GetApprovalResponse:
+class GetApprovalMessageResponse:
     message: str
     approvalId: str
+    changeRequestId: Optional[str] = None
+    entityId: Optional[str] = None
 
 
 @dataclass
@@ -312,8 +395,11 @@ class GetApprovalRequest:
 
 
 @dataclass
-class CreateApprovalResponse:
+class ApprovalActionResponse:
     success: bool
+    status: Optional[str] = None
+    id: Optional[str] = None
+    entityId: Optional[str] = None
 
 
 @dataclass
@@ -325,8 +411,6 @@ class CreateTransferTransactionRequest:
     chain: str
     gasParams: Optional[TransactionCreationGasParams] = None
     externalId: Optional[str] = None
-    isAutomation: Optional[bool] = None
-    executeAt: Optional[str] = None
     memo: Optional[str] = None
     feePayer: Optional[FeePayer] = None
 
@@ -388,9 +472,11 @@ class EstimateFeeRequest:
 @dataclass
 class CreateVaultRequest:
     vaultName: str
+    subOrgId: Optional[str] = None
     templateId: Optional[str] = None
     chains: Optional[List[str]] = None
     testNetVault: Optional[bool] = None
+    vaultGroupIds: Optional[List[str]] = None
 
 
 @dataclass
@@ -398,15 +484,18 @@ class CreateContactRequest:
     name: str
     address: str
     chain: str
+    subOrgId: Optional[str] = None
     tags: Optional[List[str]] = None
     externalId: Optional[str] = None
     assetList: Optional[List[str]] = None
+    contactGroupIds: Optional[List[str]] = None
 
 
 @dataclass
 class UpdateContactRequest:
     id: str
     assetList: Optional[List[str]] = None
+    contactGroupIds: Optional[List[str]] = None
 
 
 @dataclass
@@ -452,11 +541,13 @@ class EstimatedFeeResponse:
 class Fees:
     amount: str
     asset: str
+    amountInFiat: Optional[str] = None
 
 
 @dataclass
 class QuoteResponseItem:
     quoteId: str
+    subOrgId: Optional[str] = None
     rate: Optional[str] = None
     fees: Optional[Fees] = None
     finalFromAmount: Optional[str] = None
@@ -470,21 +561,6 @@ class QuoteResponse:
 
 
 @dataclass
-class DepositAddress:
-    address: Optional[str] = None
-    id: Optional[Union[int, str]] = None
-    label: Optional[str] = None
-    chain: Optional[str] = None
-    chainName: Optional[str] = None
-    asset: Optional[str] = None
-
-
-@dataclass
-class DepositAddressResponse:
-    addresses: List[DepositAddress]
-
-
-@dataclass
 class VaultListResponse:
     results: List[Vault]
     nextCursor: Optional[str] = None
@@ -494,6 +570,35 @@ class VaultListResponse:
 @dataclass
 class TransactionListResponse:
     results: List[Transaction]
+    nextCursor: Optional[str] = None
+    hasNext: Optional[bool] = None
+
+
+@dataclass
+class ActivityEventMetaData:
+    platform: Optional[str] = None
+    sourceIp: Optional[str] = None
+    userAgent: Optional[str] = None
+
+
+@dataclass
+class ActivityEvent:
+    id: str
+    action: str
+    outcome: Optional[str] = None
+    activityLabel: Optional[str] = None
+    createdAt: Optional[str] = None
+    entityType: Optional[str] = None
+    entityId: Optional[str] = None
+    entityName: Optional[str] = None
+    actorId: Optional[str] = None
+    metaData: Optional[ActivityEventMetaData] = None
+    schemaVersion: Optional[str] = None
+
+
+@dataclass
+class ActivityEventListResponse:
+    results: List[ActivityEvent]
     nextCursor: Optional[str] = None
     hasNext: Optional[bool] = None
 
@@ -513,14 +618,15 @@ class BankAccount:
     createdAt: str
     updatedAt: str
     isDeleted: bool
-    status: str
+    status: str  # BankAccountStatus
+    subOrgId: Optional[str] = None
+    createdById: Optional[str] = None
     accountNumber: Optional[str] = None
     accountName: Optional[str] = None
     routingNumber: Optional[str] = None
     clientBankAccountId: Optional[str] = None
-    paymentMethod: Optional[str] = None
+    paymentMethod: Optional[str] = None  # PaymentMethod
     bankName: Optional[str] = None
-    currency: Optional[str] = None
     streetLine: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
@@ -537,13 +643,13 @@ class BankAccountListResponse:
 
 @dataclass
 class CreateBankAccountRequest:
+    subOrgId: Optional[str] = None
     accountNumber: Optional[str] = None
     accountName: Optional[str] = None
     routingNumber: Optional[str] = None
     clientBankAccountId: Optional[str] = None
-    paymentMethod: Optional[str] = None
+    paymentMethod: Optional[str] = None  # PaymentMethod
     bankName: Optional[str] = None
-    currency: Optional[str] = None
     streetLine: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
@@ -575,8 +681,6 @@ class DetailedBalance:
     name: Optional[str] = None
     chain: Optional[str] = None
     tokenAddress: Optional[str] = None
-    balanceInUSD: Optional[str] = None
-    price: Optional[str] = None
 
 
 DetailedBalanceResponse = List[DetailedBalance]
@@ -593,30 +697,44 @@ DetailedBalanceResponse = List[DetailedBalance]
 """
 
 
-@dataclass
-class WithdrawAddress:
-    id: Optional[int] = None
-    address: Optional[str] = None
-    token: Optional[str] = None
-    network: Optional[str] = None
-    network_name: Optional[str] = None
-    label: Optional[str] = None
+# Resource delegation and staking
 
 
 @dataclass
-class WithdrawAddressesResponse:
-    addresses: List[WithdrawAddress]
-
-
-@dataclass
-class GetWithdrawAddressesRequest:
-    source: TransferPartyData
-    currency: Optional[str] = None
-
-
-@dataclass
-class SubmitWithdrawalRequest:
+class DelegateResourceRequest:
     source: TransferPartyData
     destination: TransferPartyData
     asset: str
+    chain: str
     amount: str
+    resourceType: str  # ResourceType
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
+
+
+@dataclass
+class StakeResourceRequest:
+    source: TransferPartyData
+    asset: str
+    chain: str
+    amount: str
+    resourceType: Optional[str] = None  # ResourceType
+    externalId: Optional[str] = None
+    memo: Optional[str] = None
+
+
+# Webhooks
+
+
+@dataclass
+class WebhookEventData:
+    transaction: Optional[Transaction] = None
+    transactionOperation: Optional[TransactionOperation] = None
+
+
+@dataclass
+class WebhookEvent:
+    event: str  # WebhookEventType
+    version: str  # "2.0.0"
+    eventId: str
+    data: WebhookEventData

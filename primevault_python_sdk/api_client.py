@@ -1,11 +1,14 @@
 from dataclasses import asdict
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional, Union
+from urllib.parse import urlencode
 
 from dacite import Config, from_dict
 
 from primevault_python_sdk.base_api_client import BaseAPIClient
 from primevault_python_sdk.types import (
+    ActivityEventListResponse,
     ApprovalAction,
+    ApprovalActionResponse,
     Asset,
     BalanceResponse,
     BankAccount,
@@ -13,25 +16,24 @@ from primevault_python_sdk.types import (
     ChainData,
     Contact,
     ContactListResponse,
-    CreateApprovalResponse,
     CreateBankAccountRequest,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
-    DepositAddressResponse,
+    DelegateResourceRequest,
     DetailedBalance,
     DetailedBalanceResponse,
     EstimatedFeeResponse,
     EstimateFeeRequest,
+    GetApprovalMessageResponse,
     GetApprovalRequest,
-    GetApprovalResponse,
     GetQuoteRequest,
-    GetWithdrawAddressesRequest,
     QuoteResponse,
     ReplaceTransactionRequest,
-    SubmitWithdrawalRequest,
+    StakeResourceRequest,
     Transaction,
+    TransactionCategory,
     TransactionExecuteIntentRequest,
     TransactionIntentRequest,
     TransactionListResponse,
@@ -40,8 +42,6 @@ from primevault_python_sdk.types import (
     UpdateContactResponse,
     Vault,
     VaultListResponse,
-    WithdrawAddress,
-    WithdrawAddressesResponse,
 )
 
 
@@ -74,17 +74,34 @@ class APIClient(BaseAPIClient):
             self.get(url),
         )
 
+    def get_activity_events(
+        self,
+        params: Optional[dict] = None,
+        limit: Optional[int] = 20,
+        cursor: Optional[str] = None,
+    ) -> ActivityEventListResponse:
+        query: Dict[str, str] = {"limit": str(limit), "cursor": cursor or ""}
+        if params:
+            query.update(params)
+
+        url = f"/api/external/activity/events/?{urlencode(query)}"
+
+        return from_dict(
+            ActivityEventListResponse,
+            self.get(url),
+        )
+
     def get_transaction_by_id(self, transaction_id: str) -> Transaction:
         return from_dict(
             Transaction, self.get(f"/api/external/transactions/{transaction_id}/")
         )
 
-    def get_change_approval_message(self, entity_id: str) -> GetApprovalResponse:
+    def get_change_approval_message(self, entity_id: str) -> GetApprovalMessageResponse:
         data = {
             "entityId": entity_id,
         }
         return from_dict(
-            GetApprovalResponse,
+            GetApprovalMessageResponse,
             self.get(
                 "/api/external/change_requests/approvals/approval_message/", params=data
             ),
@@ -96,7 +113,7 @@ class APIClient(BaseAPIClient):
         action: str,
         signature_hex: str,
         reason: Optional[str] = "ok",
-    ) -> CreateApprovalResponse:
+    ) -> ApprovalActionResponse:
         approval_request = {
             "action": action,
             "signature": signature_hex,
@@ -105,7 +122,7 @@ class APIClient(BaseAPIClient):
             approval_request["reason"] = reason
 
         return from_dict(
-            CreateApprovalResponse,
+            ApprovalActionResponse,
             self.post(
                 f"/api/external/change_requests/approvals/{approval_id}/action/",
                 data=approval_request,
@@ -115,7 +132,7 @@ class APIClient(BaseAPIClient):
     def approve_change_request(
         self,
         request: GetApprovalRequest,
-    ) -> CreateApprovalResponse:
+    ) -> ApprovalActionResponse:
         """Approve or reject the pending change request for any supported entity."""
         approval_message = self.get_change_approval_message(request.entityId)
         signature_hex = self.signature_service.sign(
@@ -144,8 +161,8 @@ class APIClient(BaseAPIClient):
 
     def estimate_fee(self, request: EstimateFeeRequest) -> EstimatedFeeResponse:
         data = {
-            "source": request.source.__dict__,
-            "destination": request.destination.__dict__,
+            "source": asdict(request.source),
+            "destination": asdict(request.destination),
             "amount": request.amount,
             "asset": request.asset,
             "blockChain": request.chain,
@@ -164,21 +181,31 @@ class APIClient(BaseAPIClient):
             gas_params = request.gasParams.__dict__
 
         data = {
-            "source": request.source.__dict__,
-            "destination": request.destination.__dict__,
+            "source": asdict(request.source),
+            "destination": asdict(request.destination),
             "amount": request.amount,
             "asset": request.asset,
             "blockChain": request.chain,
             "category": "TRANSFER",
             "gasParams": gas_params,
             "externalId": request.externalId,
-            "isAutomation": request.isAutomation,
-            "executeAt": request.executeAt,
             "memo": request.memo,
             "feePayer": request.feePayer and request.feePayer.__dict__,
         }
         response = self.post("/api/external/transactions/", data=data)
         return from_dict(Transaction, response)
+
+    def create_transaction_with_approval(
+        self, request: CreateTransferTransactionRequest
+    ) -> Transaction:
+        """Create a transfer transaction and approve it in one call.
+
+        The transaction is only signed for approval when it lands in PENDING,
+        so orgs whose policy approves on create get the created transaction back
+        untouched.
+        """
+        transaction = self.create_transfer_transaction(request)
+        return self._approve_pending_transaction_change_request(transaction)
 
     def replace_transaction(self, request: ReplaceTransactionRequest) -> Transaction:
         return from_dict(
@@ -229,14 +256,10 @@ class APIClient(BaseAPIClient):
         }
 
     @staticmethod
-    def _quote_request_data(request: GetQuoteRequest) -> dict[str, Any]:
-        return {"intent": APIClient._transaction_intent_data(request.intent)}
-
-    @staticmethod
     def _transaction_execute_intent_request_data(
         request: TransactionExecuteIntentRequest,
     ) -> dict[str, Any]:
-        return {
+        data = {
             "intent": (
                 APIClient._transaction_intent_data(request.intent)
                 if request.intent
@@ -246,11 +269,23 @@ class APIClient(BaseAPIClient):
             "externalId": request.externalId,
             "memo": request.memo,
         }
+        if request.subOrgId is not None:
+            data["subOrgId"] = request.subOrgId
+        return data
 
     def get_quote(self, request: GetQuoteRequest) -> QuoteResponse:
+        intent_data = self._transaction_intent_data(request.intent)
+        if request.intent.routeAccounts is not None:
+            intent_data["routeAccounts"] = [
+                asdict(route_account) for route_account in request.intent.routeAccounts
+            ]
+
+        data: dict[str, Any] = {"intent": intent_data}
+        if request.subOrgId is not None:
+            data["subOrgId"] = request.subOrgId
         response = self.post(
             "/api/external/transactions/quote/",
-            data=self._quote_request_data(request),
+            data=data,
         )
         return from_dict(QuoteResponse, response)
 
@@ -272,16 +307,6 @@ class APIClient(BaseAPIClient):
                 data={"transactionId": transactionId},
             ),
         )
-
-    def create_on_ramp_transaction(
-        self, request: TransactionExecuteIntentRequest
-    ) -> Transaction:
-        return self.create_transaction_from_intent(request)
-
-    def create_off_ramp_transaction(
-        self, request: TransactionExecuteIntentRequest
-    ) -> Transaction:
-        return self.create_transaction_from_intent(request)
 
     def get_vaults(
         self,
@@ -308,6 +333,19 @@ class APIClient(BaseAPIClient):
             Vault, self.post("/api/external/vaults/", data=request.__dict__)
         )
 
+    def create_vault_approval(self, vault: Vault) -> Vault:
+        self.approve_change_request(
+            GetApprovalRequest(
+                entityId=vault.id,
+                action=ApprovalAction.APPROVE.value,
+            )
+        )
+        return self.get_vault_by_id(vault.id)
+
+    def create_vault_with_approval(self, request: CreateVaultRequest) -> Vault:
+        vault = self.create_vault(request)
+        return self.create_vault_approval(vault)
+
     def get_balances(self, vault_id: str) -> BalanceResponse:
         return self.get(f"/api/external/vaults/{vault_id}/balances/")
 
@@ -318,21 +356,6 @@ class APIClient(BaseAPIClient):
             f"/api/external/vaults/{vault_id}/detailed_balances/", params=params
         )
         return [from_dict(DetailedBalance, balance) for balance in response]
-
-    def get_deposit_address(
-        self, vault_id: str, currency: Optional[str] = None
-    ) -> DepositAddressResponse:
-        params = {"vaultId": vault_id}
-        if currency:
-            params["currency"] = currency
-
-        response = self.get(
-            "/api/external/transactions/get_deposit_address/", params=params
-        )
-        return from_dict(DepositAddressResponse, response)
-
-    def update_balances(self, vault_id: str) -> BalanceResponse:
-        return self.post(f"/api/external/vaults/{vault_id}/update_balances/")
 
     def get_operation_message_to_sign(self, operation_id: str):
         return self.get(
@@ -374,21 +397,74 @@ class APIClient(BaseAPIClient):
     def create_contact(self, request: CreateContactRequest) -> Contact:
         data = {
             "name": request.name,
+            "subOrgId": request.subOrgId,
             "address": request.address,
             "blockChain": request.chain,
             "tags": request.tags,
             "externalId": request.externalId,
             "assetList": request.assetList if request.assetList else [],
+            "contactGroupIds": request.contactGroupIds,
         }
         response = self.post("/api/external/contacts/", data=data)
         return from_dict(Contact, response)
 
+    def create_contact_approval(
+        self, contact: Union[Contact, UpdateContactResponse]
+    ) -> Contact:
+        self.approve_change_request(
+            GetApprovalRequest(
+                entityId=contact.id,
+                action=ApprovalAction.APPROVE.value,
+            )
+        )
+        return self.get_contact_by_id(contact.id)
+
+    def create_contact_with_approval(self, request: CreateContactRequest) -> Contact:
+        contact = self.create_contact(request)
+        return self.create_contact_approval(contact)
+
     def update_contact(self, request: UpdateContactRequest) -> UpdateContactResponse:
         data = {
             "assetList": request.assetList if request.assetList else [],
+            "contactGroupIds": request.contactGroupIds,
         }
         response = self.put(f"/api/external/contacts/{request.id}/", data=data)
         return from_dict(UpdateContactResponse, response)
+
+    def update_contact_with_approval(self, request: UpdateContactRequest) -> Contact:
+        updated = self.update_contact(request)
+        return self.create_contact_approval(updated)
+
+    def delegate_resource(self, request: DelegateResourceRequest) -> Transaction:
+        data = {
+            "source": asdict(request.source),
+            "destination": asdict(request.destination),
+            "asset": request.asset,
+            "blockChain": request.chain,
+            "amount": request.amount,
+            "resourceType": request.resourceType,
+            "externalId": request.externalId,
+            "memo": request.memo,
+            "category": TransactionCategory.DELEGATE_RESOURCE.value,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
+
+    def stake_resource(self, request: StakeResourceRequest) -> Transaction:
+        data = {
+            "source": asdict(request.source),
+            "asset": request.asset,
+            "blockChain": request.chain,
+            "amount": request.amount,
+            "resourceType": request.resourceType,
+            "category": TransactionCategory.STAKE.value,
+            "externalId": request.externalId,
+            "memo": request.memo,
+        }
+        return from_dict(
+            Transaction, self.post("/api/external/transactions/", data=data)
+        )
 
     # Bank Account Methods
 
@@ -421,19 +497,17 @@ class APIClient(BaseAPIClient):
         response = self.post("/api/external/bank_accounts/", data=asdict(request))
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
 
-    def get_withdraw_addresses(
-        self, request: GetWithdrawAddressesRequest
-    ) -> WithdrawAddressesResponse:
-        response = self.post(
-            "/api/external/vaults/get_withdraw_addresses/",
-            data=asdict(request),
+    def create_bank_account_approval(self, bank_account: BankAccount) -> BankAccount:
+        self.approve_change_request(
+            GetApprovalRequest(
+                entityId=bank_account.id,
+                action=ApprovalAction.APPROVE.value,
+            )
         )
-        return from_dict(WithdrawAddressesResponse, response)
+        return self.get_bank_account_by_id(bank_account.id)
 
-    def submit_withdrawal_request(
-        self, request: SubmitWithdrawalRequest
-    ) -> dict:
-        return self.post(
-            "/api/external/vaults/submit_withdrawal_request/",
-            data=asdict(request),
-        )
+    def create_bank_account_with_approval(
+        self, request: CreateBankAccountRequest
+    ) -> BankAccount:
+        bank_account = self.create_bank_account(request)
+        return self.create_bank_account_approval(bank_account)
