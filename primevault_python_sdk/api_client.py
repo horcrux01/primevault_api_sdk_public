@@ -1,5 +1,5 @@
-from dataclasses import asdict
-from typing import Any, Dict, List, Optional, Union
+from dataclasses import asdict, fields
+from typing import Any, Collection, Dict, List, Optional, Union
 from urllib.parse import urlencode
 
 from dacite import Config, from_dict
@@ -13,12 +13,14 @@ from primevault_python_sdk.types import (
     BalanceResponse,
     BankAccount,
     BankAccountListResponse,
+    BankDetails,
     ChainData,
     Contact,
     ContactListResponse,
     CreateBankAccountRequest,
     CreateContactRequest,
     CreateContractCallTransactionRequest,
+    CreateSubOrgRequest,
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     DelegateResourceRequest,
@@ -29,20 +31,36 @@ from primevault_python_sdk.types import (
     GetApprovalMessageResponse,
     GetApprovalRequest,
     GetQuoteRequest,
+    GetVaultDepositInstructionsRequest,
+    IntentAsset,
     QuoteResponse,
     ReplaceTransactionRequest,
     StakeResourceRequest,
+    SubOrg,
+    SubOrgControlMode,
+    SubOrgListResponse,
     Transaction,
     TransactionCategory,
     TransactionExecuteIntentRequest,
     TransactionIntentRequest,
     TransactionListResponse,
     TransactionStatus,
+    TransferPartyData,
     UpdateContactRequest,
     UpdateContactResponse,
     Vault,
+    VaultDepositInstructionsResponse,
     VaultListResponse,
 )
+
+
+def _present_fields(request: Any, exclude: Collection[str] = ()) -> dict[str, Any]:
+    """Shallow-serialize a request dataclass, omitting fields left as None."""
+    return {
+        field.name: getattr(request, field.name)
+        for field in fields(request)
+        if field.name not in exclude and getattr(request, field.name) is not None
+    }
 
 
 class APIClient(BaseAPIClient):
@@ -241,25 +259,38 @@ class APIClient(BaseAPIClient):
         )
 
     @staticmethod
+    def _bank_details_data(bank: BankDetails) -> dict[str, Any]:
+        # accountNumberMasked/swiftBic are deposit-instruction-only response fields.
+        return _present_fields(bank, exclude=("accountNumberMasked", "swiftBic"))
+
+    @staticmethod
+    def _transfer_party_data(party: TransferPartyData) -> dict[str, Any]:
+        data = _present_fields(party, exclude=("bankDetails",))
+        if party.bankDetails is not None:
+            data["bankDetails"] = APIClient._bank_details_data(party.bankDetails)
+        return data
+
+    @staticmethod
+    def _intent_asset_data(asset: IntentAsset) -> dict[str, Any]:
+        return _present_fields(asset)
+
+    @staticmethod
     def _transaction_intent_data(request: TransactionIntentRequest) -> dict[str, Any]:
-        return {
-            "source": asdict(request.source) if request.source else None,
-            "destination": asdict(request.destination) if request.destination else None,
-            "fromAsset": request.fromAsset,
-            "toAsset": request.toAsset,
-            "fromAmount": request.fromAmount,
-            "fromChain": request.fromChain,
-            "fromPaymentRail": request.fromPaymentRail,
-            "toAmount": request.toAmount,
-            "toChain": request.toChain,
-            "toPaymentRail": request.toPaymentRail,
+        data = {
+            "input": APIClient._intent_asset_data(request.input),
+            "output": APIClient._intent_asset_data(request.output),
         }
+        if request.source is not None:
+            data["source"] = APIClient._transfer_party_data(request.source)
+        if request.destination is not None:
+            data["destination"] = APIClient._transfer_party_data(request.destination)
+        return data
 
     @staticmethod
     def _transaction_execute_intent_request_data(
         request: TransactionExecuteIntentRequest,
     ) -> dict[str, Any]:
-        data = {
+        return {
             "intent": (
                 APIClient._transaction_intent_data(request.intent)
                 if request.intent
@@ -269,23 +300,11 @@ class APIClient(BaseAPIClient):
             "externalId": request.externalId,
             "memo": request.memo,
         }
-        if request.subOrgId is not None:
-            data["subOrgId"] = request.subOrgId
-        return data
 
     def get_quote(self, request: GetQuoteRequest) -> QuoteResponse:
-        intent_data = self._transaction_intent_data(request.intent)
-        if request.intent.routeAccounts is not None:
-            intent_data["routeAccounts"] = [
-                asdict(route_account) for route_account in request.intent.routeAccounts
-            ]
-
-        data: dict[str, Any] = {"intent": intent_data}
-        if request.subOrgId is not None:
-            data["subOrgId"] = request.subOrgId
         response = self.post(
-            "/api/external/transactions/quote/",
-            data=data,
+            "/api/external/transactions/v2/quote/",
+            data={"intent": self._transaction_intent_data(request.intent)},
         )
         return from_dict(QuoteResponse, response)
 
@@ -327,6 +346,17 @@ class APIClient(BaseAPIClient):
 
     def get_vault_by_id(self, vault_id: str) -> Vault:
         return from_dict(Vault, self.get(f"/api/external/vaults/{vault_id}/"))
+
+    def get_vault_deposit_instructions(
+        self, vault_id: str, request: GetVaultDepositInstructionsRequest
+    ) -> VaultDepositInstructionsResponse:
+        return from_dict(
+            VaultDepositInstructionsResponse,
+            self.get(
+                f"/api/external/vaults/{vault_id}/deposit_instructions/",
+                params=_present_fields(request),
+            ),
+        )
 
     def create_vault(self, request: CreateVaultRequest) -> Vault:
         return from_dict(
@@ -373,6 +403,26 @@ class APIClient(BaseAPIClient):
         return self.post(
             f"/api/external/operations/{operation_id}/update_user_action/", data=data
         )
+
+    _SUB_ORG_DACITE_CFG = Config(cast=[SubOrgControlMode])
+
+    def get_sub_orgs(
+        self,
+        params: Optional[Dict[str, str]] = None,
+        limit: int = 20,
+        cursor: Optional[str] = None,
+    ) -> SubOrgListResponse:
+        query = {"limit": str(limit), "cursor": cursor or ""}
+        if params:
+            query.update(params)
+        url = f"/api/external/sub_orgs/?{urlencode(query)}"
+        return from_dict(
+            SubOrgListResponse, self.get(url), config=self._SUB_ORG_DACITE_CFG
+        )
+
+    def create_sub_org(self, request: CreateSubOrgRequest) -> SubOrg:
+        response = self.post("/api/external/sub_orgs/", data=asdict(request))
+        return from_dict(SubOrg, response, config=self._SUB_ORG_DACITE_CFG)
 
     def get_contacts(
         self,

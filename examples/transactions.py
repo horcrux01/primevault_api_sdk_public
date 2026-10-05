@@ -14,8 +14,6 @@ from primevault_python_sdk.types import (
     ResourceType,
     StakeResourceRequest,
     Transaction,
-    TransactionCreationGasParams,
-    TransactionFeeTier,
     TransactionStatus,
     TransferPartyData,
     TransferPartyType,
@@ -43,19 +41,6 @@ def create_transfer(api_client: APIClient):
         type=TransferPartyType.CONTACT.value, id=destination_contacts.results[0].id
     )
 
-    # Optional. Returns the expected fee for the HIGH, MEDIUM and LOW tiers. The
-    # tier is passed as gasParams below and defaults to HIGH.
-    fee_estimates = api_client.estimate_fee(
-        EstimateFeeRequest(
-            source=source,
-            destination=destination,
-            amount="0.0001",
-            asset=ethereum_asset.symbol,
-            chain=ethereum_asset.blockChain,
-        )
-    )
-    print(fee_estimates)
-
     try:
         # Creates the transfer and approves it as the API user in one call.
         transaction: Transaction = api_client.create_transaction_with_approval(
@@ -66,9 +51,6 @@ def create_transfer(api_client: APIClient):
                 asset=ethereum_asset.symbol,
                 chain=ethereum_asset.blockChain,
                 externalId="externalId-1",  # Optional external ID
-                gasParams=TransactionCreationGasParams(  # Optional gas parameters, defaults to TransactionFeeTier.HIGH
-                    feeTier=TransactionFeeTier.HIGH.value
-                ),
             )
         )
     except BadRequestError as e:
@@ -179,3 +161,23 @@ def get_transactions(api_client: APIClient):
         cursor = response.nextCursor
 
     print(f"Total transactions: {len(all_transactions)}")
+
+
+def estimate_fee(api_client: APIClient):
+    source = TransferPartyData(
+        type=TransferPartyType.VAULT.value, id="7ad54443-21d2-4075-abef-83758c9dceb7"
+    )
+    destination = TransferPartyData(
+        type=TransferPartyType.VAULT.value, id="ee177fd8-d00e-4c55-9966-36fcbfdce123"
+    )
+
+    fee_estimates = api_client.estimate_fee(
+        EstimateFeeRequest(
+            source=source,
+            destination=destination,
+            amount="0.0001",
+            asset="ETH",
+            chain="ETHEREUM",
+        )
+    )
+    print(fee_estimates)

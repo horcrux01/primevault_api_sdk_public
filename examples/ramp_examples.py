@@ -1,6 +1,7 @@
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
     GetQuoteRequest,
+    IntentAsset,
     Transaction,
     TransactionExecuteIntentRequest,
     TransactionIntentRequest,
@@ -14,7 +15,7 @@ def create_fiat_to_crypto_transaction(api_client: APIClient) -> Transaction:
     Example: Create a fiat-to-crypto transaction with the intent flow.
 
     Flow:
-    1. Build the transaction intent from source and destination details.
+    1. Build the transaction intent from input/output assets and parties.
     2. Fetch quotes for that intent via get_quote.
     3. Execute the selected quote with create_transaction_from_intent.
     """
@@ -27,26 +28,25 @@ def create_fiat_to_crypto_transaction(api_client: APIClient) -> Transaction:
     destination = TransferPartyData(
         type=TransferPartyType.VAULT.value,
         id=vault_id,
+        chain="ETHEREUM",
     )
 
     intent = TransactionIntentRequest(
         source=source,
         destination=destination,
-        fromAsset="NGN",
-        toAmount="5",
-        toAsset="USDT",
-        toChain="ETHEREUM",
+        input=IntentAsset(asset="NGN", vaultId=ramp_vault_id),
+        output=IntentAsset(asset="USDT", amount="5"),
     )
 
     quote_response = api_client.get_quote(GetQuoteRequest(intent=intent))
     print(f"Quotes: {quote_response.quotes}")
     selected_quote = quote_response.quotes[0]
+    print(f"Quoted selections: {selected_quote.input} {selected_quote.output}")
 
     fiat_to_crypto_transaction = api_client.create_transaction_from_intent(
         TransactionExecuteIntentRequest(
-            intent=intent,
             quoteId=selected_quote.quoteId,
-            externalId="fiat-to-crypto-example-1",
+            externalId="fiat-to-crypto-example-2",
             memo="fiat to crypto example",
         )
     )
@@ -63,7 +63,7 @@ def create_crypto_to_fiat_transaction(api_client: APIClient) -> Transaction:
     Example: Create a crypto-to-fiat transaction with the intent flow.
 
     Flow:
-    1. Build the transaction intent from source and destination details.
+    1. Build the transaction intent from input/output assets and parties.
     2. Fetch quotes for that intent via get_quote.
     3. Execute the selected quote with create_transaction_from_intent.
     """
@@ -73,6 +73,7 @@ def create_crypto_to_fiat_transaction(api_client: APIClient) -> Transaction:
     source = TransferPartyData(
         type=TransferPartyType.VAULT.value,
         id=vault_id,
+        chain="ETHEREUM",
     )
 
     destination = TransferPartyData(
@@ -83,19 +84,17 @@ def create_crypto_to_fiat_transaction(api_client: APIClient) -> Transaction:
     intent = TransactionIntentRequest(
         source=source,
         destination=destination,
-        fromAsset="USDC",
-        fromAmount="100",
-        fromChain="ETHEREUM",
-        toAsset="USD",
+        input=IntentAsset(asset="USDC", amount="100"),
+        output=IntentAsset(asset="USD"),
     )
 
     quote_response = api_client.get_quote(GetQuoteRequest(intent=intent))
     print(f"Quotes: {quote_response.quotes}")
     selected_quote = quote_response.quotes[0]
+    print(f"Quoted selections: {selected_quote.input} {selected_quote.output}")
 
     crypto_to_fiat_transaction = api_client.create_transaction_from_intent(
         TransactionExecuteIntentRequest(
-            intent=intent,
             quoteId=selected_quote.quoteId,
             externalId="crypto-to-fiat-example-1",
             memo="crypto to fiat example",
@@ -107,10 +106,10 @@ def create_crypto_to_fiat_transaction(api_client: APIClient) -> Transaction:
 
 def create_fiat_to_fiat_transaction(api_client: APIClient) -> Transaction:
     """
-    Example: Create a EUR-to-USD transaction with the intent flow.
+    Example: Create a NGN-to-USD transaction with the intent flow.
 
     Flow:
-    1. Build the transaction intent from source and destination details.
+    1. Build the transaction intent; both fiat sides name their fiat vault.
     2. Fetch quotes for that intent via get_quote.
     3. Execute the selected quote with create_transaction_from_intent.
     """
@@ -127,26 +126,25 @@ def create_fiat_to_fiat_transaction(api_client: APIClient) -> Transaction:
     intent = TransactionIntentRequest(
         source=source,
         destination=destination,
-        fromAsset="EUR",
-        fromAmount="1000",
-        toAsset="USD",
+        input=IntentAsset(asset="NGN", vaultId="your-ngn-fiat-vault-id"),
+        output=IntentAsset(asset="USD", amount="100", vaultId="your-usd-fiat-vault-id"),
     )
 
     quote_response = api_client.get_quote(GetQuoteRequest(intent=intent))
     print(f"Quotes: {quote_response.quotes}")
     selected_quote = quote_response.quotes[0]
+    print(f"Quoted selections: {selected_quote.input} {selected_quote.output}")
 
     fiat_to_fiat_transaction = api_client.create_transaction_from_intent(
         TransactionExecuteIntentRequest(
-            intent=intent,
             quoteId=selected_quote.quoteId,
-            externalId="eur-to-usd-example-1",
-            memo="EUR to USD example",
+            externalId="ngn-to-usd-example-1",
+            memo="NGN to USD example",
         )
     )
-    print(f"EUR to USD transaction: {fiat_to_fiat_transaction}")
-    operations = fiat_to_fiat_transaction.operations or []
-    for operation in operations:
-        print(f"Transfer operation sequence: {operation.sequence}: {operation}")
+    print(f"NGN to USD transaction: {fiat_to_fiat_transaction}")
+    balance_changes = fiat_to_fiat_transaction.balanceChanges
+    for change in balance_changes.changes if balance_changes else []:
+        print(f"{change.asset} {change.amount}: {change.party}")
 
     return fiat_to_fiat_transaction

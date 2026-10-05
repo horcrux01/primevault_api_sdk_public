@@ -45,4 +45,16 @@ api_client = APIClient(api_key, api_url, private_key=private_key)
 ```
 
 ### Code Examples
+
+SubOrg creation and cursor-based listing are available through `create_sub_org`
+and `get_sub_orgs`; see [the SubOrg example](examples/sub_org.py). Use
+`CreateSubOrgRequest(name=...)`; creation defaults to `MANAGED` control mode
+and always creates an end-user SubOrg. Supplying `controlMode` in a create
+request is rejected by the API. The API user must be ADMIN or OWNER to create
+or list SubOrgs. Creation requires organization-wide access; end-user admins
+and owners can list only their own SubOrg. Responses use the
+`SubOrg` and `SubOrgListResponse` dataclasses, with typed control modes.
+The optional `name` filter uses case-insensitive SQL patterns (`%Acme%` for a
+substring match). List responses include `results`, `nextCursor`, and `hasNext`.
+
 [Here](https://github.com/horcrux01/primevault_api_sdk_public/tree/main/examples)

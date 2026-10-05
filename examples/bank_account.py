@@ -13,13 +13,14 @@ def create_and_approve_bank_account(api_client: APIClient):
         accountNumber="123456789",
         accountName="Treasury Account",
         routingNumber="021000021",
-        paymentMethod=PaymentMethod.US_ACH.value,
+        paymentMethod=PaymentMethod.ACH.value,
         bankName="Chase",
         streetLine="123 Main St",
         city="New York",
         state="NY",
         postalCode="10001",
         country="US",
+        tags=["treasury", "payroll"],
     )
 
     bank_account = api_client.create_bank_account_with_approval(request)

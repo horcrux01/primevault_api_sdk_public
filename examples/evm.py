@@ -9,8 +9,6 @@ from primevault_python_sdk.base_api_client import (
 from primevault_python_sdk.types import (
     CreateContractCallTransactionRequest,
     EVMContractCallData,
-    TransactionCreationGasParams,
-    TransactionFeeTier,
     TransactionStatus,
 )
 
@@ -30,9 +28,6 @@ def create_contract_call_transaction(api_client: APIClient):
                 data=EVMContractCallData(
                     callData=call_data,
                     toAddress=contract_address,
-                ),
-                gasParams=TransactionCreationGasParams(
-                    feeTier=TransactionFeeTier.HIGH.value
                 ),
             )
         )

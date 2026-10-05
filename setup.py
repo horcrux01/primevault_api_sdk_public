@@ -8,9 +8,9 @@ setup(
     packages=find_packages(),
     install_requires=[
         "boto3==1.34.84",
-        "cryptography==48.0.1",
-        "requests==2.32.4",
-        "pytest==8.3.4",
+        "cryptography==50.0.0",
+        "requests==2.33.0",
+        "pytest==9.0.3",
         "dacite==1.9.1",
     ],
     author="PrimeVault",
