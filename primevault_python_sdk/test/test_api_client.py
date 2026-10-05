@@ -23,8 +23,9 @@ from primevault_python_sdk.types import (
     GetApprovalMessageResponse,
     GetApprovalRequest,
     GetQuoteRequest,
+    GetVaultDepositInstructionsRequest,
+    IntentAsset,
     ResourceType,
-    RouteAccountData,
     StakeResourceRequest,
     Transaction,
     TransactionCategory,
@@ -35,6 +36,7 @@ from primevault_python_sdk.types import (
     TransactionOperationStatus,
     TransactionOperationType,
     TransactionStatus,
+    TransactionSubCategory,
     TransferPartyData,
     TransferPartyType,
     UpdateContactRequest,
@@ -94,110 +96,75 @@ def test_base_client_sends_sdk_version_header_on_all_requests(monkeypatch):
 
 def test_intent_request_serialization_matches_backend_contract():
     client = object.__new__(APIClient)
-    client.post = Mock(
-        return_value={
-            "quotes": [
-                {
-                    "quoteId": "quote-id",
-                    "subOrgId": "sub-org-id",
-                }
-            ]
-        }
-    )
+    client.post = Mock(return_value={"quotes": [{"quoteId": "quote-id"}]})
 
     source = TransferPartyData(
         type=TransferPartyType.VAULT.value,
         id="source-vault",
+        chain="ETHEREUM",
         provider=None,
     )
     destination = TransferPartyData(
         type=TransferPartyType.BANK_ACCOUNT.value,
         id="destination-bank-account",
+        paymentRail="ACH",
         bankDetails=BankDetails(
             bankAccountId="destination-bank-account",
             bankName="Example Bank",
+            bankCode="044",
+            beneficiaryAddress="1 Main St",
+            accountNumberMasked="****1234",
+            swiftBic="EXAMPLEXXX",
         ),
     )
     intent = TransactionIntentRequest(
+        input=IntentAsset(asset="USDC", amount="100"),
+        output=IntentAsset(asset="USD", amount="99", vaultId="usd-fiat-vault"),
         source=source,
         destination=destination,
-        routeAccounts=[
-            RouteAccountData(provider="provider-key", id="provider-linked-vault-id")
-        ],
-        fromAsset="USDC",
-        toAsset="USD",
-        fromAmount="100",
-        fromChain="ETHEREUM",
-        fromPaymentRail="BLOCKCHAIN",
-        toAmount="99",
-        toPaymentRail="ACH",
     )
 
-    quote_response = client.get_quote(
-        GetQuoteRequest(intent=intent, subOrgId="sub-org-id")
-    )
-    quote_payload = client.post.call_args.kwargs["data"]
+    quote_response = client.get_quote(GetQuoteRequest(intent=intent))
     execute_payload = APIClient._transaction_execute_intent_request_data(
         TransactionExecuteIntentRequest(
             intent=intent,
             quoteId="quote-id",
             externalId="external-id",
             memo="memo",
-            subOrgId="sub-org-id",
         )
     )
 
+    # None fields are omitted, and deposit-instruction-only bank fields are dropped.
     expected_intent = {
-        "source": asdict(source),
-        "destination": asdict(destination),
-        "fromAsset": "USDC",
-        "toAsset": "USD",
-        "fromAmount": "100",
-        "fromChain": "ETHEREUM",
-        "fromPaymentRail": "BLOCKCHAIN",
-        "toAmount": "99",
-        "toChain": None,
-        "toPaymentRail": "ACH",
+        "input": {"asset": "USDC", "amount": "100"},
+        "output": {"asset": "USD", "amount": "99", "vaultId": "usd-fiat-vault"},
+        "source": {
+            "type": TransferPartyType.VAULT.value,
+            "id": "source-vault",
+            "chain": "ETHEREUM",
+        },
+        "destination": {
+            "type": TransferPartyType.BANK_ACCOUNT.value,
+            "id": "destination-bank-account",
+            "paymentRail": "ACH",
+            "bankDetails": {
+                "bankAccountId": "destination-bank-account",
+                "bankName": "Example Bank",
+                "bankCode": "044",
+                "beneficiaryAddress": "1 Main St",
+            },
+        },
     }
-    expected_quote_intent = {
-        **expected_intent,
-        "routeAccounts": [
-            {"provider": "provider-key", "id": "provider-linked-vault-id"}
-        ],
-    }
-    assert quote_payload == {
-        "intent": expected_quote_intent,
-        "subOrgId": "sub-org-id",
-    }
+    client.post.assert_called_once_with(
+        "/api/external/transactions/v2/quote/",
+        data={"intent": expected_intent},
+    )
     assert quote_response.quotes[0].quoteId == "quote-id"
-    assert quote_response.quotes[0].subOrgId == "sub-org-id"
     assert execute_payload == {
         "intent": expected_intent,
         "quoteId": "quote-id",
         "externalId": "external-id",
         "memo": "memo",
-        "subOrgId": "sub-org-id",
-    }
-    assert "routeAccounts" not in execute_payload["intent"]
-    assert "orgId" not in quote_payload["intent"]
-    assert "userId" not in quote_payload["intent"]
-    assert "orgId" not in execute_payload
-    assert "userId" not in execute_payload
-    assert quote_payload["intent"]["source"]["provider"] is None
-    assert quote_payload["intent"]["destination"]["bankDetails"] == {
-        "bankAccountId": "destination-bank-account",
-        "bankName": "Example Bank",
-        "beneficiaryName": None,
-        "accountName": None,
-        "accountNumber": None,
-        "accountNumberMasked": None,
-        "routingNumber": None,
-        "paymentRail": None,
-        "bankAddress": None,
-        "swiftCode": None,
-        "swiftBic": None,
-        "iban": None,
-        "country": None,
     }
 
 
@@ -207,7 +174,6 @@ def test_transaction_execute_intent_request_serializes_quote_only_execution():
             quoteId="quote-id",
             externalId="external-id",
             memo="trade from quote",
-            subOrgId="sub-org-id",
         )
     )
 
@@ -216,44 +182,115 @@ def test_transaction_execute_intent_request_serializes_quote_only_execution():
         "quoteId": "quote-id",
         "externalId": "external-id",
         "memo": "trade from quote",
-        "subOrgId": "sub-org-id",
     }
 
 
-def test_get_quote_posts_intent_and_parses_ramp_quote_fields():
+def test_get_quote_posts_intent_and_parses_filled_selections():
     client = object.__new__(APIClient)
     client.post = Mock(
         return_value={
             "quotes": [
                 {
                     "quoteId": "quote-id",
-                    "finalToAmount": "100",
+                    "rate": "1375.00",
                     "fees": {"amount": "0", "asset": "NGN"},
-                    "sourceName": None,
-                }
+                    "input": {
+                        "asset": "NGN",
+                        "amount": "137500",
+                        "vaultId": "ngn-fiat-vault",
+                    },
+                    "output": {"asset": "USDC", "amount": "100"},
+                    "source": {"type": TransferPartyType.EXTERNAL_BANK_ACCOUNT.value},
+                    "destination": {
+                        "type": TransferPartyType.VAULT.value,
+                        "id": "vault-id",
+                        "chain": "ETHEREUM",
+                    },
+                    "expiresAt": "2026-05-25T00:00:30+00:00",
+                },
+                {"quoteId": "quote-id-2", "rate": None, "fees": None},
             ]
         }
     )
 
-    destination = TransferPartyData(type=TransferPartyType.VAULT.value, id="vault-id")
     intent = TransactionIntentRequest(
-        destination=destination,
-        fromAsset="NGN",
-        fromAmount="137500",
-        toAsset="USDC",
-        toChain="ETHEREUM",
+        input=IntentAsset(asset="NGN", amount="137500", vaultId="ngn-fiat-vault"),
+        output=IntentAsset(asset="USDC"),
+        source=TransferPartyData(type=TransferPartyType.EXTERNAL_BANK_ACCOUNT.value),
+        destination=TransferPartyData(
+            type=TransferPartyType.VAULT.value, id="vault-id", chain="ETHEREUM"
+        ),
     )
 
     quote_response = client.get_quote(GetQuoteRequest(intent=intent))
 
     client.post.assert_called_once_with(
-        "/api/external/transactions/quote/",
+        "/api/external/transactions/v2/quote/",
         data={"intent": APIClient._transaction_intent_data(intent)},
     )
-    assert quote_response.quotes[0].quoteId == "quote-id"
-    assert quote_response.quotes[0].finalToAmount == "100"
-    assert quote_response.quotes[0].fees.amount == "0"
-    assert quote_response.quotes[0].sourceName is None
+    filled_quote, unpriced_quote = quote_response.quotes
+    assert filled_quote.quoteId == "quote-id"
+    assert filled_quote.rate == "1375.00"
+    assert filled_quote.fees == Fees(amount="0", asset="NGN")
+    assert filled_quote.input == IntentAsset(
+        asset="NGN", amount="137500", vaultId="ngn-fiat-vault"
+    )
+    assert filled_quote.output == IntentAsset(asset="USDC", amount="100")
+    assert filled_quote.source == intent.source
+    assert filled_quote.destination == intent.destination
+    assert filled_quote.expiresAt == "2026-05-25T00:00:30+00:00"
+    assert unpriced_quote.rate is None
+    assert unpriced_quote.fees is None
+    assert unpriced_quote.input is None
+    assert unpriced_quote.output is None
+    assert unpriced_quote.expiresAt is None
+
+
+def test_best_quote_omits_parties_and_parses_priced_parties_and_expiry():
+    client = object.__new__(APIClient)
+    lp_vault = {"type": TransferPartyType.VAULT.value, "id": "lp-vault-id"}
+    client.post = Mock(
+        return_value={
+            "quotes": [
+                {
+                    "quoteId": "quote-id",
+                    "rate": "1.00030009",
+                    "fees": {"amount": "0", "asset": "USDT"},
+                    "input": {"asset": "USDT", "amount": "10000"},
+                    "output": {"asset": "USD", "amount": "10003"},
+                    "source": lp_vault,
+                    "destination": lp_vault,
+                    "expiresAt": "2026-09-30T10:00:30+00:00",
+                }
+            ]
+        }
+    )
+
+    quote_response = client.get_quote(
+        GetQuoteRequest(
+            intent=TransactionIntentRequest(
+                input=IntentAsset(asset="USDT", amount="10000"),
+                output=IntentAsset(asset="USD"),
+            )
+        )
+    )
+
+    client.post.assert_called_once_with(
+        "/api/external/transactions/v2/quote/",
+        data={
+            "intent": {
+                "input": {"asset": "USDT", "amount": "10000"},
+                "output": {"asset": "USD"},
+            }
+        },
+    )
+    (quote,) = quote_response.quotes
+    expected_party = TransferPartyData(
+        type=TransferPartyType.VAULT.value, id="lp-vault-id"
+    )
+    assert quote.source == expected_party
+    assert quote.destination == expected_party
+    assert quote.expiresAt == "2026-09-30T10:00:30+00:00"
 
 
 def test_vault_list_and_retrieve_parse_sub_org_id():
@@ -288,6 +325,144 @@ def test_vault_list_and_retrieve_parse_sub_org_id():
         call("/api/external/vaults/?limit=20&cursor="),
         call("/api/external/vaults/vault-id/"),
     ]
+
+
+def test_vault_list_and_retrieve_parse_bound_asset():
+    client = object.__new__(APIClient)
+    base_vault = {
+        "id": "vault-id",
+        "orgId": "org-id",
+        "vaultName": "Treasury",
+        "vaultType": VaultType.DEFAULT.value,
+        "createdAt": "2026-09-25T00:00:00Z",
+        "updatedAt": "2026-09-25T00:00:00Z",
+        "isDeleted": False,
+    }
+    fiat_vault = {**base_vault, "id": "fiat-vault", "asset": "USD"}
+    crypto_vault = {**base_vault, "id": "crypto-vault", "asset": None}
+    client.get = Mock(
+        side_effect=[
+            {
+                "results": [fiat_vault, crypto_vault, base_vault],
+                "nextCursor": None,
+                "hasNext": False,
+            },
+            fiat_vault,
+        ]
+    )
+
+    vault_list = client.get_vaults()
+    vault = client.get_vault_by_id("fiat-vault")
+
+    assert [item.asset for item in vault_list.results] == ["USD", None, None]
+    assert vault.asset == "USD"
+
+
+def test_get_vault_deposit_instructions_fiat_selects_payment_rail():
+    client = object.__new__(APIClient)
+    client.get = Mock(
+        return_value={
+            "data": [
+                {
+                    "type": TransferPartyType.BANK_ACCOUNT.value,
+                    "asset": "USD",
+                    "paymentRail": "WIRE",
+                    "bankDetails": {
+                        "bankName": "Example Bank",
+                        "bankCode": "021000021",
+                        "beneficiaryName": "PrimeVault Inc",
+                        "accountNumberMasked": "****1234",
+                        "beneficiaryAddress": "1 Main St, New York, NY",
+                        "swiftBic": "EXAMPLEXXX",
+                    },
+                    "memo": "Reference: fiat-vault",
+                }
+            ]
+        }
+    )
+
+    response = client.get_vault_deposit_instructions(
+        "vault-id",
+        GetVaultDepositInstructionsRequest(asset="USD", paymentRail="WIRE"),
+    )
+
+    client.get.assert_called_once_with(
+        "/api/external/vaults/vault-id/deposit_instructions/",
+        params={"asset": "USD", "paymentRail": "WIRE"},
+    )
+    [instruction] = response.data
+    assert instruction.type == TransferPartyType.BANK_ACCOUNT.value
+    assert instruction.asset == "USD"
+    assert instruction.paymentRail == "WIRE"
+    assert instruction.memo == "Reference: fiat-vault"
+    assert instruction.bankDetails == BankDetails(
+        bankName="Example Bank",
+        bankCode="021000021",
+        beneficiaryName="PrimeVault Inc",
+        accountNumberMasked="****1234",
+        beneficiaryAddress="1 Main St, New York, NY",
+        swiftBic="EXAMPLEXXX",
+    )
+
+
+def test_get_vault_deposit_instructions_crypto_selects_chain():
+    client = object.__new__(APIClient)
+    client.get = Mock(
+        return_value={
+            "data": [
+                {
+                    "type": TransferPartyType.EXTERNAL_ADDRESS.value,
+                    "asset": "USDC",
+                    "chain": "ETHEREUM",
+                    "address": "0xPrimaryDepositAddress",
+                },
+                {
+                    "type": TransferPartyType.EXTERNAL_ADDRESS.value,
+                    "asset": "USDC",
+                    "chain": "ETHEREUM",
+                    "address": "0xSecondaryDepositAddress",
+                    "memo": "12345",
+                },
+            ]
+        }
+    )
+
+    response = client.get_vault_deposit_instructions(
+        "vault-id",
+        GetVaultDepositInstructionsRequest(asset="USDC", chain="ETHEREUM"),
+    )
+
+    client.get.assert_called_once_with(
+        "/api/external/vaults/vault-id/deposit_instructions/",
+        params={"asset": "USDC", "chain": "ETHEREUM"},
+    )
+    assert [(item.address, item.memo) for item in response.data] == [
+        ("0xPrimaryDepositAddress", None),
+        ("0xSecondaryDepositAddress", "12345"),
+    ]
+    assert all(item.chain == "ETHEREUM" for item in response.data)
+    assert all(item.bankDetails is None for item in response.data)
+
+
+def test_get_vault_deposit_instructions_handles_empty_response():
+    client = object.__new__(APIClient)
+    client.get = Mock(return_value={"data": []})
+
+    response = client.get_vault_deposit_instructions(
+        "vault-id",
+        GetVaultDepositInstructionsRequest(asset="EUR", paymentRail="SEPA"),
+    )
+
+    assert response.data == []
+
+
+def test_get_vault_deposit_instructions_request_requires_exactly_one_rail():
+    with pytest.raises(ValueError):
+        GetVaultDepositInstructionsRequest(asset="USD")
+    with pytest.raises(ValueError):
+        GetVaultDepositInstructionsRequest(
+            asset="USD", chain="ETHEREUM", paymentRail="WIRE"
+        )
 
 
 def test_contact_list_and_retrieve_parse_sub_org_id():
@@ -374,18 +549,58 @@ def test_change_approval_helpers_fetch_message_sign_and_submit_action():
 
 def test_create_transaction_from_intent_approves_pending_transaction():
     client = object.__new__(APIClient)
+    vault_party = {
+        "type": TransferPartyType.VAULT.value,
+        "id": "vault-id",
+        "chain": "ETHEREUM",
+    }
+    bank_party = {
+        "type": TransferPartyType.BANK_ACCOUNT.value,
+        "id": "bank-account-id",
+        "paymentRail": "ACH",
+    }
     transaction_response = {
         "id": "transaction-id",
         "orgId": "org-id",
         "vaultId": "vault-id",
-        "amount": "1",
+        "amount": "10000.00",
         "status": TransactionStatus.PENDING.value,
         "transactionType": "OUTGOING",
-        "category": "TRANSFER",
-        "subCategory": "EXTERNAL_TRANSFER",
+        "category": TransactionCategory.RAMP.value,
+        "subCategory": TransactionSubCategory.TRADE_WITHDRAW.value,
         "createdAt": "2026-05-25T00:00:00Z",
         "updatedAt": "2026-05-25T00:00:00Z",
         "isDeleted": False,
+        "asset": "USDC",
+        "externalId": "external-id",
+        "source": {**vault_party, "name": "USDC Treasury"},
+        "destination": {**bank_party, "name": "USD Payroll"},
+        "balanceChanges": {
+            "changes": [
+                {
+                    "party": {**vault_party, "name": "USDC Treasury"},
+                    "asset": "USDC",
+                    "amount": "-10000.00",
+                    "chain": "ETHEREUM",
+                },
+                {
+                    "party": {**bank_party, "name": "USD Payroll"},
+                    "asset": "USD",
+                    "amount": "9975.00",
+                    "paymentRail": "ACH",
+                },
+            ]
+        },
+        "quoteResponse": {
+            "quoteId": "quote-id",
+            "rate": "1",
+            "fees": {"amount": "25.00", "asset": "USDC"},
+            "input": {"asset": "USDC", "amount": "10000.00"},
+            "output": {"asset": "USD", "amount": "9975.00", "vaultId": "usd-vault-id"},
+            "source": vault_party,
+            "destination": bank_party,
+            "expiresAt": "2026-05-25T00:00:30+00:00",
+        },
     }
     client.post = Mock(
         side_effect=[
@@ -411,7 +626,6 @@ def test_create_transaction_from_intent_approves_pending_transaction():
 
     transaction = client.create_transaction_from_intent(
         TransactionExecuteIntentRequest(
-            intent=TransactionIntentRequest(),
             quoteId="quote-id",
             externalId="external-id",
             memo="memo",
@@ -420,10 +634,38 @@ def test_create_transaction_from_intent_approves_pending_transaction():
 
     assert transaction.id == "transaction-id"
     assert transaction.status == TransactionStatus.APPROVED.value
-    assert client.post.call_args_list[0][0][0] == (
-        "/api/external/transactions/intent/create/"
+    assert transaction.operations is None
+    assert transaction.balanceChanges is not None
+    assert [
+        (change.asset, change.amount, change.chain, change.paymentRail)
+        for change in transaction.balanceChanges.changes
+    ] == [
+        ("USDC", "-10000.00", "ETHEREUM", None),
+        ("USD", "9975.00", None, "ACH"),
+    ]
+    quote = transaction.quoteResponse
+    assert quote is not None
+    assert (quote.quoteId, quote.rate, quote.fees) == (
+        "quote-id",
+        "1",
+        Fees(amount="25.00", asset="USDC"),
     )
-    assert "subOrgId" not in client.post.call_args_list[0].kwargs["data"]
+    assert quote.input == IntentAsset(asset="USDC", amount="10000.00")
+    assert quote.output == IntentAsset(
+        asset="USD", amount="9975.00", vaultId="usd-vault-id"
+    )
+    assert quote.source == TransferPartyData(**vault_party)
+    assert quote.destination == TransferPartyData(**bank_party)
+    assert quote.expiresAt == "2026-05-25T00:00:30+00:00"
+    assert client.post.call_args_list[0] == call(
+        "/api/external/transactions/intent/create/",
+        data={
+            "intent": None,
+            "quoteId": "quote-id",
+            "externalId": "external-id",
+            "memo": "memo",
+        },
+    )
     assert client.get.call_args_list == [
         call(
             "/api/external/change_requests/approvals/approval_message/",
@@ -441,6 +683,38 @@ def test_create_transaction_from_intent_approves_pending_transaction():
     )
 
 
+def test_mark_deposit_done_posts_transaction_id_and_parses_deposit():
+    client = object.__new__(APIClient)
+    client.post = Mock(
+        return_value={
+            "id": "deposit-id",
+            "orgId": "org-id",
+            "vaultId": "usd-vault-id",
+            "amount": "100",
+            "status": TransactionStatus.SUBMITTED.value,
+            "transactionType": "OUTGOING",
+            "category": TransactionCategory.TRANSFER.value,
+            "subCategory": TransactionSubCategory.DEPOSIT.value,
+            "createdAt": "2026-05-25T00:00:00Z",
+            "updatedAt": "2026-05-25T00:00:00Z",
+            "isDeleted": False,
+            "asset": "USD",
+        }
+    )
+
+    transaction = client.mark_deposit_done("deposit-id")
+
+    client.post.assert_called_once_with(
+        "/api/external/transactions/mark_deposit_done/",
+        data={"transactionId": "deposit-id"},
+    )
+    assert (transaction.id, transaction.status, transaction.subCategory) == (
+        "deposit-id",
+        TransactionStatus.SUBMITTED.value,
+        TransactionSubCategory.DEPOSIT.value,
+    )
+
+
 def test_create_vault_with_approval():
     client = object.__new__(APIClient)
     vault_response = {
@@ -448,7 +722,6 @@ def test_create_vault_with_approval():
         "orgId": "org-id",
         "vaultName": "Treasury",
         "vaultType": VaultType.DEFAULT.value,
-        "signers": [],
         "createdAt": "2026-05-25T00:00:00Z",
         "updatedAt": "2026-05-25T00:00:00Z",
         "isDeleted": False,
@@ -650,7 +923,16 @@ def test_update_contact_with_approval():
     )
 
 
-def test_create_bank_account_with_approval():
+@pytest.mark.parametrize(
+    "tag_fields",
+    [
+        {},
+        {"tags": None},
+        {"tags": []},
+        {"tags": ["treasury", "payroll", "treasury"]},
+    ],
+)
+def test_create_bank_account_with_approval(tag_fields):
     client = object.__new__(APIClient)
     bank_account_response = {
         "id": "bank-account-id",
@@ -662,6 +944,7 @@ def test_create_bank_account_with_approval():
         "status": "PENDING",
         "accountName": "Treasury Account",
         "bankName": "Chase",
+        **tag_fields,
     }
     client.post = Mock(
         side_effect=[
@@ -676,6 +959,11 @@ def test_create_bank_account_with_approval():
                 "approvalId": "approval-id",
             },
             {**bank_account_response, "status": "APPROVED"},
+            {
+                "results": [{**bank_account_response, "status": "APPROVED"}],
+                "nextCursor": None,
+                "hasNext": False,
+            },
         ]
     )
     client.signature_service = Mock()
@@ -685,11 +973,16 @@ def test_create_bank_account_with_approval():
         accountNumber="123456789",
         accountName="Treasury Account",
         bankName="Chase",
+        **tag_fields,
     )
     bank_account = client.create_bank_account_with_approval(request)
 
     assert bank_account.id == "bank-account-id"
     assert bank_account.status == "APPROVED"
+    assert bank_account.tags == tag_fields.get("tags")
+    assert client.post.call_args_list[0].kwargs["data"]["tags"] == tag_fields.get(
+        "tags"
+    )
     assert client.post.call_args_list[0] == call(
         "/api/external/bank_accounts/",
         data=asdict(request),
@@ -710,6 +1003,10 @@ def test_create_bank_account_with_approval():
         },
     )
 
+    listed = client.get_bank_accounts()
+    assert listed.results[0].tags == tag_fields.get("tags")
+    client.get.assert_called_with("/api/external/bank_accounts/?limit=20&cursor=")
+
 
 def test_transaction_parses_deposit_instructions():
     client = object.__new__(APIClient)
@@ -719,6 +1016,19 @@ def test_transaction_parses_deposit_instructions():
         "chain": "ETHEREUM",
         "address": "0xRecipientAddressFromPrimeVault",
     }
+    source = {
+        "type": TransferPartyType.VAULT.value,
+        "id": "vault-id",
+        "provider": None,
+    }
+    destination = {
+        "type": TransferPartyType.BANK_ACCOUNT.value,
+        "id": "destination-bank-account",
+        "bankDetails": {
+            "bankName": "Example Bank",
+            "accountNumber": "000123456789",
+        },
+    }
     client.post = Mock(
         return_value={
             "id": "transaction-id",
@@ -727,46 +1037,51 @@ def test_transaction_parses_deposit_instructions():
             "amount": "137500",
             "status": TransactionStatus.APPROVED.value,
             "transactionType": "OUTGOING",
-            "category": "ON_RAMP",
-            "subCategory": "PROVIDER_DEPOSIT",
+            "category": TransactionCategory.RAMP.value,
+            "subCategory": TransactionSubCategory.DEPOSIT_TRADE.value,
             "createdAt": "2026-05-25T00:00:00Z",
             "updatedAt": "2026-05-25T00:00:00Z",
             "isDeleted": False,
-            "source": {
-                "type": TransferPartyType.VAULT.value,
-                "id": "vault-id",
-                "provider": None,
-            },
-            "destination": {
-                "type": TransferPartyType.BANK_ACCOUNT.value,
-                "id": "destination-bank-account",
-                "bankDetails": {
-                    "bankName": "Example Bank",
-                    "accountNumber": "000123456789",
+            "source": source,
+            "destination": destination,
+            "intent": {
+                "input": {
+                    "asset": "NGN",
+                    "amount": "137500",
+                    "vaultId": "ngn-fiat-vault",
                 },
+                "output": {"asset": "USDT", "amount": "100"},
+                "source": source,
+                "destination": destination,
             },
             "depositInstructions": deposit_instructions,
             "quoteResponse": {
                 "quoteId": "quote-id",
-                "finalToAmount": "100",
+                "rate": "1375.00",
+                "input": {
+                    "asset": "NGN",
+                    "amount": "137500",
+                    "vaultId": "ngn-fiat-vault",
+                },
+                "output": {"asset": "USDT", "amount": "100"},
             },
         }
     )
 
     transaction = client.create_transaction_from_intent(
-        TransactionExecuteIntentRequest(
-            intent=TransactionIntentRequest(),
-            quoteId="quote-id",
-        )
+        TransactionExecuteIntentRequest(quoteId="quote-id")
     )
 
     assert transaction.depositInstructions is not None
     assert transaction.depositInstructions.type == (
         TransferPartyType.EXTERNAL_ADDRESS.value
     )
+    assert transaction.category == TransactionCategory.RAMP.value
+    assert transaction.subCategory == TransactionSubCategory.DEPOSIT_TRADE.value
     assert transaction.quoteResponse is not None
     assert transaction.quoteResponse.quoteId == "quote-id"
-    assert transaction.quoteResponse.finalToAmount == "100"
+    assert transaction.quoteResponse.rate == "1375.00"
+    assert transaction.quoteResponse.output == IntentAsset(asset="USDT", amount="100")
     assert transaction.source is not None
     assert transaction.source.provider is None
     assert transaction.destination is not None
@@ -788,8 +1103,8 @@ def test_transaction_parses_operations():
             "amount": "100",
             "status": TransactionStatus.APPROVED.value,
             "transactionType": "OUTGOING",
-            "category": "OFF_RAMP",
-            "subCategory": "WITHDRAW",
+            "category": TransactionCategory.RAMP.value,
+            "subCategory": TransactionSubCategory.WITHDRAW.value,
             "createdAt": "2026-05-25T00:00:00Z",
             "updatedAt": "2026-05-25T00:00:00Z",
             "isDeleted": False,
@@ -1133,8 +1448,6 @@ class TestApiClient(unittest.TestCase):
         self.assertEqual(vault.vaultName, "core-vault-1")
         self.assertEqual(vault.vaultType, VaultType.DEFAULT.value)
         self.assertEqual(len(vault.wallets), 8)
-        self.assertEqual(len(vault.signers), 9)
-        self.assertEqual(len(vault.viewers), 0)
 
         # Check blockchains
         blockchains = sorted([wallet.blockchain for wallet in vault.wallets])

@@ -1,6 +1,7 @@
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
     GetQuoteRequest,
+    IntentAsset,
     QuoteResponseItem,
     Transaction,
     TransactionExecuteIntentRequest,
@@ -24,9 +25,8 @@ def _trade_intent() -> TransactionIntentRequest:
             type=TransferPartyType.VAULT.value,
             id=VAULT_ID,
         ),
-        fromAsset="USDT",
-        fromAmount="100",
-        toAsset="USD",
+        input=IntentAsset(asset="USDT", amount="100"),
+        output=IntentAsset(asset="USD"),
     )
 
 
@@ -39,6 +39,7 @@ def get_test_trade_quote(api_client: APIClient) -> QuoteResponseItem:
 # Create the test trade using intent/create with the quoteId.
 def create_test_trade(api_client: APIClient) -> Transaction:
     quote_response = get_test_trade_quote(api_client)
+    print(f"Quoted selections: {quote_response.input} {quote_response.output}")
     request = TransactionExecuteIntentRequest(
         quoteId=quote_response.quoteId,
         externalId="trade-001",
@@ -64,7 +65,7 @@ def create_test_trade(api_client: APIClient) -> Transaction:
 # Fiat (bank) deposit instructions look like:
 #   transaction.depositInstructions = DepositInstructions(
 #       type="BANK_ACCOUNT",
-#       currency="USD",
+#       asset="USD",
 #       paymentRail="ACH",
 #       bankDetails=BankDetails(
 #           bankName="Chase",
@@ -76,22 +77,21 @@ def create_test_trade(api_client: APIClient) -> Transaction:
 #   )
 def create_deposit(api_client: APIClient) -> Transaction:
     intent = TransactionIntentRequest(
+        input=IntentAsset(asset="USDT", amount="500"),
+        output=IntentAsset(asset="USDT"),
         source=TransferPartyData(
             type=TransferPartyType.CONTACT.value,
             id="contact-id",
+            chain="ETHEREUM",
         ),
         destination=TransferPartyData(
             type=TransferPartyType.VAULT.value,
             id=VAULT_ID,
         ),
-        fromAsset="USDT",
-        fromAmount="500",
-        fromChain="ETHEREUM",
     )
     return api_client.create_transaction_from_intent(
         TransactionExecuteIntentRequest(
             intent=intent,
-            quoteId=None,
             externalId="deposit-001",
             memo="USDT deposit from external account",
         )
@@ -101,6 +101,8 @@ def create_deposit(api_client: APIClient) -> Transaction:
 # Create a withdraw using intent/create with a direct intent object.
 def create_withdraw(api_client: APIClient) -> Transaction:
     intent = TransactionIntentRequest(
+        input=IntentAsset(asset="USD", amount="250"),
+        output=IntentAsset(asset="USD"),
         source=TransferPartyData(
             type=TransferPartyType.VAULT.value,
             id=VAULT_ID,
@@ -109,13 +111,10 @@ def create_withdraw(api_client: APIClient) -> Transaction:
             type=TransferPartyType.BANK_ACCOUNT.value,
             id="bank-account-id",
         ),
-        fromAsset="USD",
-        fromAmount="250",
     )
     return api_client.create_transaction_from_intent(
         TransactionExecuteIntentRequest(
             intent=intent,
-            quoteId=None,
             externalId="withdraw-001",
             memo="USD withdrawal to bank",
         )

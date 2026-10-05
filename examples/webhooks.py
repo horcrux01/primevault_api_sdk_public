@@ -39,5 +39,5 @@ def validate_webhook_signature(headers: dict, body: str, verification_key: str) 
         # Compare signatures securely
         return hmac.compare_digest(expected_signature, received_signature)
 
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError):
         return False

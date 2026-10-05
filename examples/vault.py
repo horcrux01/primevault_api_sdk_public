@@ -1,7 +1,11 @@
 import time
 
 from primevault_python_sdk.api_client import APIClient
-from primevault_python_sdk.types import BalanceResponse, CreateVaultRequest
+from primevault_python_sdk.types import (
+    BalanceResponse,
+    CreateVaultRequest,
+    GetVaultDepositInstructionsRequest,
+)
 
 
 def create_vault(api_client: APIClient):
@@ -54,3 +58,22 @@ def get_vaults_filtered(api_client: APIClient):
     response = api_client.get_vaults(params={"vaultName": "core-vault-1"}, limit=10)
     for vault in response.results:
         print(f"  {vault.id} — {vault.vaultName} ({vault.vaultType})")
+        # Fiat vaults are bound to a single asset; crypto vaults report None.
+        print(f"  Bound asset: {vault.asset}")
+
+
+def get_vault_deposit_instructions(
+    api_client: APIClient, fiat_vault_id: str, crypto_vault_id: str
+):
+    """Fetch where to send funds; select exactly one rail per request."""
+    fiat_instructions = api_client.get_vault_deposit_instructions(
+        fiat_vault_id,
+        GetVaultDepositInstructionsRequest(asset="USD", paymentRail="WIRE"),
+    )
+    print(f"USD wire deposit instructions: {fiat_instructions.data}")
+
+    crypto_instructions = api_client.get_vault_deposit_instructions(
+        crypto_vault_id,
+        GetVaultDepositInstructionsRequest(asset="USDC", chain="ETHEREUM"),
+    )
+    print(f"USDC Ethereum deposit instructions: {crypto_instructions.data}")
