@@ -1,33 +1,56 @@
 from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.types import (
     ApprovalAction,
+    BankAccountBeneficiary,
+    BankAccountBeneficiaryAddress,
+    BankAccountBeneficiaryBusiness,
+    BankAccountBeneficiaryIdentification,
+    BankAccountInfo,
     CreateBankAccountRequest,
     GetApprovalRequest,
-    PaymentMethod,
+    PaymentRail,
 )
 
 
 def create_and_approve_bank_account(api_client: APIClient):
     """Create a bank account and approve the change request."""
     request = CreateBankAccountRequest(
-        accountNumber="123456789",
         accountName="Treasury Account",
-        routingNumber="021000021",
-        paymentMethod=PaymentMethod.ACH.value,
-        bankName="Chase",
-        streetLine="123 Main St",
-        city="New York",
-        state="NY",
-        postalCode="10001",
-        country="US",
+        bankAccountInfo=BankAccountInfo(
+            accountNumber="123456789",
+            routingNumber="021000021",
+            bankName="Chase",
+            country="US",
+            accountType="CHECKING",
+        ),
+        paymentRails=[PaymentRail.ACH],
+        currency="USD",
+        externalId="treasury-usd-001",
+        beneficiary=BankAccountBeneficiary(
+            entityType="BUSINESS",
+            business=BankAccountBeneficiaryBusiness(
+                legalName="Acme Treasury LLC", registrationCountry="US"
+            ),
+            address=BankAccountBeneficiaryAddress(
+                streetLine1="123 Main St",
+                city="New York",
+                state="NY",
+                zip="10001",
+                country="US",
+            ),
+            identifications=[
+                BankAccountBeneficiaryIdentification(type="TAX_ID", value="12-3456789")
+            ],
+        ),
         tags=["treasury", "payroll"],
     )
 
     bank_account = api_client.create_bank_account_with_approval(request)
     print(f"Created and approved: {bank_account.id} status={bank_account.status}")
-    print(
-        f"  accountName={bank_account.accountName} bankName={bank_account.bankName} city={bank_account.city}"
-    )
+    print(f"  accountName={bank_account.accountName}")
+    print(f"  currency={bank_account.currency} externalId={bank_account.externalId}")
+    if bank_account.beneficiary:
+        print(f"  beneficiary city={bank_account.beneficiary.address.city}")
     return bank_account
 
 
@@ -54,9 +77,7 @@ def list_bank_accounts(api_client: APIClient):
         )
         all_accounts.extend(response.results)
         for account in response.results:
-            print(
-                f"  - {account.accountName} ({account.paymentMethod}) bankName={account.bankName}"
-            )
+            print(f"  - {account.accountName} ({account.paymentRails})")
 
         if not response.hasNext or not response.nextCursor:
             break
@@ -70,5 +91,13 @@ def get_bank_account(api_client: APIClient, bank_account_id: str):
     """Get a single bank account by ID."""
     account = api_client.get_bank_account_by_id(bank_account_id)
     print(f"Bank account: {account.id}, status={account.status}")
-    print(f"  accountName={account.accountName}, bankName={account.bankName}")
+    print(f"  accountName={account.accountName}")
+    if account.bankAccountInfo:
+        print(f"  bankName={account.bankAccountInfo.bankName}")
     return account
+
+
+def find_bank_account_by_external_id(api_client: APIClient, external_id: str):
+    """Find a bank account by the externalId it was created with."""
+    response = api_client.get_bank_accounts(params={"externalId": external_id})
+    return response.results[0] if response.results else None

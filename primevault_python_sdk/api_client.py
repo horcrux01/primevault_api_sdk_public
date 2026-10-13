@@ -1,5 +1,5 @@
 from dataclasses import asdict, fields
-from typing import Any, Collection, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlencode
 
 from dacite import Config, from_dict
@@ -13,7 +13,6 @@ from primevault_python_sdk.types import (
     BalanceResponse,
     BankAccount,
     BankAccountListResponse,
-    BankDetails,
     ChainData,
     Contact,
     ContactListResponse,
@@ -54,12 +53,12 @@ from primevault_python_sdk.types import (
 )
 
 
-def _present_fields(request: Any, exclude: Collection[str] = ()) -> dict[str, Any]:
+def _present_fields(request: Any) -> dict[str, Any]:
     """Shallow-serialize a request dataclass, omitting fields left as None."""
     return {
         field.name: getattr(request, field.name)
         for field in fields(request)
-        if field.name not in exclude and getattr(request, field.name) is not None
+        if getattr(request, field.name) is not None
     }
 
 
@@ -259,16 +258,8 @@ class APIClient(BaseAPIClient):
         )
 
     @staticmethod
-    def _bank_details_data(bank: BankDetails) -> dict[str, Any]:
-        # accountNumberMasked/swiftBic are deposit-instruction-only response fields.
-        return _present_fields(bank, exclude=("accountNumberMasked", "swiftBic"))
-
-    @staticmethod
     def _transfer_party_data(party: TransferPartyData) -> dict[str, Any]:
-        data = _present_fields(party, exclude=("bankDetails",))
-        if party.bankDetails is not None:
-            data["bankDetails"] = APIClient._bank_details_data(party.bankDetails)
-        return data
+        return _present_fields(party)
 
     @staticmethod
     def _intent_asset_data(asset: IntentAsset) -> dict[str, Any]:
@@ -544,7 +535,13 @@ class APIClient(BaseAPIClient):
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
 
     def create_bank_account(self, request: CreateBankAccountRequest) -> BankAccount:
-        response = self.post("/api/external/bank_accounts/", data=asdict(request))
+        # Unset fields are left out at every level: the API rejects an explicit null
+        # for some, such as paymentRails or the beneficiary detail not in use.
+        data = asdict(
+            request,
+            dict_factory=lambda fields: {k: v for k, v in fields if v is not None},
+        )
+        response = self.post("/api/external/bank_accounts/", data=data)
         return from_dict(BankAccount, response, config=self._BANK_DACITE_CFG)
 
     def create_bank_account_approval(self, bank_account: BankAccount) -> BankAccount:

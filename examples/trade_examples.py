@@ -64,15 +64,16 @@ def create_test_trade(api_client: APIClient) -> Transaction:
 #
 # Fiat (bank) deposit instructions look like:
 #   transaction.depositInstructions = DepositInstructions(
-#       type="BANK_ACCOUNT",
+#       type="EXTERNAL_BANK_ACCOUNT",
 #       asset="USD",
 #       paymentRail="ACH",
 #       bankDetails=BankDetails(
-#           bankName="Chase",
 #           accountName="Treasury Account",
-#           accountNumber="123456789",
-#           routingNumber="021000021",
-#           paymentRail="ACH",
+#           bankAccountInfo=BankAccountInfo(
+#               bankName="Chase",
+#               accountNumber="123456789",
+#               routingNumber="021000021",
+#           ),
 #       ),
 #   )
 def create_deposit(api_client: APIClient) -> Transaction:

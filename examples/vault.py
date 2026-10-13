@@ -5,6 +5,7 @@ from primevault_python_sdk.types import (
     BalanceResponse,
     CreateVaultRequest,
     GetVaultDepositInstructionsRequest,
+    PaymentRail,
 )
 
 
@@ -68,12 +69,12 @@ def get_vault_deposit_instructions(
     """Fetch where to send funds; select exactly one rail per request."""
     fiat_instructions = api_client.get_vault_deposit_instructions(
         fiat_vault_id,
-        GetVaultDepositInstructionsRequest(asset="USD", paymentRail="WIRE"),
+        GetVaultDepositInstructionsRequest(asset="USD", paymentRail=PaymentRail.WIRE),
     )
-    print(f"USD wire deposit instructions: {fiat_instructions.data}")
+    print(f"USD wire deposit instructions: {fiat_instructions.results}")
 
     crypto_instructions = api_client.get_vault_deposit_instructions(
         crypto_vault_id,
         GetVaultDepositInstructionsRequest(asset="USDC", chain="ETHEREUM"),
     )
-    print(f"USDC Ethereum deposit instructions: {crypto_instructions.data}")
+    print(f"USDC Ethereum deposit instructions: {crypto_instructions.results}")

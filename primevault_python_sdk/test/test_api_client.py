@@ -10,6 +10,12 @@ from primevault_python_sdk.api_client import APIClient
 from primevault_python_sdk.base_api_client import BadRequestError, BaseAPIClient
 from primevault_python_sdk.types import (
     ApprovalAction,
+    BankAccountBeneficiary,
+    BankAccountBeneficiaryAddress,
+    BankAccountBeneficiaryBusiness,
+    BankAccountBeneficiaryIdentification,
+    BankAccountBeneficiaryIndividual,
+    BankAccountInfo,
     BankDetails,
     ContactStatus,
     CreateBankAccountRequest,
@@ -18,6 +24,7 @@ from primevault_python_sdk.types import (
     CreateTransferTransactionRequest,
     CreateVaultRequest,
     DelegateResourceRequest,
+    DepositInstructionBeneficiary,
     EVMContractCallData,
     Fees,
     GetApprovalMessageResponse,
@@ -25,6 +32,7 @@ from primevault_python_sdk.types import (
     GetQuoteRequest,
     GetVaultDepositInstructionsRequest,
     IntentAsset,
+    PaymentRail,
     ResourceType,
     StakeResourceRequest,
     Transaction,
@@ -102,20 +110,11 @@ def test_intent_request_serialization_matches_backend_contract():
         type=TransferPartyType.VAULT.value,
         id="source-vault",
         chain="ETHEREUM",
-        provider=None,
     )
     destination = TransferPartyData(
         type=TransferPartyType.BANK_ACCOUNT.value,
         id="destination-bank-account",
         paymentRail="ACH",
-        bankDetails=BankDetails(
-            bankAccountId="destination-bank-account",
-            bankName="Example Bank",
-            bankCode="044",
-            beneficiaryAddress="1 Main St",
-            accountNumberMasked="****1234",
-            swiftBic="EXAMPLEXXX",
-        ),
     )
     intent = TransactionIntentRequest(
         input=IntentAsset(asset="USDC", amount="100"),
@@ -134,7 +133,6 @@ def test_intent_request_serialization_matches_backend_contract():
         )
     )
 
-    # None fields are omitted, and deposit-instruction-only bank fields are dropped.
     expected_intent = {
         "input": {"asset": "USDC", "amount": "100"},
         "output": {"asset": "USD", "amount": "99", "vaultId": "usd-fiat-vault"},
@@ -147,12 +145,6 @@ def test_intent_request_serialization_matches_backend_contract():
             "type": TransferPartyType.BANK_ACCOUNT.value,
             "id": "destination-bank-account",
             "paymentRail": "ACH",
-            "bankDetails": {
-                "bankAccountId": "destination-bank-account",
-                "bankName": "Example Bank",
-                "bankCode": "044",
-                "beneficiaryAddress": "1 Main St",
-            },
         },
     }
     client.post.assert_called_once_with(
@@ -362,18 +354,28 @@ def test_get_vault_deposit_instructions_fiat_selects_payment_rail():
     client = object.__new__(APIClient)
     client.get = Mock(
         return_value={
-            "data": [
+            "results": [
                 {
-                    "type": TransferPartyType.BANK_ACCOUNT.value,
+                    "type": TransferPartyType.EXTERNAL_BANK_ACCOUNT.value,
                     "asset": "USD",
                     "paymentRail": "WIRE",
                     "bankDetails": {
-                        "bankName": "Example Bank",
-                        "bankCode": "021000021",
-                        "beneficiaryName": "PrimeVault Inc",
-                        "accountNumberMasked": "****1234",
-                        "beneficiaryAddress": "1 Main St, New York, NY",
-                        "swiftBic": "EXAMPLEXXX",
+                        "bankAccountInfo": {
+                            "bankName": "Example Bank",
+                            "country": "US",
+                            "accountType": "CHECKING",
+                            "routingNumber": "021000021",
+                            "accountNumber": "00001234",
+                            "bic": "EXAMPLEXXX",
+                        },
+                        "beneficiary": {
+                            "name": "PrimeVault Inc",
+                            "address": {
+                                "streetLine1": "1 Main St",
+                                "city": "New York",
+                                "state": "NY",
+                            },
+                        },
                     },
                     "memo": "Reference: fiat-vault",
                 }
@@ -390,26 +392,62 @@ def test_get_vault_deposit_instructions_fiat_selects_payment_rail():
         "/api/external/vaults/vault-id/deposit_instructions/",
         params={"asset": "USD", "paymentRail": "WIRE"},
     )
-    [instruction] = response.data
-    assert instruction.type == TransferPartyType.BANK_ACCOUNT.value
+    [instruction] = response.results
+    assert instruction.type == TransferPartyType.EXTERNAL_BANK_ACCOUNT.value
     assert instruction.asset == "USD"
     assert instruction.paymentRail == "WIRE"
     assert instruction.memo == "Reference: fiat-vault"
     assert instruction.bankDetails == BankDetails(
-        bankName="Example Bank",
-        bankCode="021000021",
-        beneficiaryName="PrimeVault Inc",
-        accountNumberMasked="****1234",
-        beneficiaryAddress="1 Main St, New York, NY",
-        swiftBic="EXAMPLEXXX",
+        bankAccountInfo=BankAccountInfo(
+            bankName="Example Bank",
+            country="US",
+            accountType="CHECKING",
+            routingNumber="021000021",
+            accountNumber="00001234",
+            bic="EXAMPLEXXX",
+        ),
+        beneficiary=DepositInstructionBeneficiary(
+            name="PrimeVault Inc",
+            address=BankAccountBeneficiaryAddress(
+                streetLine1="1 Main St", city="New York", state="NY"
+            ),
+        ),
     )
+
+    client.get = Mock(
+        return_value={
+            "results": [
+                {
+                    "asset": "BRL",
+                    "paymentRail": "PIX",
+                    "bankDetails": {
+                        "bankAccountInfo": {
+                            "country": "BR",
+                            "pixKey": "00123456789",
+                            "pixKeyType": "CPF",
+                        },
+                    },
+                }
+            ],
+        }
+    )
+    pix_response = client.get_vault_deposit_instructions(
+        "vault-id",
+        GetVaultDepositInstructionsRequest(asset="BRL", paymentRail=PaymentRail.PIX),
+    )
+    pix_info = pix_response.results[0].bankDetails.bankAccountInfo
+    assert isinstance(pix_info, BankAccountInfo)
+    assert pix_info == BankAccountInfo(
+        country="BR", pixKey="00123456789", pixKeyType="CPF"
+    )
+    assert pix_info.bankName is None
 
 
 def test_get_vault_deposit_instructions_crypto_selects_chain():
     client = object.__new__(APIClient)
     client.get = Mock(
         return_value={
-            "data": [
+            "results": [
                 {
                     "type": TransferPartyType.EXTERNAL_ADDRESS.value,
                     "asset": "USDC",
@@ -436,24 +474,24 @@ def test_get_vault_deposit_instructions_crypto_selects_chain():
         "/api/external/vaults/vault-id/deposit_instructions/",
         params={"asset": "USDC", "chain": "ETHEREUM"},
     )
-    assert [(item.address, item.memo) for item in response.data] == [
+    assert [(item.address, item.memo) for item in response.results] == [
         ("0xPrimaryDepositAddress", None),
         ("0xSecondaryDepositAddress", "12345"),
     ]
-    assert all(item.chain == "ETHEREUM" for item in response.data)
-    assert all(item.bankDetails is None for item in response.data)
+    assert all(item.chain == "ETHEREUM" for item in response.results)
+    assert all(item.bankDetails is None for item in response.results)
 
 
 def test_get_vault_deposit_instructions_handles_empty_response():
     client = object.__new__(APIClient)
-    client.get = Mock(return_value={"data": []})
+    client.get = Mock(return_value={"results": []})
 
     response = client.get_vault_deposit_instructions(
         "vault-id",
         GetVaultDepositInstructionsRequest(asset="EUR", paymentRail="SEPA"),
     )
 
-    assert response.data == []
+    assert response.results == []
 
 
 def test_get_vault_deposit_instructions_request_requires_exactly_one_rail():
@@ -943,7 +981,15 @@ def test_create_bank_account_with_approval(tag_fields):
         "isDeleted": False,
         "status": "PENDING",
         "accountName": "Treasury Account",
-        "bankName": "Chase",
+        "bankAccountInfo": {
+            "accountNumber": "123456789",
+            "bankName": "Chase",
+            "country": "US",
+            "bankAddress": "270 Park Avenue, New York",
+        },
+        "paymentRails": ["SWIFT"],
+        "currency": "USD",
+        "externalId": "treasury-usd-001",
         **tag_fields,
     }
     client.post = Mock(
@@ -970,22 +1016,68 @@ def test_create_bank_account_with_approval(tag_fields):
     client.signature_service.sign.return_value = bytes.fromhex("0a0b")
 
     request = CreateBankAccountRequest(
-        accountNumber="123456789",
         accountName="Treasury Account",
-        bankName="Chase",
+        beneficiary=BankAccountBeneficiary(
+            entityType="BUSINESS",
+            business=BankAccountBeneficiaryBusiness(legalName="Treasury Holdings Ltd"),
+            address=BankAccountBeneficiaryAddress(
+                streetLine1="1 Main St", city="London", country="GB", zip="EC1A 1BB"
+            ),
+        ),
+        currency="USD",
+        bankAccountInfo=BankAccountInfo(
+            accountNumber="123456789",
+            bankName="Chase",
+            country="US",
+            bankAddress="270 Park Avenue, New York",
+            bic="CHASUS33",
+        ),
+        paymentRails=[PaymentRail.SWIFT],
+        externalId="treasury-usd-001",
         **tag_fields,
     )
     bank_account = client.create_bank_account_with_approval(request)
 
     assert bank_account.id == "bank-account-id"
     assert bank_account.status == "APPROVED"
+    assert bank_account.accountName == "Treasury Account"
+    assert bank_account.bankAccountInfo.bankName == "Chase"
+    assert bank_account.bankAccountInfo.bankAddress == "270 Park Avenue, New York"
+    assert bank_account.bankAccountInfo.country == "US"
+    assert not hasattr(bank_account, "country")
+    assert bank_account.currency == "USD"
+    assert bank_account.externalId == "treasury-usd-001"
     assert bank_account.tags == tag_fields.get("tags")
-    assert client.post.call_args_list[0].kwargs["data"]["tags"] == tag_fields.get(
+    assert client.post.call_args_list[0].kwargs["data"].get("tags") == tag_fields.get(
         "tags"
     )
     assert client.post.call_args_list[0] == call(
         "/api/external/bank_accounts/",
-        data=asdict(request),
+        data={
+            "accountName": "Treasury Account",
+            "beneficiary": {
+                "entityType": "BUSINESS",
+                "address": {
+                    "streetLine1": "1 Main St",
+                    "city": "London",
+                    "country": "GB",
+                    "zip": "EC1A 1BB",
+                },
+                "business": {"legalName": "Treasury Holdings Ltd"},
+                "identifications": [],
+            },
+            "currency": "USD",
+            "bankAccountInfo": {
+                "accountNumber": "123456789",
+                "bankName": "Chase",
+                "country": "US",
+                "bankAddress": "270 Park Avenue, New York",
+                "bic": "CHASUS33",
+            },
+            "paymentRails": ["SWIFT"],
+            "externalId": "treasury-usd-001",
+            **({} if tag_fields.get("tags") is None else {"tags": tag_fields["tags"]}),
+        },
     )
     assert client.get.call_args_list == [
         call(
@@ -1008,6 +1100,71 @@ def test_create_bank_account_with_approval(tag_fields):
     client.get.assert_called_with("/api/external/bank_accounts/?limit=20&cursor=")
 
 
+def test_create_bank_account_with_individual_beneficiary():
+    client = object.__new__(APIClient)
+    beneficiary = {
+        "entityType": "INDIVIDUAL",
+        "address": {
+            "streetLine1": "1 Main St",
+            "city": "London",
+            "country": "GB",
+            "zip": "EC1A 1BB",
+        },
+        "individual": {
+            "firstName": "Ada",
+            "lastName": "Lovelace",
+            "dateOfBirth": "1990-01-02",
+        },
+        "identifications": [
+            {"type": "PASSPORT", "value": "123456789", "issuingCountry": "GB"}
+        ],
+    }
+    client.post = Mock(
+        return_value={
+            "id": "bank-account-id",
+            "orgId": "org-id",
+            "orgEntityId": "org-entity-id",
+            "createdAt": "2026-05-25T00:00:00Z",
+            "updatedAt": "2026-05-25T00:00:00Z",
+            "isDeleted": False,
+            "status": "PENDING",
+            "beneficiary": {**beneficiary, "business": None},
+        }
+    )
+
+    bank_account = client.create_bank_account(
+        CreateBankAccountRequest(
+            accountName="Ada GBP",
+            beneficiary=BankAccountBeneficiary(
+                entityType="INDIVIDUAL",
+                individual=BankAccountBeneficiaryIndividual(
+                    firstName="Ada", lastName="Lovelace", dateOfBirth="1990-01-02"
+                ),
+                address=BankAccountBeneficiaryAddress(
+                    streetLine1="1 Main St", city="London", country="GB", zip="EC1A 1BB"
+                ),
+                identifications=[
+                    BankAccountBeneficiaryIdentification(
+                        type="PASSPORT", value="123456789", issuingCountry="GB"
+                    )
+                ],
+            ),
+            currency="GBP",
+            bankAccountInfo=BankAccountInfo(
+                accountNumber="12345678",
+                routingNumber="123456",
+                bankName="Barclays",
+                country="GB",
+            ),
+            paymentRails=["FPS"],
+        )
+    )
+
+    assert client.post.call_args.kwargs["data"]["beneficiary"] == beneficiary
+    assert bank_account.beneficiary.individual.lastName == "Lovelace"
+    assert bank_account.beneficiary.business is None
+
+
 def test_transaction_parses_deposit_instructions():
     client = object.__new__(APIClient)
     deposit_instructions = {
@@ -1019,15 +1176,11 @@ def test_transaction_parses_deposit_instructions():
     source = {
         "type": TransferPartyType.VAULT.value,
         "id": "vault-id",
-        "provider": None,
     }
     destination = {
         "type": TransferPartyType.BANK_ACCOUNT.value,
         "id": "destination-bank-account",
-        "bankDetails": {
-            "bankName": "Example Bank",
-            "accountNumber": "000123456789",
-        },
+        "paymentRail": "ACH",
     }
     client.post = Mock(
         return_value={
@@ -1083,10 +1236,11 @@ def test_transaction_parses_deposit_instructions():
     assert transaction.quoteResponse.rate == "1375.00"
     assert transaction.quoteResponse.output == IntentAsset(asset="USDT", amount="100")
     assert transaction.source is not None
-    assert transaction.source.provider is None
+    assert transaction.source.id == "vault-id"
+    assert not hasattr(transaction.source, "provider")
     assert transaction.destination is not None
-    assert transaction.destination.bankDetails is not None
-    assert transaction.destination.bankDetails.bankName == "Example Bank"
+    assert transaction.destination.id == "destination-bank-account"
+    assert transaction.destination.paymentRail == "ACH"
     assert transaction.depositInstructions.asset == "USDT"
     assert transaction.depositInstructions.chain == "ETHEREUM"
     assert transaction.depositInstructions.address == "0xRecipientAddressFromPrimeVault"
@@ -1115,7 +1269,6 @@ def test_transaction_parses_operations():
                         "id": "vault-id",
                         "chain": "ETHEREUM",
                         "paymentRail": "BLOCKCHAIN",
-                        "provider": "Example Provider",
                     },
                     "destination": {
                         "type": TransferPartyType.EXTERNAL_BANK_ACCOUNT.value,
@@ -1151,6 +1304,7 @@ def test_transaction_parses_operations():
     assert operation.type == TransactionOperationType.WITHDRAW.value
     assert operation.status == TransactionOperationStatus.COMPLETED.value
     assert operation.source is not None
+    assert not hasattr(operation.source, "provider")
     assert operation.source.chain == "ETHEREUM"
     assert operation.source.paymentRail == "BLOCKCHAIN"
     assert operation.destination is not None
