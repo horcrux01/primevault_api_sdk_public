@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 
 # Enums
@@ -114,12 +114,15 @@ class TransactionOperationStatus(str, Enum):
     REVERSED = "REVERSED"
 
 
-class PaymentMethod(str, Enum):
+class PaymentRail(str, Enum):
     ACH = "ACH"
     WIRE = "WIRE"
     SEPA = "SEPA"
     SWIFT = "SWIFT"
-    BANK_TRANSFER = "BANK_TRANSFER"
+    FPS = "FPS"
+    NIP = "NIP"
+    PIX = "PIX"
+    UAEFTS = "UAEFTS"
 
 
 class ResourceType(str, Enum):
@@ -168,29 +171,10 @@ class ChainData:
 
 
 @dataclass
-class BankDetails:
-    bankAccountId: Optional[str] = None
-    bankName: Optional[str] = None
-    bankCode: Optional[str] = None
-    beneficiaryName: Optional[str] = None
-    accountName: Optional[str] = None
-    accountNumber: Optional[str] = None
-    accountNumberMasked: Optional[str] = None
-    routingNumber: Optional[str] = None
-    paymentRail: Optional[str] = None
-    bankAddress: Optional[str] = None
-    beneficiaryAddress: Optional[str] = None
-    swiftCode: Optional[str] = None
-    swiftBic: Optional[str] = None
-    iban: Optional[str] = None
-    country: Optional[str] = None
-
-
-@dataclass
 class DepositInstructions:
     type: Optional[str] = None  # TransferPartyType
     paymentRail: Optional[str] = None
-    bankDetails: Optional[BankDetails] = None
+    bankDetails: Optional["BankDetails"] = None
     asset: Optional[str] = None
     address: Optional[str] = None
     chain: Optional[str] = None
@@ -203,8 +187,6 @@ class TransferPartyData:
     id: Optional[str] = None
     name: Optional[str] = None
     address: Optional[str] = None
-    provider: Optional[str] = None
-    bankDetails: Optional[BankDetails] = None
     chain: Optional[str] = None
     paymentRail: Optional[str] = None
 
@@ -291,8 +273,6 @@ class TransactionSourceData:
     subOrgId: Optional[str] = None
     name: Optional[str] = None
     address: Optional[str] = None
-    provider: Optional[str] = None
-    bankDetails: Optional[BankDetails] = None
     chain: Optional[str] = None
     paymentRail: Optional[str] = None
 
@@ -599,7 +579,7 @@ class VaultListResponse:
 
 @dataclass
 class VaultDepositInstructionsResponse:
-    data: List[DepositInstructions]
+    results: List[DepositInstructions]
 
 
 @dataclass
@@ -653,6 +633,88 @@ class ContactListResponse:
 
 
 @dataclass
+class BankAccountBeneficiaryAddress:
+    # Creating a bank account requires streetLine1, city, country and zip; deposit
+    # instructions carry the fields the provider gives.
+    streetLine1: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None  # Two-letter ISO country code, such as GB
+    zip: Optional[str] = None
+    streetLine2: Optional[str] = None
+    # state is required for US and CA addresses.
+    state: Optional[str] = None
+
+
+@dataclass
+class BankAccountBeneficiaryBusiness:
+    legalName: str
+    registrationCountry: Optional[str] = None
+
+
+@dataclass
+class BankAccountBeneficiaryIndividual:
+    firstName: str
+    lastName: str
+    middleName: Optional[str] = None
+    dateOfBirth: Optional[str] = None  # YYYY-MM-DD
+    nationality: Optional[str] = None  # Two-letter ISO country code, such as GB
+    gender: Optional[str] = None
+    occupation: Optional[str] = None
+
+
+@dataclass
+class BankAccountBeneficiaryIdentification:
+    # COMPANY_REGISTRATION, LEI or TAX_ID for a business; PASSPORT, NATIONAL_ID or
+    # TAX_ID for an individual.
+    type: str
+    value: str
+    issuingCountry: Optional[str] = None
+
+
+@dataclass
+class BankAccountBeneficiary:
+    entityType: str  # BUSINESS or INDIVIDUAL
+    address: BankAccountBeneficiaryAddress
+    # Set business for a BUSINESS beneficiary and individual for an INDIVIDUAL one.
+    business: Optional[BankAccountBeneficiaryBusiness] = None
+    individual: Optional[BankAccountBeneficiaryIndividual] = None
+    identifications: List[BankAccountBeneficiaryIdentification] = field(
+        default_factory=list
+    )
+    email: Optional[str] = None
+    phoneNumber: Optional[str] = None
+    name: Optional[str] = None
+
+
+@dataclass
+class BankAccountInfo:
+    bankName: Optional[str] = None
+    accountNumber: Optional[str] = None
+    routingNumber: Optional[str] = None
+    iban: Optional[str] = None
+    bic: Optional[str] = None
+    accountType: Optional[Literal["CHECKING", "SAVINGS"]] = None
+    bankAddress: Optional[str] = None
+    # Two-letter ISO code, such as GB; required for FPS, SEPA and SWIFT.
+    country: Optional[str] = None
+    pixKey: Optional[str] = None
+    pixKeyType: Optional[str] = None
+
+
+@dataclass
+class DepositInstructionBeneficiary:
+    name: Optional[str] = None
+    address: Optional[BankAccountBeneficiaryAddress] = None
+
+
+@dataclass
+class BankDetails:
+    accountName: Optional[str] = None
+    bankAccountInfo: Optional[BankAccountInfo] = None
+    beneficiary: Optional[DepositInstructionBeneficiary] = None
+
+
+@dataclass
 class BankAccount:
     id: str
     orgId: str
@@ -661,19 +723,15 @@ class BankAccount:
     updatedAt: str
     isDeleted: bool
     status: str  # BankAccountStatus
+    # The PrimeVault display name; payout providers get the beneficiary's name.
+    accountName: Optional[str] = None
     subOrgId: Optional[str] = None
     createdById: Optional[str] = None
-    accountNumber: Optional[str] = None
-    accountName: Optional[str] = None
-    routingNumber: Optional[str] = None
-    clientBankAccountId: Optional[str] = None
-    paymentMethod: Optional[str] = None  # PaymentMethod
-    bankName: Optional[str] = None
-    streetLine: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    postalCode: Optional[str] = None
-    country: Optional[str] = None
+    bankAccountInfo: Optional[BankAccountInfo] = None
+    paymentRails: List[str] = field(default_factory=list)
+    beneficiary: Optional[BankAccountBeneficiary] = None
+    currency: Optional[str] = None
+    externalId: Optional[str] = None
     tags: Optional[List[str]] = None
 
 
@@ -686,18 +744,16 @@ class BankAccountListResponse:
 
 @dataclass
 class CreateBankAccountRequest:
+    # The PrimeVault display name; payout providers get the beneficiary's name.
+    accountName: str
+    # Three-letter uppercase ISO 4217 code, such as GBP.
+    currency: str
+    # Which other bankAccountInfo fields are required depends on paymentRails.
+    bankAccountInfo: BankAccountInfo
+    paymentRails: List[str]
+    beneficiary: Optional[BankAccountBeneficiary] = None
     subOrgId: Optional[str] = None
-    accountNumber: Optional[str] = None
-    accountName: Optional[str] = None
-    routingNumber: Optional[str] = None
-    clientBankAccountId: Optional[str] = None
-    paymentMethod: Optional[str] = None  # PaymentMethod
-    bankName: Optional[str] = None
-    streetLine: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    postalCode: Optional[str] = None
-    country: Optional[str] = None
+    externalId: Optional[str] = None
     tags: Optional[List[str]] = None
 
 
