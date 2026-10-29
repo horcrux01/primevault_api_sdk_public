@@ -59,6 +59,7 @@ class TransactionSubCategory(str, Enum):
     STAKE = "STAKE"
     UNSTAKE = "UNSTAKE"
     CLAIM = "CLAIM"
+    ACTIVATION = "ACTIVATION"
 
 
 class TransactionStatus(str, Enum):
@@ -348,8 +349,18 @@ class AlephiumContractCallData:
     params: dict
 
 
+# Stellar custom transactions only enable (add a trustline for) an issued asset on the vault.
+@dataclass
+class StellarActivationData:
+    activateAsset: str
+
+
 ContractCallData = Union[
-    EVMContractCallData, ICPCanisterCallData, RawSigningData, AlephiumContractCallData
+    EVMContractCallData,
+    ICPCanisterCallData,
+    RawSigningData,
+    AlephiumContractCallData,
+    StellarActivationData,
 ]
 
 
@@ -362,6 +373,7 @@ class CreateContractCallTransactionRequest:
     externalId: Optional[str] = None
     gasParams: Optional[TransactionCreationGasParams] = None
     creationOptions: Optional[TransactionCreationOptions] = None
+    feePayer: Optional[FeePayer] = None  # only used on Stellar; ignored on other chains
 
 
 @dataclass

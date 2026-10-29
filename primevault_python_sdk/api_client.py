@@ -195,6 +195,7 @@ class APIClient(BaseAPIClient):
             "externalId": request.externalId,
             "gasParams": gas_params,
             "creationOptions": creation_options,
+            "feePayer": request.feePayer and request.feePayer.__dict__,
         }
         return from_dict(
             Transaction, self.post("/api/external/transactions/", data=data)
