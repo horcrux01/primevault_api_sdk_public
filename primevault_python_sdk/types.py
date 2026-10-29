@@ -59,6 +59,7 @@ class TransactionSubCategory(str, Enum):
     STAKE = "STAKE"
     UNSTAKE = "UNSTAKE"
     CLAIM = "CLAIM"
+    ACTIVATION = "ACTIVATION"
 
 
 class TransactionStatus(str, Enum):
@@ -348,8 +349,18 @@ class AlephiumContractCallData:
     params: dict
 
 
+# Stellar custom transactions only enable (add a trustline for) an issued asset on the vault.
+@dataclass
+class StellarActivationData:
+    activateAsset: str
+
+
 ContractCallData = Union[
-    EVMContractCallData, ICPCanisterCallData, RawSigningData, AlephiumContractCallData
+    EVMContractCallData,
+    ICPCanisterCallData,
+    RawSigningData,
+    AlephiumContractCallData,
+    StellarActivationData,
 ]
 
 
@@ -362,6 +373,7 @@ class CreateContractCallTransactionRequest:
     externalId: Optional[str] = None
     gasParams: Optional[TransactionCreationGasParams] = None
     creationOptions: Optional[TransactionCreationOptions] = None
+    feePayer: Optional[FeePayer] = None  # only used on Stellar; ignored on other chains
 
 
 @dataclass
@@ -565,6 +577,35 @@ class VaultListResponse:
 @dataclass
 class TransactionListResponse:
     results: List[Transaction]
+    nextCursor: Optional[str] = None
+    hasNext: Optional[bool] = None
+
+
+@dataclass
+class ActivityEventMetaData:
+    platform: Optional[str] = None
+    sourceIp: Optional[str] = None
+    userAgent: Optional[str] = None
+
+
+@dataclass
+class ActivityEvent:
+    id: str
+    action: str
+    outcome: Optional[str] = None
+    activityLabel: Optional[str] = None
+    createdAt: Optional[str] = None
+    entityType: Optional[str] = None
+    entityId: Optional[str] = None
+    entityName: Optional[str] = None
+    actorId: Optional[str] = None
+    metaData: Optional[ActivityEventMetaData] = None
+    schemaVersion: Optional[str] = None
+
+
+@dataclass
+class ActivityEventListResponse:
+    results: List[ActivityEvent]
     nextCursor: Optional[str] = None
     hasNext: Optional[bool] = None
 
