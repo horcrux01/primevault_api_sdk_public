@@ -1,0 +1,73 @@
+name: Notify Slack of Dependabot PRs
+
+# pull_request_target runs in the base-branch context, so the job can read the
+# normal Actions secrets. A plain pull_request trigger would only see the
+# separate Dependabot secrets store. No PR code is checked out or executed here.
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  notify:
+    name: Post Dependabot PR to Slack
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && !github.event.repository.fork
+    steps:
+      # Pinned to a commit: this job holds a webhook secret, so a moved tag
+      # would run unreviewed code with that secret in scope.
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.DEPENDABOT_SLACK_WEBHOOK_URL }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DEPENDENCY_NAMES: ${{ steps.metadata.outputs.dependency-names }}
+          DEPENDENCY_TYPE: ${{ steps.metadata.outputs.dependency-type }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+        run: |
+          # jq builds the payload so a crafted PR title cannot break out of the
+          # JSON, and the title is escaped for Slack mrkdwn so it cannot close
+          # the link or inject markup.
+          PAYLOAD=$(jq -n \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg title "$PR_TITLE" \
+            --arg url "$PR_URL" \
+            --arg number "$PR_NUMBER" \
+            --arg names "$DEPENDENCY_NAMES" \
+            --arg depType "$DEPENDENCY_TYPE" \
+            --arg updateType "$UPDATE_TYPE" \
+            '($title | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;")) as $safeTitle |
+            {
+              blocks: [
+                {
+                  type: "header",
+                  text: { type: "plain_text", text: ("Dependabot PR opened: " + $repo) }
+                },
+                {
+                  type: "section",
+                  text: { type: "mrkdwn", text: ("*<" + $url + "|#" + $number + ">* " + $safeTitle) }
+                },
+                {
+                  type: "section",
+                  fields: [
+                    { type: "mrkdwn", text: ("*Dependencies:*\n" + $names) },
+                    { type: "mrkdwn", text: ("*Dependency type:*\n" + $depType) },
+                    { type: "mrkdwn", text: ("*Update type:*\n" + $updateType) }
+                  ]
+                }
+              ]
+            }')
+
+          curl -sS --fail-with-body -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-type: application/json' \
+            -d "$PAYLOAD"
